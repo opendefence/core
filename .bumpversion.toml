@@ -1,0 +1,7 @@
+[tool.bumpversion]
+current_version = "0.1.0+261010"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)\\+(?P<build>\\d+)"
+serialize = ["{major}.{minor}.{patch}+{build}"]
+
+[tool.bumpversion.parts.build]
+calver_format = "{0Y}{0M}{0D}"

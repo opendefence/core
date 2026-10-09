@@ -1,0 +1,4 @@
+**/__*cache__/
+.prettier_cache
+.idea
+*cache*
