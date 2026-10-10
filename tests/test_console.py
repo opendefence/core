@@ -16,9 +16,10 @@ async def test_version_cli() -> None:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    out = await asyncio.wait_for(process.communicate(), 10)
+    stdout, _ = await asyncio.wait_for(process.communicate(), 10)
     # Demand clean exit
     assert process.returncode == 0
+    assert __version__ in stdout.decode()
 
 
 @pytest.mark.asyncio
@@ -30,6 +31,7 @@ async def test_cli_output() -> None:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    out = await asyncio.wait_for(process.communicate(), 10)
+    stdout, _ = await asyncio.wait_for(process.communicate(), 10)
     # Demand clean exit
     assert process.returncode == 0
+    assert "Do your thing" in stdout.decode()
