@@ -1,6 +1,6 @@
 [project]
 name = "opendefence_core"
-version = "0.1.1+261010"
+version = "0.2.0+261010"
 description = "Runs core operators and REST API for OpenDefence operational platform"
 authors = [{name="Niilo Vuokila", email="niilo@opendefence.fi" }]
 homepage = "https://github.com/opendefence/core"
