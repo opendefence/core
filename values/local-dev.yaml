@@ -1,0 +1,3 @@
+# Local development: don't pin HSTS for local hostnames in developer browsers
+hsts:
+  maxAge: 0

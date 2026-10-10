@@ -138,6 +138,8 @@ venv.bak/
 # Pyre type checker
 .pyre/
 
-# Local task cache and package builds
+# Build output and Task state
+.build/
 .task/
-dist/
+*.tar.zst
+zarf-sbom/
