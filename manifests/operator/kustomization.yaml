@@ -1,0 +1,10 @@
+# Hardens the operator manifests that `task build:manifests` renders from the
+# operator code into operator.yaml; Zarf builds this kustomization.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - certificate.yaml
+  - operator.yaml
+patches:
+  - path: deployment-patch.yaml
+  - path: webhook-patch.yaml

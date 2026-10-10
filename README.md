@@ -29,16 +29,16 @@ task lint
 `task up` is safe to rerun:
 
 1. `env` starts the registries and kind cluster if they are missing, using
-   base's taskfiles at the commit pinned in `BASE_REF`. It then installs base
-   version `BASE_VERSION` in local CA mode, unless a `base` package is already
-   deployed (for example by `task up` in a base checkout). Override with
-   `BASE_VERSION=<tag>` or `BASE_ISSUER`; reinstall explicitly with
-   `task base:install BASE_VERSION=<tag>`.
+   base's taskfiles from its `main` branch. It then installs
+   `oci://ghcr.io/opendefence/base:latest` in local CA mode, unless a `base`
+   package is already deployed (for example by `task up` in a base checkout).
+   Override with `BASE_VERSION=<tag>` or `BASE_ISSUER`; reinstall explicitly
+   with `task base:install BASE_VERSION=<tag>`.
 2. `dev:ci` builds core from this checkout and deploys it once (`tilt ci`).
 
 Remote includes are a Task experiment, enabled in `.taskrc.yml`; Task asks you
-to trust each remote file the first time. Bump `BASE_REF` and `BASE_VERSION`
-in `Taskfile.yaml` together, to a base commit and the version published from it.
+to trust each remote file the first time. To pin base, pass `BASE_REF=<commit>`
+together with a `BASE_VERSION` published from that commit.
 
 `task dev` runs `tilt up`. Tilt renders the package with
 `values/local-dev.yaml`, builds the `dev` Dockerfile target, pushes it to
@@ -158,7 +158,9 @@ Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
 Resources are raw YAML in `manifests/`; the middlewares, API, and ingress use
 Go templates. `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`
 are generated from the operator code; regenerate them after changing models,
-controllers, webhooks, or RBAC rules (a test fails while they are stale):
+controllers, webhooks, or RBAC rules (a test fails while they are stale).
+The hand-written patches in `manifests/operator/kustomization.yaml` harden the
+generated operator Deployment and webhook configuration:
 
 ```sh
 task build:manifests

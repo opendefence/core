@@ -3,26 +3,23 @@
 # image, and Tilt loop on top. Other repositories include taskfiles/core.yaml.
 version: "3"
 
+# Base's taskfiles come from BASE_REF (default main); pin a commit with
+# BASE_REF=<sha> together with a BASE_VERSION published from it.
 vars:
-  # opendefence/base commit whose taskfiles are included, and the base package
-  # published from it; bump them together
-  BASE_REF: b04ff076bc4d3ec6a2ce01074a66f10d0f09b7a6 # pragma: allowlist secret
-  BASE_VERSION: '{{.BASE_VERSION | default "0.4.2-261010"}}'
-  BASE_ISSUER: '{{.BASE_ISSUER | default "ca"}}'
   CLUSTER_NAME: '{{.CLUSTER_NAME | default "opendefence-dev"}}'
   KUBE_CONTEXT: '{{.KUBE_CONTEXT | default (printf "kind-%s" .CLUSTER_NAME)}}'
 
 includes:
   registries:
     aliases: [r]
-    taskfile: https://raw.githubusercontent.com/opendefence/base/{{.BASE_REF}}/taskfiles/registries.yaml
+    taskfile: https://raw.githubusercontent.com/opendefence/base/{{.BASE_REF | default "main"}}/taskfiles/registries.yaml
     dir: "{{.ROOT_DIR}}"
   cluster:
     aliases: [c]
-    taskfile: https://raw.githubusercontent.com/opendefence/base/{{.BASE_REF}}/taskfiles/cluster.yaml
+    taskfile: https://raw.githubusercontent.com/opendefence/base/{{.BASE_REF | default "main"}}/taskfiles/cluster.yaml
     dir: "{{.ROOT_DIR}}"
   base:
-    taskfile: https://raw.githubusercontent.com/opendefence/base/{{.BASE_REF}}/taskfiles/base.yaml
+    taskfile: https://raw.githubusercontent.com/opendefence/base/{{.BASE_REF | default "main"}}/taskfiles/base.yaml
     dir: "{{.ROOT_DIR}}"
   core:
     taskfile: ./taskfiles/core.yaml
@@ -62,11 +59,14 @@ tasks:
       - kubectl --context {{.KUBE_CONTEXT | shellQuote}} -n zarf get secret zarf-package-base
     cmds:
       # Base's taskfile derives BASE_PACKAGE from BASE_VERSION at file level,
-      # before include or call vars apply, so pass them on a new command line
+      # before include or call vars apply, so pass them on a new command line.
+      # The defaults stay inline: base's own empty defaults for these vars are
+      # merged into this file's namespace and would shadow root-level ones.
+      # `latest` is updated by base's publish workflow on every push to main.
       - >-
         {{.TASK_EXE}} base:install
-        BASE_VERSION={{.BASE_VERSION | shellQuote}}
-        BASE_ISSUER={{.BASE_ISSUER | shellQuote}}
+        BASE_VERSION={{.BASE_VERSION | default "latest" | shellQuote}}
+        BASE_ISSUER={{.BASE_ISSUER | default "ca" | shellQuote}}
         KUBE_CONTEXT={{.KUBE_CONTEXT | shellQuote}}
 
   down:

@@ -6,10 +6,10 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 
 - `src/lib_opendefence_core/models/v1alpha1/` defines the custom resources in the separate `lib-opendefence-core` package. The library must not import `opendefence_core`. The operator, the API, and the generated CRDs all use them.
 - `naming.py` holds the names shared across components: namespaces, issuers, the operator name, and the user certificate and Secret names. YAML under `manifests/` and the `Tiltfile` repeat them because they can't import Python, so keep them in sync.
-- `k8s_operator/` holds the Application (`app.py`), its controllers, and `render.py`, which generates `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`.
+- `k8s_operator/` holds the Application (`app.py`), its controllers, and `render.py`, which generates `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`; `manifests/operator/kustomization.yaml` patches the latter.
 - `api/` holds the FastAPI app: `routes/<area>/{views,schema}.py`, the shared `ApiModel` base in `schema.py`, the JWT dependency in `dependencies.py`, and helpers in `lib/`.
 - `cli/console.py` is the only entrypoint: `api run`, `operator run`, and `operator render [--check]`.
-- `Taskfile.yaml` orchestrates local development on base's kind cluster and registries. It includes base's taskfiles at the pinned `BASE_REF` commit and installs base `BASE_VERSION`.
+- `Taskfile.yaml` orchestrates local development on base's kind cluster and registries. It includes base's taskfiles from `BASE_REF` (default `main`) and installs base `BASE_VERSION` (default `latest`).
 - `taskfiles/core.yaml` installs a published core package or applies the CRDs. It must stay remote-safe: integration repositories include it by URL without a checkout, so it can't reference companion files.
 - `taskfiles/build.yaml` works on the checkout: Zarf lint, inspect, deploy and package, the image build, and manifest rendering.
 - `tests/` uses `fakes.py` (cloudcoil clients, caches, contexts, admission requests) and `factories.py` (resource builders). Reuse them; don't define per-file copies.
@@ -22,7 +22,7 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 - The operator only gains permissions through `RBACRule` in `k8s_operator/app.py`; the API's RBAC is hand-written in `manifests/api/rbac.yaml`. Keep both least-privilege.
 - The image is `ghcr.io/opendefence/core` and the Zarf package `core` is published under `oci://ghcr.io/opendefence/packages`. They share version tags, so they must stay in separate repositories.
 - Deployments pass only `args`, keeping the image entrypoint `tini -- opendefence_core`.
-- Bump the version with `task version:bump -- <part>`. Move `BASE_REF` and `BASE_VERSION` together.
+- Bump the version with `uv run --locked bump-my-version bump <part>`. When pinning base, set `BASE_REF` and `BASE_VERSION` together. Keep their defaults in the include URLs and the `install-base` command: Task doesn't evaluate templated vars in include paths, and base's own empty `BASE_*` defaults shadow root-level vars.
 - Follow base's Taskfile rules: scalar defaults go in each included file's top-level `vars:` using `default`; public tasks get descriptions and tool preconditions; shell arguments are quoted with `shellQuote`. A value derived from a var that includers may set, such as `CORE_PACKAGE` from `CORE_VERSION`, is computed in the task's `vars:`, because file-level vars are evaluated before include vars apply.
 
 ## Validation
