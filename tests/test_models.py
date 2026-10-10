@@ -1,5 +1,6 @@
 """CRD generation for platform resources, and the examples that use them."""
 
+import ast
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,19 @@ MODELS: dict[str, type[Resource]] = {
 
 def _schema(model: type[Resource]) -> dict[str, Any]:
     return CRD(model).manifest()["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
+
+
+def test_library_import_boundary() -> None:
+    library = Path(__file__).resolve().parents[1] / "src/lib_opendefence_core"
+    for path in library.rglob("*.py"):
+        tree = ast.parse(path.read_text())
+        assert not any(
+            isinstance(node, ast.ImportFrom)
+            and (node.module or "").startswith("opendefence_core")
+            or isinstance(node, ast.Import)
+            and any(alias.name.startswith("opendefence_core") for alias in node.names)
+            for node in ast.walk(tree)
+        ), path
 
 
 def _version(manifest: dict[str, Any]) -> dict[str, Any]:
