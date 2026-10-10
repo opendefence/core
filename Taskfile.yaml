@@ -32,13 +32,28 @@ tasks:
       - task --list
 
   up:
-    desc: Start the registries and kind cluster, and install the base operators
+    desc: Bring up core on the local cluster, creating the cluster and base first if missing
+    cmds:
+      - task: env
+      - task: deploy
+
+  env:
+    desc: Start the registries and kind cluster, and install base unless it is installed
     cmds:
       - task: registries:up
       - task: cluster:create
       - task: registries:connect
       - task: cluster:configure-mirrors
       - task: cluster:document-local-registry
+      - task: install-base
+
+  install-base:
+    internal: true
+    # Both base's `task up` (zarf dev deploy) and base:install record the package
+    # here; reinstall explicitly with `task base:install BASE_VERSION=...`
+    status:
+      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} -n zarf get secret zarf-package-base
+    cmds:
       # Base's taskfile defines BASE_VERSION/BASE_ISSUER itself (empty by default)
       # and derives BASE_PACKAGE at file level, so core's defaults go in as CLI
       # vars. `latest` is updated by base's publish workflow on every push to main.
@@ -46,6 +61,16 @@ tasks:
         {{.TASK_EXE}} base:install
         BASE_VERSION={{.BASE_VERSION | default "latest" | shellQuote}}
         BASE_ISSUER={{.BASE_ISSUER | default "ca" | shellQuote}}
+
+  deploy:
+    desc: Build core from this checkout and deploy it once (no file watching)
+    preconditions: &context
+      - sh: command -v tilt >/dev/null
+        msg: tilt is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT, or run `task up` first
+    cmds:
+      - tilt ci
 
   down:
     desc: Delete the kind cluster and leave the registries running
@@ -69,11 +94,7 @@ tasks:
 
   dev:
     desc: Run core on the cluster with Tilt, hot-reloading the API from src/
-    preconditions: &context
-      - sh: command -v tilt >/dev/null
-        msg: tilt is not on PATH
-      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
-        msg: Switch kubectl to the selected KUBE_CONTEXT, or run `task up` first
+    preconditions: *context
     cmds:
       - tilt up
 
