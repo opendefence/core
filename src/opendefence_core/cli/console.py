@@ -1,66 +1,94 @@
-"""CLI entrypoints for opendefence-core"""
+"""Command line entrypoint for the core operator and REST API."""
 
 import logging
+from pathlib import Path
 
 import click
+import uvicorn
 
 from opendefence_core import __version__
-from opendefence_core.k8s_operator.app import app
-
-
-LOGGER = logging.getLogger(__name__)
-
-# Pass everything after the subcommand through to the cloudcoil application
-PASSTHROUGH = {
-    "ignore_unknown_options": True,
-    "allow_extra_args": True,
-    "allow_interspersed_args": False,
-}
+from opendefence_core.k8s_operator import render
+from opendefence_core.k8s_operator.app import app as operator_app
 
 
 def _configure_logging(loglevel: int, verbose: int) -> None:
     """Apply verbose shorthand and initialize logging."""
     if verbose == 1:
-        loglevel = 20
+        loglevel = logging.INFO
     if verbose >= 2:
-        loglevel = 10
+        loglevel = logging.DEBUG
     logging.basicConfig(level=loglevel, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    LOGGER.setLevel(loglevel)
 
 
-@click.group(invoke_without_command=True)
+@click.group()
 @click.version_option(version=__version__)
-@click.option("-l", "--loglevel", help="Python log level, 10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR", default=30)
+@click.option(
+    "-l",
+    "--loglevel",
+    type=int,
+    default=logging.WARNING,
+    show_default=True,
+    help="Python log level, 10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR",
+)
 @click.option("-v", "--verbose", count=True, help="Shorthand for info/debug loglevel (-v/-vv)")
-@click.pass_context
-def opendefence_core_cli(ctx: click.Context, loglevel: int, verbose: int) -> None:
-    """CLI"""
+def opendefence_core_cli(loglevel: int, verbose: int) -> None:
+    """OpenDefence core: the platform operator and REST API."""
     _configure_logging(loglevel, verbose)
-    if ctx.invoked_subcommand is None:
-        click.echo("Do your thing")
+
+
+@opendefence_core_cli.group()
+def api() -> None:
+    """REST API for enrollment and certificate downloads."""
+
+
+@api.command("run")
+@click.option("--host", default="0.0.0.0", show_default=True, help="Address to listen on.")  # nosec B104
+@click.option("--port", type=int, default=8000, show_default=True, help="Port to listen on.")
+@click.option("--reload", is_flag=True, help="Restart when the source changes (development).")
+@click.option(
+    "--reload-dir",
+    "reload_dirs",
+    multiple=True,
+    type=click.Path(file_okay=False),
+    help="Directory to watch with --reload; repeatable.",
+)
+def api_run(host: str, port: int, reload: bool, reload_dirs: tuple[str, ...]) -> None:
+    """Serve the REST API with uvicorn."""
+    uvicorn.run(
+        "opendefence_core.api.app:app",
+        host=host,
+        port=port,
+        reload=reload,
+        reload_dirs=list(reload_dirs) or None,
+    )
 
 
 @opendefence_core_cli.group()
 def operator() -> None:
-    """Kubernetes operator and CRDs for OpenDefence platform entities"""
+    """Kubernetes operator for the platform.opendefence.fi resources."""
 
 
-@operator.command(context_settings=PASSTHROUGH)
-@click.pass_context
-def manifests(ctx: click.Context) -> None:
-    """Print CRD, RBAC, and optional Deployment manifests (offline)."""
-    app.main(["manifests", *ctx.args])
-
-
-@operator.command(context_settings=PASSTHROUGH)
-@click.pass_context
-def install(ctx: click.Context) -> None:
-    """Apply CRDs and runtime RBAC using the current kubeconfig."""
-    app.main(["install", *ctx.args])
-
-
-@operator.command(context_settings=PASSTHROUGH)
-@click.pass_context
-def run(ctx: click.Context) -> None:
+@operator.command("run")
+def operator_run() -> None:
     """Run the operator against the current cluster."""
-    app.main(["run", *ctx.args])
+    operator_app.main(["run"])
+
+
+@operator.command("render")
+@click.option("--check", is_flag=True, help="Fail if the committed files are stale instead of writing them.")
+@click.option(
+    "--root",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=Path("."),
+    show_default=True,
+    help="Repository root.",
+)
+def operator_render(check: bool, root: Path) -> None:
+    """Write the CRDs and the operator's deployment manifests from the operator code."""
+    if check:
+        stale = render.stale_files(root)
+        if stale:
+            raise click.ClickException(f"Out of date, run `task build:manifests`: {', '.join(map(str, stale))}")
+        return
+    for path in render.write_files(root):
+        click.echo(f"wrote {path}")

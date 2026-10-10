@@ -1,7 +1,9 @@
+"""PKCS#12 bundles of a user's key and certificate chain."""
+
 from cryptography import x509
-from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.hazmat.primitives.asymmetric import rsa, ec
 
 
 def build_pfx(callsign: str, key_pem: bytes, chain_pem: bytes) -> bytes:

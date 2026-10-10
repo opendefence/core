@@ -1,0 +1,105 @@
+# This workflow is managed by gh actions-lock.
+
+name: Publish image and Zarf package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: core-publish
+  cancel-in-progress: false
+
+jobs:
+  image:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      version-tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(python3 -c 'import tomllib; print(tomllib.load(open(".bumpversion.toml", "rb"))["tool"]["bumpversion"]["current_version"])')"
+          version_tag="${version//+/-}"
+          if [[ ! "$version_tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]; then
+            echo "Missing version or invalid OCI version tag: $version_tag" >&2
+            exit 1
+          fi
+          echo "tag=$version_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The package's manifests pin this tag, so it must exist before the package is published.
+      # The package itself goes to packages/core, because it shares version tags with the image.
+      - name: Build and push the image
+        env:
+          IMAGE: ghcr.io/opendefence/core:${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker build --target production -t "$IMAGE" .
+          docker push "$IMAGE"
+          {
+            printf '## Published image\n\n'
+            printf -- "- \`%s\`\n" "$IMAGE"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  package:
+    needs: image
+    runs-on: arc-runner-set
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION_TAG: ${{ needs.image.outputs.version-tag }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.1.1
+        with:
+          cache: true
+
+      - name: Lint and build package
+        run: |
+          set -euo pipefail
+          zarf dev lint .
+          build_dir="$(mktemp -d "$RUNNER_TEMP/zarf-build.XXXXXX")"
+          task -t taskfiles/build.yaml package ARCH=amd64 BUILD_DIR="$build_dir"
+          shopt -s nullglob
+          packages=("$build_dir"/zarf-package-*.tar.zst)
+          if [[ ${#packages[@]} -ne 1 ]]; then
+            echo "Expected exactly one Zarf package archive" >&2
+            exit 1
+          fi
+          echo "PACKAGE=${packages[0]}" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish version and latest
+        run: |
+          set -euo pipefail
+          zarf package publish "$PACKAGE" oci://ghcr.io/opendefence/packages \
+            --tag "$VERSION_TAG" --confirm
+          zarf package publish "$PACKAGE" oci://ghcr.io/opendefence/packages \
+            --tag latest --confirm
+          {
+            printf '## Published Zarf package\n\n'
+            printf -- "- \`%s\`\n" "ghcr.io/opendefence/packages/core:${VERSION_TAG}" "ghcr.io/opendefence/packages/core:latest"
+          } >> "$GITHUB_STEP_SUMMARY"

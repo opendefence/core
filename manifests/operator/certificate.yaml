@@ -3,16 +3,17 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: operator-tls
+  name: core-operator-tls
   namespace: opendefence-system
 spec:
-  secretName: operator-tls # pragma: allowlist secret
+  secretName: core-operator-tls # pragma: allowlist secret
   dnsNames:
-    - opendefence-platform.opendefence-system.svc
-    - opendefence-platform.opendefence-system.svc.cluster.local
+    - core-operator.opendefence-system.svc
+    - core-operator.opendefence-system.svc.cluster.local
   privateKey:
     algorithm: ECDSA
     size: 256
+    rotationPolicy: Always
   issuerRef:
     name: internal-root-issuer
     kind: ClusterIssuer

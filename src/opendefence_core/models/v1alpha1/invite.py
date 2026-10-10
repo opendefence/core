@@ -3,13 +3,12 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import Field
-
 from cloudcoil.crd import ListType, PrinterColumn, custom_resource
 from cloudcoil.pydantic import BaseModel
 from cloudcoil.resources import Resource
+from pydantic import Field
 
-from opendefence_core.k8s_operator.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus
+from opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus
 
 
 class InviteSpec(BaseModel):

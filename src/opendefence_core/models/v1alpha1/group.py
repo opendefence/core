@@ -2,19 +2,17 @@
 
 from typing import Annotated
 
-from pydantic import Field
-
 from cloudcoil.crd import ListType, PrinterColumn, custom_resource
 from cloudcoil.pydantic import BaseModel
 from cloudcoil.resources import Resource
+from pydantic import Field
 
-from opendefence_core.k8s_operator.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
+from opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
 
 
 class GroupSpec(BaseModel):
     """Desired identity and membership of a platform group."""
 
-    name: str = Field(min_length=1, description="Group name.")
     display_name: Annotated[str, PrinterColumn(name="Display name")] = Field(
         min_length=1,
         alias="displayName",

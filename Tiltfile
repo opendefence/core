@@ -1,7 +1,8 @@
-# Hot-reload loop for core on the kind cluster from `task up`.
+# Hot-reload loop for core on the kind cluster from `task env`; `task dev`
+# passes the cluster's kube-context in KUBE_CONTEXT.
 # Base publishes the local-registry-hosting ConfigMap, so Tilt pushes images
 # to its localhost registry without further configuration.
-allow_k8s_contexts('kind-opendefence-dev')
+allow_k8s_contexts(os.getenv('KUBE_CONTEXT', 'kind-opendefence-dev'))
 
 # Deploy what the Zarf package deploys, rendered with the local-dev values
 values_file = 'values/local-dev.yaml'
@@ -18,13 +19,9 @@ for obj in objects:
     container = obj['spec']['template']['spec']['containers'][0]
     if obj['metadata']['name'] == 'core-api':
         # uvicorn reloads source that Tilt syncs in, so the filesystem must be writable
-        container['command'] = [
-            'uvicorn', 'opendefence_core.api.app:app',
-            '--host', '0.0.0.0', '--port', '8000',
-            '--reload', '--reload-dir', '/app/src',
-        ]
+        container['args'] = ['api', 'run', '--reload', '--reload-dir', '/app/src']
         container['securityContext']['readOnlyRootFilesystem'] = False
-    elif obj['metadata']['name'] == 'opendefence-platform':
+    elif obj['metadata']['name'] == 'core-operator':
         # The operator can't reload in place; give it its own image so Tilt
         # rebuilds and restarts it on change instead of syncing files
         container['image'] = 'ghcr.io/opendefence/core-operator'
@@ -46,4 +43,4 @@ docker_build(
 docker_build('ghcr.io/opendefence/core-operator', **dev_build)
 
 k8s_resource('core-api', port_forwards='8000')
-k8s_resource('opendefence-platform', labels=['operator'])
+k8s_resource('core-operator', labels=['operator'])

@@ -1,10 +1,16 @@
 """platform.opendefence.fi/v1alpha1 resources."""
 
-from opendefence_core.k8s_operator.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
-from opendefence_core.k8s_operator.models.v1alpha1.group import Group, GroupSpec, GroupStatus
-from opendefence_core.k8s_operator.models.v1alpha1.invite import Invite, InviteSpec, InviteStatus
-from opendefence_core.k8s_operator.models.v1alpha1.role import Role, RoleSpec, RoleStatus
-from opendefence_core.k8s_operator.models.v1alpha1.user import (
+from opendefence_core.models.v1alpha1.common import (
+    API_VERSION,
+    REFERENCES_RESOLVED_CONDITION,
+    ObjectRef,
+    PlatformStatus,
+    ResolvedRef,
+)
+from opendefence_core.models.v1alpha1.group import Group, GroupSpec, GroupStatus
+from opendefence_core.models.v1alpha1.invite import Invite, InviteSpec, InviteStatus
+from opendefence_core.models.v1alpha1.role import Role, RoleSpec, RoleStatus
+from opendefence_core.models.v1alpha1.user import (
     BINDINGS_SYNCED_CONDITION,
     CERTIFICATE_READY_CONDITION,
     BindingObservation,
@@ -12,7 +18,7 @@ from opendefence_core.k8s_operator.models.v1alpha1.user import (
     UserSpec,
     UserStatus,
 )
-from opendefence_core.k8s_operator.models.v1alpha1.userbinding import (
+from opendefence_core.models.v1alpha1.userbinding import (
     SYNCED_CONDITION,
     UserBinding,
     UserBindingSpec,
@@ -23,8 +29,10 @@ from opendefence_core.k8s_operator.models.v1alpha1.userbinding import (
 __all__ = [
     "API_VERSION",
     "BINDINGS_SYNCED_CONDITION",
-    "BindingObservation",
     "CERTIFICATE_READY_CONDITION",
+    "REFERENCES_RESOLVED_CONDITION",
+    "SYNCED_CONDITION",
+    "BindingObservation",
     "Group",
     "GroupSpec",
     "GroupStatus",
@@ -37,7 +45,6 @@ __all__ = [
     "Role",
     "RoleSpec",
     "RoleStatus",
-    "SYNCED_CONDITION",
     "User",
     "UserBinding",
     "UserBindingSpec",

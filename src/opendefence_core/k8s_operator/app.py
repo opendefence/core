@@ -8,27 +8,26 @@ from cloudcoil.models.cert_manager.v1 import Certificate
 from cloudcoil.models.kubernetes.core.v1 import Secret
 
 from opendefence_core.k8s_operator.controllers import ALL_CONTROLLERS
-from opendefence_core.k8s_operator.controllers._certificates import PUBLIC_CERT_NAMESPACE
-from opendefence_core.k8s_operator.models.v1alpha1 import UserBinding
+from opendefence_core.models.v1alpha1 import UserBinding
+from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, PUBLIC_CERT_NAMESPACE, SYSTEM_NAMESPACE
 
-# Where core deploys the operator; the Deployment also sets CLOUDCOIL_NAMESPACE
-OPERATOR_NAMESPACE = "opendefence-system"
-OPERATOR_TLS_SECRET = "operator-tls"  # nosec B105  # pragma: allowlist secret
+HEALTH_PORT = 8080
 
 app = Application(
-    "opendefence-platform",
-    namespace=os.environ.get("CLOUDCOIL_NAMESPACE", OPERATOR_NAMESPACE),
+    OPERATOR_NAME,
+    # The Deployment sets CLOUDCOIL_NAMESPACE to its own namespace
+    namespace=os.environ.get("CLOUDCOIL_NAMESPACE", SYSTEM_NAMESPACE),
     leader_election=True,
-    health=HealthServer(host="0.0.0.0", port=8080),  # nosec B104
+    health=HealthServer(host="0.0.0.0", port=HEALTH_PORT),  # nosec B104
     webhook=WebhookServer(tls_secret=OPERATOR_TLS_SECRET),
     resources=(UserBinding,),
     rules=(
         RBACRule(Certificate, verbs=("delete",), plural="certificates", scope="Namespaced", all_namespaces=True),
-        RBACRule(Secret, verbs=("get",), plural="secrets", scope="Namespaced", namespace=PUBLIC_CERT_NAMESPACE),
+        # Read the issued key pair, and delete it on revoke so re-approval gets a new key
+        RBACRule(
+            Secret, verbs=("get", "delete"), plural="secrets", scope="Namespaced", namespace=PUBLIC_CERT_NAMESPACE
+        ),
     ),
 )
 for controller in ALL_CONTROLLERS:
     app.include(controller)
-
-if __name__ == "__main__":
-    app.main()

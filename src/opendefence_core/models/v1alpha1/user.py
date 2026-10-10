@@ -3,13 +3,12 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import Field
-
 from cloudcoil.crd import ListType, PrinterColumn, custom_resource
 from cloudcoil.pydantic import BaseModel
 from cloudcoil.resources import Resource
+from pydantic import ConfigDict, Field
 
-from opendefence_core.k8s_operator.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
+from opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
 
 BINDINGS_SYNCED_CONDITION = "BindingsSynced"
 CERTIFICATE_READY_CONDITION = "CertificateReady"
@@ -62,7 +61,7 @@ class UserSpec(BaseModel):
     approval_code: str | None = Field(
         default=None,
         alias="approvalCode",
-        description="Invite approval code used to authorize the user.",
+        description="Code shown to the enrolling user; an administrator checks it before approving the user.",
     )
     approved_at: Annotated[datetime | None, PrinterColumn(name="Approved")] = Field(
         default=None,
@@ -100,7 +99,19 @@ class UserStatus(PlatformStatus):
     short_names=("oduser",),
 )
 class User(Resource):
-    """Cluster-scoped platform user."""
+    """Cluster-scoped platform user, named after its callsign."""
+
+    # metadata.name is immutable, so this also keeps the callsign from changing
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-kubernetes-validations": [
+                {
+                    "rule": "self.spec.callsign == self.metadata.name",
+                    "message": "spec.callsign must equal metadata.name",
+                }
+            ]
+        }
+    )
 
     spec: UserSpec = Field(description="Desired configuration of the user.")
     status: UserStatus | None = Field(

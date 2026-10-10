@@ -1,80 +1,64 @@
 """REST API building blocks: JWTs, .pfx bundles, invite redemption rules."""
 
-from collections.abc import Iterator
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import jwt as pyjwt
 import pytest
-from cloudcoil.apimachinery import ObjectMeta
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 
-from opendefence_core.api.config import config
-from opendefence_core.api.lib.certificates.pfx import build_pfx
-from opendefence_core.api.lib.common import invites
-from opendefence_core.api.lib.common import jwt as api_jwt
-from opendefence_core.api.lib.common.codes import ALPHABET, generate_code
-from opendefence_core.k8s_operator.models.v1alpha1 import API_VERSION, Invite, InviteSpec, InviteStatus, User, UserSpec
-from opendefence_core.k8s_operator.models.v1alpha1.common import ObjectRef, PlatformCondition
+from opendefence_core.api.config import get_config
+from opendefence_core.api.lib import invites
+from opendefence_core.api.lib import jwt as api_jwt
+from opendefence_core.api.lib.codes import ALPHABET, generate_code
+from opendefence_core.api.lib.pfx import build_pfx
+from opendefence_core.models.v1alpha1 import Invite
+from tests.factories import make_invite, make_user
 
 
-@pytest.fixture
-def jwt_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[ec.EllipticCurvePrivateKey]:
-    """A fresh ES256 signing key in place of the mounted Secret."""
-    key = ec.generate_private_key(ec.SECP256R1())
-    path = tmp_path / "tls.key"
+def _write_key(path: Path, key: ec.EllipticCurvePrivateKey) -> None:
+    """Write the key as the Secret mount would, with a newer mtime than any earlier key."""
+    previous = path.stat().st_mtime_ns if path.exists() else 0
     path.write_bytes(
         key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
     )
-    monkeypatch.setattr(config, "jwt_key_path", path)
-    api_jwt._private_key.cache_clear()
-    yield key
-    api_jwt._private_key.cache_clear()
+    mtime = max(path.stat().st_mtime_ns, previous + 1_000_000_000)
+    os.utime(path, ns=(mtime, mtime))
 
 
-def _user(name: str = "alpha1", uid: str | None = "uid-alpha1") -> User:
-    return User(
-        api_version=API_VERSION,
-        kind="User",
-        metadata=ObjectMeta(name=name, uid=uid),
-        spec=UserSpec(callsign=name),
-    )
+@pytest.fixture
+def jwt_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ec.EllipticCurvePrivateKey:
+    """A fresh ES256 signing key in place of the mounted Secret."""
+    key = ec.generate_private_key(ec.SECP256R1())
+    path = tmp_path / "tls.key"
+    _write_key(path, key)
+    monkeypatch.setattr(get_config(), "jwt_key_path", path)
+    monkeypatch.setattr(api_jwt, "_signing_key", api_jwt.SigningKey())
+    return key
 
 
 def _invite(
     *,
-    ready: bool = True,
+    resolved: bool = True,
     use_count: int = -1,
     used: int = 0,
     valid_until: datetime | None = None,
     auto_approve: bool = False,
 ) -> Invite:
-    conditions = [
-        PlatformCondition(
-            last_transition_time="2026-09-13T00:00:00Z",
-            message="",
-            reason="Resolved" if ready else "MissingReference",
-            status="True" if ready else "False",
-            type="ReferencesResolved",
-        )
-    ]
-    return Invite(
-        api_version=API_VERSION,
-        kind="Invite",
-        metadata=ObjectMeta(name="invite"),
-        spec=InviteSpec(
-            code="CODE1234",
-            group_refs=[ObjectRef(name="team")],
-            role_refs=[ObjectRef(name="user")],
-            use_count=use_count,
-            valid_until=valid_until,
-            auto_approve=auto_approve,
-        ),
-        status=InviteStatus(conditions=conditions, used=used),
+    """An invite into group team with role user."""
+    return make_invite(
+        groups=["team"],
+        roles=["user"],
+        resolved=resolved,
+        use_count=use_count,
+        used=used,
+        valid_until=valid_until,
+        auto_approve=auto_approve,
     )
 
 
@@ -88,11 +72,11 @@ def test_generate_code() -> None:
 def test_jwt_round_trip(jwt_key: ec.EllipticCurvePrivateKey) -> None:
     """Issued tokens decode with the user's name and uid."""
     _ = jwt_key
-    token = api_jwt.issue(_user())
+    token = api_jwt.issue(make_user())
     claims = api_jwt.decode(token.access_token)
     assert claims["sub"] == "alpha1"
     assert claims["uid"] == "uid-alpha1"
-    assert claims["iss"] == config.jwt_issuer
+    assert claims["iss"] == get_config().jwt_issuer
     assert token.expires_at > datetime.now(UTC)
 
 
@@ -110,8 +94,44 @@ def test_jwt_rejects_other_keys(jwt_key: ec.EllipticCurvePrivateKey) -> None:
 def test_jwt_requires_uid(jwt_key: ec.EllipticCurvePrivateKey) -> None:
     """A user without a uid can't be issued a token."""
     _ = jwt_key
+    user = make_user()
+    assert user.metadata is not None
+    user.metadata.uid = None
     with pytest.raises(ValueError, match="uid"):
-        api_jwt.issue(_user(uid=None))
+        api_jwt.issue(user)
+
+
+def test_jwt_key_reloads_after_rotation(jwt_key: ec.EllipticCurvePrivateKey) -> None:
+    """A rotated key file signs new tokens; tokens from the previous key still verify."""
+    _ = jwt_key
+    earlier = api_jwt.issue(make_user()).access_token
+    rotated = ec.generate_private_key(ec.SECP256R1())
+    _write_key(get_config().jwt_key_path, rotated)
+
+    later = api_jwt.issue(make_user()).access_token
+
+    assert pyjwt.decode(later, rotated.public_key(), algorithms=["ES256"], audience=api_jwt.AUDIENCE)
+    assert api_jwt.decode(earlier)["sub"] == "alpha1"
+    assert api_jwt.decode(later)["sub"] == "alpha1"
+
+
+def test_jwt_key_rewritten_unchanged_keeps_no_previous(jwt_key: ec.EllipticCurvePrivateKey) -> None:
+    """Rewriting the same key, as on a renewal without rotation, leaves nothing to fall back to."""
+    api_jwt.issue(make_user())
+    _write_key(get_config().jwt_key_path, jwt_key)
+    api_jwt.issue(make_user())
+    assert api_jwt._signing_key.previous is None
+
+
+def test_jwt_rejects_non_ecdsa_key(jwt_key: ec.EllipticCurvePrivateKey) -> None:
+    """The mounted key must be ECDSA."""
+    _ = jwt_key
+    other = ed25519.Ed25519PrivateKey.generate()
+    get_config().jwt_key_path.write_bytes(
+        other.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+    )
+    with pytest.raises(ValueError, match="not an ECDSA private key"):
+        api_jwt.issue(make_user())
 
 
 def test_build_pfx_round_trip() -> None:
@@ -142,7 +162,7 @@ def test_build_pfx_round_trip() -> None:
     ("invite", "redeemable"),
     [
         (_invite(), True),
-        (_invite(ready=False), False),
+        (_invite(resolved=False), False),
         (_invite(use_count=2, used=1), True),
         (_invite(use_count=2, used=2), False),
         (_invite(valid_until=datetime.now(UTC) + timedelta(days=1)), True),
