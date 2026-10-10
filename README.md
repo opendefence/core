@@ -202,7 +202,8 @@ is `tini -- opendefence_core`, and the Deployments pass `api run` or
 A successful `main` release publishes `lib-opendefence-core` to Nexus, the
 image `ghcr.io/opendefence/core:<tag>`, and the Zarf package
 `oci://ghcr.io/opendefence/packages/core:<tag>`. The workflow then creates
-the Git tag. The OCI tag uses `-` in place of `+`: version `0.2.1+261010`
+the Git tag. The application is delivered in the image; CI does not publish
+an application wheel. The OCI tag uses `-` in place of `+`: version `0.2.1+261010`
 uses tag `0.2.1-261010`.
 
 Run `task version:bump` to update both package versions, the exact library
