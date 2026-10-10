@@ -10,6 +10,8 @@ readme = "README.md"
 requires-python = ">=3.14,<4.0"
 dependencies = [
     "click>=8.5.0,<9.0",
+    "cloudcoil[cert-manager,kubernetes,operator]>=0.8.0,<1.0",
+    "cryptography>=46.0.7,<47.0",
     "fastapi>=0.143.0,<1.0",
     "uvicorn>=0.54.0,<1.0",
 ]
@@ -31,12 +33,12 @@ ignore = ["PLR2004"]
 [tool.pyrefly]
 preset = "strict"
 project-includes = ["src", "tests"]
-search-path = ["src"]
+search-path = ["src", "."]
 python-version = "3.14"
 
 [tool.pytest.ini_options]
 junit_family="xunit2"
-addopts="--cov=opendefence_core --cov-fail-under=65 --cov-branch"
+addopts="-p no:cloudcoil --cov=opendefence_core --cov-fail-under=65 --cov-branch"
 asyncio_mode="strict"
 asyncio_default_fixture_loop_scope="function"
 

@@ -1,0 +1,8 @@
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Invite
+metadata:
+  name: users
+spec:
+  code: "12345678" # pragma: allowlist secret
+  useCount: 10
+  validUntil: "2137-01-01T00:00:00Z"

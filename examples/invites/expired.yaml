@@ -1,0 +1,7 @@
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Invite
+metadata:
+  name: expired
+spec:
+  code: "87654321" # pragma: allowlist secret
+  validUntil: "2000-01-01T00:00:00Z"
