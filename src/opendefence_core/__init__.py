@@ -1,3 +1,3 @@
-"""This does "stuff" """
+"""Runs core operators and REST API for OpenDefence operational platform"""
 
 __version__ = "0.1.0"  # NOTE Use `uv run --locked bump-my-version bump patch` to bump versions correctly
