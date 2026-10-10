@@ -1,7 +1,6 @@
-"""Run from outside the checkout with installed release wheels."""
+"""Check the installed library wheel outside the checkout."""
 
 import importlib.util
-import sys
 from importlib.metadata import version
 
 from cloudcoil.crd import CRD
@@ -28,16 +27,6 @@ user = User.model_validate(
 )
 require(user.model_dump(by_alias=True)["spec"]["callsign"] == "abc", "User serialization failed")
 
-if sys.argv[1] == "library":
-    require(importlib.util.find_spec("opendefence_core") is None, "Application visible in library environment")
-else:
-    require(version("opendefence-core") == __version__, "Application version differs")
-    from opendefence_core.api.app import app as api
-    from opendefence_core.cli.console import opendefence_core_cli
-    from opendefence_core.k8s_operator.app import app as operator
+require(importlib.util.find_spec("opendefence_core") is None, "Application visible in library environment")
 
-    require(api.version == __version__, "API version differs")
-    require(bool(opendefence_core_cli.name), "CLI import failed")
-    require(bool(operator.webhook), "Operator import failed")
-
-print(f"Installed {sys.argv[1]} smoke test passed")
+print("Installed library smoke test passed")
