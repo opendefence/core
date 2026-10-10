@@ -30,10 +30,16 @@ lock = read_toml(ROOT / "uv.lock")
 version = read_toml(ROOT / ".bumpversion.toml")["tool"]["bumpversion"]["current_version"]
 require(root["project"]["version"] == library["project"]["version"] == version, "Project versions differ")
 require(application_version == library_version == version, "Runtime versions differ")
+workspace = {p["name"]: p for p in lock["package"] if p["name"] in {"opendefence-core", "lib-opendefence-core"}}
 require(
-    {p["name"]: p["version"] for p in lock["package"] if p["name"] in {"opendefence-core", "lib-opendefence-core"}}
+    {name: package["version"] for name, package in workspace.items()}
     == {"opendefence-core": version, "lib-opendefence-core": version},
     "Lockfile versions differ",
+)
+require(
+    workspace["opendefence-core"]["source"] == {"editable": "."}
+    and workspace["lib-opendefence-core"]["source"] == {"editable": "src/lib_opendefence_core"},
+    "Lockfile workspace sources differ",
 )
 requirements = [Requirement(value) for value in root["project"]["dependencies"]]
 require(
