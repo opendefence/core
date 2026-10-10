@@ -43,7 +43,7 @@ trust it in your browser or OS once:
 
 ```sh
 task base:export-ca > public-root-ca.pem
-curl --cacert public-root-ca.pem https://local-dev.opendefence.fi/api/health
+curl --cacert public-root-ca.pem https://local-dev.opendefence.fi/api/v3/health
 ```
 
 ```sh
@@ -82,8 +82,7 @@ task operator:manifests
 
 The API reads `CORE_API_*` environment variables: `CORE_API_DOMAIN` (set from
 the `domain` value), `CORE_API_JWT_KEY_PATH`, `CORE_API_JWT_LIFETIME`, and
-`CORE_API_JWT_ISSUER`. Its liveness and readiness probe is `/health`, which
-Traefik doesn't route.
+`CORE_API_JWT_ISSUER`. Its liveness and readiness probe is `/api/v3/health`.
 
 Deployment configuration is Zarf package values. `values/values.yaml` holds
 the production defaults baked into the package and
