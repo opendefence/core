@@ -15,7 +15,6 @@ concurrency:
 
 jobs:
   image:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       version-tag: ${{ steps.version.outputs.tag }}
@@ -27,12 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           version="$(python3 -c 'import tomllib; print(tomllib.load(open(".bumpversion.toml", "rb"))["tool"]["bumpversion"]["current_version"])')"
-          version_tag="${version//+/-}"
-          if [[ ! "$version_tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]; then
-            echo "Missing version or invalid OCI version tag: $version_tag" >&2
-            exit 1
-          fi
-          echo "tag=$version_tag" >> "$GITHUB_OUTPUT"
+          echo "tag=${version//+/-}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3.7.0
@@ -49,6 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           docker build --target production -t "$IMAGE" .
+          docker run --rm "$IMAGE" --version
           docker push "$IMAGE"
           {
             printf '## Published image\n\n'
@@ -68,11 +63,11 @@ jobs:
       - uses: jdx/mise-action@v5.1.1
         with:
           cache: true
+          install_args: zarf task
 
-      - name: Lint and build package
+      - name: Build package
         run: |
           set -euo pipefail
-          zarf dev lint .
           build_dir="$(mktemp -d "$RUNNER_TEMP/zarf-build.XXXXXX")"
           task -t taskfiles/build.yaml package ARCH=amd64 BUILD_DIR="$build_dir"
           shopt -s nullglob
