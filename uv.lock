@@ -359,7 +359,7 @@ wheels = [
 
 [[package]]
 name = "opendefence-core"
-version = "0.1.0+261010"
+version = "0.1.1+261010"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
