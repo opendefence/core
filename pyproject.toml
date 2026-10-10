@@ -47,7 +47,7 @@ python-version = "3.14"
 
 [tool.pytest.ini_options]
 junit_family = "xunit2"
-addopts = "-p no:cloudcoil --cov=opendefence_core --cov-fail-under=85"
+addopts = "-p no:cloudcoil --cov=opendefence_core --cov=lib_opendefence_core --cov-fail-under=85"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
