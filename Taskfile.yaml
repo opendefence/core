@@ -124,3 +124,9 @@ tasks:
     desc: Run the test suite; pass pytest arguments after --
     cmds:
       - uv run --locked pytest {{.CLI_ARGS}}
+
+  version:bump:
+    desc: Bump both package versions and refresh the workspace lock
+    cmds:
+      - uv run --no-sync bump-my-version bump patch
+      - uv lock
