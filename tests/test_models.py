@@ -1,12 +1,27 @@
-"""CRD generation for platform resources."""
+"""CRD generation for platform resources, and the examples that use them."""
 
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 from cloudcoil.crd import CRD
+from cloudcoil.resources import Resource
 
-from opendefence_core.k8s_operator.models.v1alpha1 import API_VERSION, Group, Invite, Role, User, UserBinding
+from opendefence_core.models.v1alpha1 import API_VERSION, Group, Invite, Role, User, UserBinding
+
+EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
+MODELS: dict[str, type[Resource]] = {
+    "User": User,
+    "Group": Group,
+    "Role": Role,
+    "Invite": Invite,
+    "UserBinding": UserBinding,
+}
+
+
+def _schema(model: type[Resource]) -> dict[str, Any]:
+    return CRD(model).manifest()["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
 
 
 def _version(manifest: dict[str, Any]) -> dict[str, Any]:
@@ -15,14 +30,6 @@ def _version(manifest: dict[str, Any]) -> dict[str, Any]:
 
 def _column_names(manifest: dict[str, Any]) -> set[str]:
     return {column["name"] for column in _version(manifest).get("additionalPrinterColumns", [])}
-
-
-def _spec_properties(manifest: dict[str, Any]) -> dict[str, Any]:
-    return _version(manifest)["schema"]["openAPIV3Schema"]["properties"]["spec"]["properties"]
-
-
-def _status_properties(manifest: dict[str, Any]) -> dict[str, Any]:
-    return _version(manifest)["schema"]["openAPIV3Schema"]["properties"]["status"]["properties"]
 
 
 def _missing_descriptions(schema: dict[str, Any], path: str) -> list[str]:
@@ -43,14 +50,20 @@ def test_user_crd_is_cluster_scoped_with_status_and_aliases() -> None:
     assert manifest["spec"]["names"]["shortNames"] == ["oduser"]
     assert _version(manifest)["name"] == "v1alpha1"
     assert _version(manifest)["subresources"] == {"status": {}}
-    spec = _spec_properties(manifest)
-    status = _status_properties(manifest)
+    spec = _schema(User)["properties"]["spec"]["properties"]
+    status = _schema(User)["properties"]["status"]["properties"]
     assert "publicKey" not in spec
     assert "publicKey" in status
     assert "roleRefs" in spec
     assert "callsign" in spec
     assert {"Callsign", "Revoked", "Approved", "Age"} <= _column_names(manifest)
     assert "bindings" in status
+
+
+def test_user_callsign_must_equal_name() -> None:
+    """The API server keeps spec.callsign equal to the immutable metadata.name."""
+    rules = _schema(User)["x-kubernetes-validations"]
+    assert [rule["rule"] for rule in rules] == ["self.spec.callsign == self.metadata.name"]
 
 
 def test_userbinding_crd_is_namespaced_with_sync_columns() -> None:
@@ -61,66 +74,74 @@ def test_userbinding_crd_is_namespaced_with_sync_columns() -> None:
     assert manifest["spec"]["scope"] == "Namespaced"
     assert manifest["spec"]["names"]["shortNames"] == ["odub"]
     assert _version(manifest)["subresources"] == {"status": {}}
-    spec = _spec_properties(manifest)
-    status = _status_properties(manifest)
-    assert "userRef" in spec
+    assert "userRef" in _schema(UserBinding)["properties"]["spec"]["properties"]
+    status = _schema(UserBinding)["properties"]["status"]["properties"]
     assert "conditions" in status
     assert "user" not in status
     assert {"User", "Synced", "Age"} <= _column_names(manifest)
 
 
-def test_group_role_invite_crds() -> None:
+@pytest.mark.parametrize(
+    ("model", "plural", "short"),
+    [(Group, "groups", "odgroup"), (Role, "roles", "odrole"), (Invite, "invites", "odinvite")],
+)
+def test_group_role_invite_crds(model: type[Resource], plural: str, short: str) -> None:
     """Remaining kinds share the API group, cluster scope, and status subresource."""
-    for model, plural, short in (
-        (Group, "groups", "odgroup"),
-        (Role, "roles", "odrole"),
-        (Invite, "invites", "odinvite"),
-    ):
-        manifest = CRD(model).manifest()
-        assert manifest["spec"]["group"] == API_VERSION.split("/")[0]
-        assert manifest["spec"]["scope"] == "Cluster"
-        assert manifest["spec"]["names"]["plural"] == plural
-        assert manifest["spec"]["names"]["shortNames"] == [short]
-        assert "status" in _version(manifest)["subresources"]
+    manifest = CRD(model).manifest()
+    assert manifest["spec"]["group"] == API_VERSION.split("/")[0]
+    assert manifest["spec"]["scope"] == "Cluster"
+    assert manifest["spec"]["names"]["plural"] == plural
+    assert manifest["spec"]["names"]["shortNames"] == [short]
+    assert "status" in _version(manifest)["subresources"]
 
 
-def test_all_custom_resource_fields_have_descriptions() -> None:
+@pytest.mark.parametrize("model", [Group, Role])
+def test_specs_do_not_repeat_metadata_name(model: type[Resource]) -> None:
+    """Groups and roles are identified by metadata.name alone."""
+    assert "name" not in _schema(model)["properties"]["spec"]["properties"]
+
+
+@pytest.mark.parametrize("model", MODELS.values())
+def test_all_custom_resource_fields_have_descriptions(model: type[Resource]) -> None:
     """Spec and status schemas describe every field exposed in the CRDs."""
-    for model in (User, Group, Role, Invite, UserBinding):
-        properties = _version(CRD(model).manifest())["schema"]["openAPIV3Schema"]["properties"]
-        assert _missing_descriptions(properties["spec"], "spec") == []
-        assert _missing_descriptions(properties["status"], "status") == []
+    properties = _schema(model)["properties"]
+    assert _missing_descriptions(properties["spec"], "spec") == []
+    assert _missing_descriptions(properties["status"], "status") == []
 
 
 def test_invite_status_does_not_duplicate_spec_references() -> None:
     """Invite status only reports common reconciliation state."""
-    manifest = CRD(Invite).manifest()
-    properties = _version(manifest)["schema"]["openAPIV3Schema"]["properties"]["status"]["properties"]
+    properties = _schema(Invite)["properties"]["status"]["properties"]
     assert "groups" not in properties
     assert "roles" not in properties
 
 
-def test_demo_manifests_parse_as_typed_resources() -> None:
-    """examples/demo.yaml round-trips through the handwritten resource models."""
-    demo = Path(__file__).resolve().parents[1] / "examples" / "demo.yaml"
-    kinds = {User: 0, Group: 0, Role: 0, Invite: 0, UserBinding: 0}
-    models = {
-        "User": User,
-        "Group": Group,
-        "Role": Role,
-        "Invite": Invite,
-        "UserBinding": UserBinding,
-    }
-    for document in yaml.safe_load_all(demo.read_text()):
-        if document is None:
-            continue
-        model = models[document["kind"]]
-        parsed = model.model_validate(document)
-        kinds[model] += 1
-        assert parsed.metadata is not None
-        assert parsed.metadata.name
-    assert kinds[Role] == 3
-    assert kinds[Group] == 1
-    assert kinds[User] == 2
-    assert kinds[Invite] == 1
-    assert kinds[UserBinding] == 1
+def _example_documents() -> list[tuple[Path, dict[str, Any]]]:
+    return [
+        (path, document)
+        for path in sorted(EXAMPLES.rglob("*.yaml"))
+        for document in yaml.safe_load_all(path.read_text())
+        if document is not None
+    ]
+
+
+def test_examples_parse_as_typed_resources() -> None:
+    """Every example object validates against its model, and users are named after their callsigns."""
+    kinds: dict[str, int] = {}
+    for path, document in _example_documents():
+        if "kind" not in document:
+            continue  # A patch, checked below
+        parsed = MODELS[document["kind"]].model_validate(document)
+        assert parsed.metadata is not None and parsed.metadata.name, path
+        if isinstance(parsed, User):
+            assert parsed.spec.callsign == parsed.name, path
+        kinds[document["kind"]] = kinds.get(document["kind"], 0) + 1
+    assert kinds == {"Role": 3, "Group": 1, "User": 2, "Invite": 4, "UserBinding": 1}
+
+
+def test_approve_patch_applies_to_a_user() -> None:
+    """examples/users/approve.yaml is a merge patch that approves a User."""
+    patch = yaml.safe_load((EXAMPLES / "users" / "approve.yaml").read_text())
+    user = next(document for _, document in _example_documents() if document.get("kind") == "User")
+    approved = User.model_validate({**user, "spec": {**user["spec"], **patch["spec"]}})
+    assert approved.spec.approved_at is not None

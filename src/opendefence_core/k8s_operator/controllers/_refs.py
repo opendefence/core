@@ -7,7 +7,7 @@ from typing import Literal, NoReturn, Protocol
 from cloudcoil.controller import ResourceKey, TerminalError, Wait
 from cloudcoil.resources import Resource
 
-from opendefence_core.k8s_operator.models.v1alpha1.common import ObjectRef, ResolvedRef
+from opendefence_core.models.v1alpha1.common import REFERENCES_RESOLVED_CONDITION, ObjectRef, ResolvedRef
 
 type ResourceRefs = Sequence[ObjectRef] | ObjectRef | None
 
@@ -88,7 +88,7 @@ async def inspect_parent_chain[T](
 
 def reject_parent_chain_issue(ctx: RefContext, issue: ParentChainIssue) -> NoReturn:
     """Fail reconcile when the parent chain is cyclic or an ancestor is missing."""
-    ctx.condition("ReferencesResolved", False, reason=issue.reason, message=issue.message)
+    ctx.condition(REFERENCES_RESOLVED_CONDITION, False, reason=issue.reason, message=issue.message)
     if issue.reason == "MissingReference":
         raise Wait("MissingReference", issue.message, after=60)
     raise TerminalError(issue.message)
@@ -112,7 +112,7 @@ def resolve_refs[T: Resource](
         resolved.append(ResolvedRef(name=ref.name, uid=uid))
     if missing:
         message = f"{kind.__name__} not found: {', '.join(missing)}"
-        ctx.condition("ReferencesResolved", False, reason="MissingReference", message=message)
+        ctx.condition(REFERENCES_RESOLVED_CONDITION, False, reason="MissingReference", message=message)
         raise Wait("MissingReference", message, after=60)
     return resolved
 
@@ -130,4 +130,4 @@ def resolve_optional_ref[T: Resource](
 
 def mark_resolved(ctx: RefContext) -> None:
     """Record that every declared reference was resolved."""
-    ctx.condition("ReferencesResolved", True, reason="Resolved")
+    ctx.condition(REFERENCES_RESOLVED_CONDITION, True, reason="Resolved")

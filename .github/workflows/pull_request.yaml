@@ -1,25 +1,30 @@
+# This workflow is managed by gh actions-lock.
+
 on:
   pull_request:
   workflow_dispatch: # Allow manual triggering
 
 jobs:
-  pre_commit:
-    name: Run pre-commit checks
+  checks:
     runs-on: ubuntu-latest
+    name: Lint, test, and validate the package
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.1.1
         with:
-          submodules: recursive
-      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
-        with:
-          python-version: "3.14"
-      - name: Run pre-commit checks
-        run: |
-          uv run docker/pre_commit_init.sh
+          cache: true
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Pre-commit hooks
+        run: uv run --locked prek run --all-files
+      - name: Tests, including the stale manifest check
+        run: uv run --locked pytest
+      - name: Zarf package lint
+        run: zarf dev lint .
 
   bumpversion-check:
     runs-on: ubuntu-latest
     name: Validate .bumpversion.toml
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.1
       - uses: pvarki/config-ci-library/.github/actions/validate-bumpversion@main

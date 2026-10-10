@@ -1,9 +1,6 @@
-# Demo platform.opendefence.fi/v1alpha1 objects.
-# User, Group, Role, and Invite are cluster-scoped. UserBinding is namespaced.
-# Install the operator (CRDs, RBAC, and Group admission webhook) first:
-#   CLOUDCOIL_NAMESPACE=opendefence-system \
-#     opendefence_core operator install --image <image> --ca-file /path/to/ca.crt
-# The Secret operator-tls must exist in that namespace. Then:
+# Demo platform.opendefence.fi/v1alpha1 objects for a cluster running core
+# (`task up`). User, Group, Role, and Invite are cluster-scoped; UserBinding is
+# namespaced. Users are named after their callsigns.
 #   kubectl apply -f examples/demo.yaml
 ---
 apiVersion: platform.opendefence.fi/v1alpha1
@@ -11,7 +8,6 @@ kind: Role
 metadata:
   name: superadmin
 spec:
-  name: superadmin
   displayName: Superadmin
 ---
 apiVersion: platform.opendefence.fi/v1alpha1
@@ -19,7 +15,6 @@ kind: Role
 metadata:
   name: group-admin
 spec:
-  name: group-admin
   displayName: Group admin
 ---
 apiVersion: platform.opendefence.fi/v1alpha1
@@ -27,7 +22,6 @@ kind: Role
 metadata:
   name: role-admin
 spec:
-  name: role-admin
   displayName: Role admin
 ---
 apiVersion: platform.opendefence.fi/v1alpha1
@@ -35,7 +29,6 @@ kind: Group
 metadata:
   name: group-admin
 spec:
-  name: group-admin
   displayName: Group admin
   managerRefs:
     - name: bob

@@ -4,7 +4,7 @@ from cloudcoil.controller import Context, Controller, ResourceKey
 
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
-from opendefence_core.k8s_operator.models.v1alpha1 import Group, Invite, Role
+from opendefence_core.models.v1alpha1 import Group, Invite, Role
 
 invites = Controller(Invite, name="invites", events=recorder("invites"))
 

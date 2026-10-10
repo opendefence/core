@@ -1,5 +1,7 @@
 # ES256 signing key for enrollment JWTs. Only tls.key is used; cert-manager
-# just generates and stores the key pair.
+# just generates and stores the key pair. Each renewal replaces the key
+# (rotationPolicy: Always); the API reloads it and keeps verifying tokens
+# signed with the previous key until they expire.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -11,6 +13,7 @@ spec:
   privateKey:
     algorithm: ECDSA
     size: 256
+    rotationPolicy: Always
   issuerRef:
     name: internal-root-issuer
     kind: ClusterIssuer

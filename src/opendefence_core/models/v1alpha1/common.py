@@ -2,13 +2,15 @@
 
 from typing import Annotated
 
-from pydantic import Field
-
 from cloudcoil.apimachinery import Condition, Time
 from cloudcoil.crd import ListType
 from cloudcoil.pydantic import BaseModel
+from pydantic import Field
 
 API_VERSION = "platform.opendefence.fi/v1alpha1"
+
+# Condition every platform resource reports once its name refs resolve
+REFERENCES_RESOLVED_CONDITION = "ReferencesResolved"
 
 
 class PlatformCondition(Condition):

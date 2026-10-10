@@ -1,3 +1,6 @@
 """Runs core operators and REST API for OpenDefence operational platform"""
 
-__version__ = "0.2.0+261010"  # NOTE Use `uv run --locked bump-my-version bump patch` to bump versions correctly
+from importlib.metadata import version
+
+# Bump with `uv run --locked bump-my-version bump patch`
+__version__ = version("opendefence_core")

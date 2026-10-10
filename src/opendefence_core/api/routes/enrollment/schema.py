@@ -4,36 +4,35 @@ from typing import Self
 
 from pydantic import Field
 
-from cloudcoil.pydantic import BaseModel
+from opendefence_core.api.lib.jwt import Token
+from opendefence_core.api.schema import ApiModel
+from opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN, User
 
-from opendefence_core.api.lib.common.jwt import Token
-from opendefence_core.k8s_operator.models.v1alpha1.user import CALLSIGN_PATTERN, User
 
-
-class CheckRequest(BaseModel):
+class CheckRequest(ApiModel):
     """Invite code to check."""
 
     code: str
 
 
-class CheckResponse(BaseModel):
+class CheckResponse(ApiModel):
     """Whether the invite code can be redeemed."""
 
     valid: bool
 
 
-class EnrollRequest(BaseModel):
+class EnrollRequest(ApiModel):
     """Invite code to redeem and the callsign to take."""
 
     code: str
     callsign: str = Field(pattern=CALLSIGN_PATTERN)
 
 
-class EnrollmentStatus(BaseModel):
+class EnrollmentStatus(ApiModel):
     """Enrollment of the user, as shown to themselves."""
 
     callsign: str
-    approval_code: str | None = Field(alias="approvalCode")
+    approval_code: str | None
     approved: bool
 
     @classmethod
@@ -46,7 +45,7 @@ class EnrollmentStatus(BaseModel):
         )
 
 
-class EnrollResponse(BaseModel):
+class EnrollResponse(ApiModel):
     """Enrollment of the created user and their enrollment token."""
 
     status: EnrollmentStatus

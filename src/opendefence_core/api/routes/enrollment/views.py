@@ -2,9 +2,9 @@
 
 from fastapi import APIRouter, HTTPException, status
 
-from opendefence_core.api.lib.common.invites import CallsignTaken, InviteNotRedeemable, find_invite, redeem
-from opendefence_core.api.lib.common.jwt import issue
-from opendefence_core.api.lib.middleware.jwt import JWTUser
+from opendefence_core.api.dependencies import JWTUser
+from opendefence_core.api.lib.invites import CallsignTaken, InviteNotRedeemable, find_invite, redeem
+from opendefence_core.api.lib.jwt import issue
 from opendefence_core.api.routes.enrollment.schema import (
     CheckRequest,
     CheckResponse,

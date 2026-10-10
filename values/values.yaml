@@ -1,5 +1,7 @@
-# Public hostname served by Traefik; certificates come from base's public-issuer
-domain: local-dev.opendefence.fi
+# Public hostname served by Traefik; certificates come from base's public-issuer.
+# The placeholder must be overridden: its certificate can't be issued, so a
+# deployment that forgets it fails the core-tls health check.
+domain: opendefence.invalid
 hsts:
   # Strict-Transport-Security max-age in seconds; 0 sends max-age=0 to clear it
   maxAge: 31536000

@@ -1,14 +1,20 @@
 """Redeeming invites into users."""
 
 from datetime import UTC, datetime
+
 from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.controller import get_condition
 from cloudcoil.errors import ResourceConflict
 
-from opendefence_core.api.lib.common.codes import generate_code
-from opendefence_core.k8s_operator.models.v1alpha1.common import API_VERSION
-from opendefence_core.k8s_operator.models.v1alpha1.invite import Invite, InviteStatus
-from opendefence_core.k8s_operator.models.v1alpha1.user import User, UserSpec
+from opendefence_core.api.lib.codes import generate_code
+from opendefence_core.models.v1alpha1 import (
+    API_VERSION,
+    REFERENCES_RESOLVED_CONDITION,
+    Invite,
+    InviteStatus,
+    User,
+    UserSpec,
+)
 
 APPROVAL_CODE_LENGTH = 8
 UNLIMITED = -1
@@ -24,7 +30,7 @@ class CallsignTaken(Exception):
 
 async def find_invite(code: str) -> Invite | None:
     """Invite with the code, if it can still be redeemed."""
-    # TODO: A better way to do this?
+    # TODO: Lists every Invite per lookup; index them (label or informer) before this sees real load
     async for invite in await Invite.async_list():
         if invite.spec.code == code and _is_redeemable(invite):
             return invite
@@ -47,7 +53,7 @@ def _used(invite: Invite) -> int:
 
 
 def _is_ready(invite: Invite) -> bool:
-    ready = get_condition(invite, "ReferencesResolved")
+    ready = get_condition(invite, REFERENCES_RESOLVED_CONDITION)
     return ready is not None and ready.status == "True"
 
 
