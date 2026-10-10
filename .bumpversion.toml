@@ -5,3 +5,23 @@ serialize = ["{major}.{minor}.{patch}+{build}"]
 
 [tool.bumpversion.parts.build]
 calver_format = "{0Y}{0M}{0D}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "README.rst"
+search = "opendefence_core:{current_version}"
+replace = "opendefence_core:{new_version}"
+
+[[tool.bumpversion.files]]
+filename = "src/opendefence_core/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "tests/test_opendefence_core.py"
+search = '__version__ == "{current_version}"'
+replace = '__version__ == "{new_version}"'
