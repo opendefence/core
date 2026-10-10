@@ -146,7 +146,7 @@ jobs:
           if git show-ref --verify --quiet "refs/tags/$tag"; then
             test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$GITHUB_SHA" || { echo "Tag $tag points to a different commit" >&2; exit 1; }
           fi
-      - name: Publish identical or missing library artifacts
+      - name: Publish library artifacts
         env:
           TWINE_USERNAME: nexusbot
           TWINE_PASSWORD: ${{ secrets.NEXUSBOT_PAT }}
@@ -154,10 +154,7 @@ jobs:
         run: |
           test -n "$TWINE_PASSWORD"
           uvx --from twine==7.0.0 twine check dist/library/*
-          uv run --locked python scripts/nexus_publish.py dist/library > /tmp/missing-artifacts
-          while IFS= read -r artifact; do
-            uvx --from twine==7.0.0 twine upload --repository-url https://nexus.dev.pvarki.fi/repository/pypilocal/ "$artifact"
-          done < /tmp/missing-artifacts
+          uvx --from twine==7.0.0 twine upload --repository-url https://nexus.dev.pvarki.fi/repository/pypilocal/ dist/library/*
 
   verify-published:
     needs: publish-library
