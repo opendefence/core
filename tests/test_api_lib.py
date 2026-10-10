@@ -12,12 +12,12 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 
+from lib_opendefence_core.models.v1alpha1 import Invite
 from opendefence_core.api.config import get_config
 from opendefence_core.api.lib import invites
 from opendefence_core.api.lib import jwt as api_jwt
 from opendefence_core.api.lib.codes import ALPHABET, generate_code
 from opendefence_core.api.lib.pfx import build_pfx
-from lib_opendefence_core.models.v1alpha1 import Invite
 from tests.factories import make_invite, make_user
 
 

@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
+from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, User
 from opendefence_core.k8s_operator.controllers._certificates import (
     ISSUED_REASON,
     ISSUING_REASON,
@@ -26,7 +27,6 @@ from opendefence_core.k8s_operator.controllers._certificates import (
     wants_certificate,
 )
 from opendefence_core.k8s_operator.controllers.users import finalize_user
-from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, User
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name, user_secret_name
 from tests.factories import make_user
 from tests.fakes import FakeClient, FakeContext

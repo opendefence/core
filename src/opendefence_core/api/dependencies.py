@@ -7,8 +7,8 @@ from cloudcoil.errors import ResourceNotFound
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from opendefence_core.api.lib.jwt import decode
 from lib_opendefence_core.models.v1alpha1 import User
+from opendefence_core.api.lib.jwt import decode
 
 bearer = HTTPBearer(auto_error=False)
 

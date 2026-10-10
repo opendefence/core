@@ -6,7 +6,6 @@ from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.controller import get_condition
 from cloudcoil.errors import ResourceConflict
 
-from opendefence_core.api.lib.codes import generate_code
 from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
@@ -15,6 +14,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     User,
     UserSpec,
 )
+from opendefence_core.api.lib.codes import generate_code
 
 APPROVAL_CODE_LENGTH = 8
 UNLIMITED = -1
