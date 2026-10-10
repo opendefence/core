@@ -128,5 +128,5 @@ tasks:
   version:bump:
     desc: Bump both package versions and refresh the workspace lock
     cmds:
-      - uv run --no-sync bump-my-version bump patch
+      - uv run --no-sync bump-my-version bump {{.CLI_ARGS | default "patch"}}
       - uv lock
