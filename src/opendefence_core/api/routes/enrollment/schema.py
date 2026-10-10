@@ -6,7 +6,7 @@ from pydantic import Field
 
 from opendefence_core.api.lib.jwt import Token
 from opendefence_core.api.schema import ApiModel
-from opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN, User
+from lib_opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN, User
 
 
 class CheckRequest(ApiModel):

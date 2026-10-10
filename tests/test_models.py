@@ -8,7 +8,7 @@ import yaml
 from cloudcoil.crd import CRD
 from cloudcoil.resources import Resource
 
-from opendefence_core.models.v1alpha1 import API_VERSION, Group, Invite, Role, User, UserBinding
+from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Invite, Role, User, UserBinding
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 MODELS: dict[str, type[Resource]] = {

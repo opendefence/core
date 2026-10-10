@@ -16,7 +16,7 @@ from opendefence_core.api.lib.invites import CallsignTaken, InviteNotRedeemable
 from opendefence_core.api.lib.jwt import Token
 from opendefence_core.api.routes.certificates import views as certificate_views
 from opendefence_core.api.routes.enrollment import views as enrollment_views
-from opendefence_core.models.v1alpha1 import Invite, User
+from lib_opendefence_core.models.v1alpha1 import Invite, User
 from tests.factories import make_invite, make_user
 
 client = TestClient(app)

@@ -7,7 +7,7 @@ from typing import Literal, NoReturn, Protocol
 from cloudcoil.controller import ResourceKey, TerminalError, Wait
 from cloudcoil.resources import Resource
 
-from opendefence_core.models.v1alpha1.common import REFERENCES_RESOLVED_CONDITION, ObjectRef, ResolvedRef
+from lib_opendefence_core.models.v1alpha1.common import REFERENCES_RESOLVED_CONDITION, ObjectRef, ResolvedRef
 
 type ResourceRefs = Sequence[ObjectRef] | ObjectRef | None
 
