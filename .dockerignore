@@ -47,3 +47,11 @@ Dockerfile
 
 # Ruff
 **/.ruff_cache/
+
+# Not needed in the image build
+.build
+.task
+manifests
+values
+zarf.yaml
+Tiltfile

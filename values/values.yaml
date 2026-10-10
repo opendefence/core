@@ -1,0 +1,5 @@
+# Public hostname served by Traefik; certificates come from base's public-issuer
+domain: local-dev.opendefence.fi
+hsts:
+  # Strict-Transport-Security max-age in seconds; 0 sends max-age=0 to clear it
+  maxAge: 31536000

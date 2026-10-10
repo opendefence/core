@@ -1,0 +1,31 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-strip-prefix
+  namespace: opendefence-system
+spec:
+  stripPrefix:
+    prefixes:
+      - /api
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: core-api
+  namespace: opendefence-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.domain }}`) && PathPrefix(`/api`)
+      middlewares:
+        - name: strip-identity-headers
+          namespace: traefik-system
+        - name: hsts
+          namespace: traefik-system
+        - name: api-strip-prefix
+      services:
+        - name: core-api
+          port: http
+  tls: {}
