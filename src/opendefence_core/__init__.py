@@ -2,5 +2,5 @@
 
 from importlib.metadata import version
 
-# Bump with `uv run --locked bump-my-version bump patch`
+# Bump with `task version:bump`
 __version__ = version("opendefence_core")
