@@ -54,12 +54,36 @@ task lint
 ## Package
 
 `zarf.yaml` defines the package. Components deploy in order:
-`traefik-middlewares` (into Traefik's `traefik-system` namespace, referenced
-as `traefik-system-<name>@kubernetescrd`), `api`, then `ingress`: the
-`domain` certificate from base's `public-issuer`, Traefik's default
-`TLSStore`, and the `IngressRoute` serving the API under `/api`. Resources are
-raw YAML in `manifests/`; the middlewares and ingress use Go templates. Add a
-`crds` component first once core defines CRDs.
+
+1. `namespaces`: `opendefence-system` (Linkerd-injected) and
+   `opendefence-public-certs` (user certificates).
+2. `crds`: the `platform.opendefence.fi/v1alpha1` CRDs (User, Group, Role,
+   Invite, UserBinding).
+3. `traefik-middlewares`: shared middlewares in Traefik's `traefik-system`
+   namespace, referenced as `traefik-system-<name>@kubernetescrd`.
+4. `operator`: the operator (`opendefence_core operator run`), its RBAC, and
+   its admission webhook. The webhook's serving certificate comes from base's
+   `internal-root-issuer`; cert-manager injects its CA. With
+   `failurePolicy: Fail`, Group writes and User deletes are rejected while the
+   operator is down. User certificates are issued from base's `public-issuer`.
+5. `api`: the REST API (`uvicorn opendefence_core.api.app:app`), its RBAC, and
+   its ES256 JWT signing key (a cert-manager-generated key pair).
+6. `ingress`: the `domain` certificate from `public-issuer`, Traefik's default
+   `TLSStore`, and the `IngressRoute` serving `/api`.
+
+Resources are raw YAML in `manifests/`; the middlewares, API, and ingress use
+Go templates. `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`
+are generated from the operator code; regenerate them after changing models,
+controllers, or webhooks (a test fails while they are stale):
+
+```sh
+task operator:manifests
+```
+
+The API reads `CORE_API_*` environment variables: `CORE_API_DOMAIN` (set from
+the `domain` value), `CORE_API_JWT_KEY_PATH`, `CORE_API_JWT_LIFETIME`, and
+`CORE_API_JWT_ISSUER`. Its liveness and readiness probe is `/health`, which
+Traefik doesn't route.
 
 Deployment configuration is Zarf package values. `values/values.yaml` holds
 the production defaults baked into the package and

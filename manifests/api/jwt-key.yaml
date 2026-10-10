@@ -1,0 +1,17 @@
+# ES256 signing key for enrollment JWTs. Only tls.key is used; cert-manager
+# just generates and stores the key pair.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: core-api-jwt
+  namespace: opendefence-system
+spec:
+  secretName: core-api-jwt # pragma: allowlist secret
+  commonName: core-api-jwt
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: internal-root-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

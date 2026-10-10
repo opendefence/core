@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opendefence-system
+  annotations:
+    linkerd.io/inject: enabled
+---
+# User mTLS certificates issued by the operator from base's public-issuer
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opendefence-public-certs
