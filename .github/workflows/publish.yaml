@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   image:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       version-tag: ${{ steps.version.outputs.tag }}
