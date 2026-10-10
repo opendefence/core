@@ -11,17 +11,24 @@ Have Docker or Podman available and ports 80 and 443 free, then:
 ```sh
 mise install
 uv sync
-task up     # registries, kind cluster, and the published base package
-task dev    # Tilt: build, deploy, and hot-reload core
+task up     # cluster and base if missing, then build and deploy core
+task dev    # Tilt: keep core deployed and hot-reload the API from src/
 task down   # delete the cluster, keep registry data
 task reset  # also delete registry containers and cached images
 ```
 
-`up`, `down`, `reset`, and `status` come from base's taskfiles, included from
-base's `main` branch (see `Taskfile.yaml`). Remote includes are a Task
-experiment, enabled in `.taskrc.yml`; Task asks you to trust each remote file
-the first time. `task up` installs `oci://ghcr.io/opendefence/base:latest` in
-local CA mode; override with `BASE_VERSION=<tag>` or `BASE_ISSUER`.
+`task up` is safe to rerun:
+
+1. `env`: starts the registries and kind cluster if they are missing (base's
+   taskfiles, included from base's `main` branch), and installs
+   `oci://ghcr.io/opendefence/base:latest` in local CA mode unless a `base`
+   package is already deployed, for example by `task up` in a base checkout.
+   Override with `BASE_VERSION=<tag>` or `BASE_ISSUER`; reinstall explicitly
+   with `task base:install BASE_VERSION=<tag>`.
+2. `deploy`: builds core from this checkout and deploys it once (`tilt ci`).
+
+Remote includes are a Task experiment, enabled in `.taskrc.yml`; Task asks
+you to trust each remote file the first time.
 
 `task dev` runs `tilt up`. Tilt renders the package with
 `values/local-dev.yaml`, builds the `dev` Dockerfile target, pushes it to
