@@ -4,7 +4,7 @@ from cloudcoil.controller import Context, Controller
 
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved
-from opendefence_core.models.v1alpha1 import Role
+from lib_opendefence_core.models.v1alpha1 import Role
 
 roles = Controller(Role, name="roles", events=recorder("roles"))
 

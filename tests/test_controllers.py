@@ -19,7 +19,7 @@ from opendefence_core.k8s_operator.controllers.roles import reconcile_role
 from opendefence_core.k8s_operator.controllers.users import group_changed as user_group_changed
 from opendefence_core.k8s_operator.controllers.users import reconcile_user, userbinding_changed
 from opendefence_core.k8s_operator.controllers.users import role_changed as user_role_changed
-from opendefence_core.models.v1alpha1 import (
+from lib_opendefence_core.models.v1alpha1 import (
     BINDINGS_SYNCED_CONDITION,
     REFERENCES_RESOLVED_CONDITION,
     Group,

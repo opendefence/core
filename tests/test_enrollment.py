@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from opendefence_core.api import dependencies
 from opendefence_core.api.lib import invites
-from opendefence_core.models.v1alpha1 import Invite, User
+from lib_opendefence_core.models.v1alpha1 import Invite, User
 from tests.factories import make_invite, make_user
 from tests.fakes import FakeList
 

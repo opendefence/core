@@ -1,16 +1,16 @@
 """platform.opendefence.fi/v1alpha1 resources."""
 
-from opendefence_core.models.v1alpha1.common import (
+from lib_opendefence_core.models.v1alpha1.common import (
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
     ObjectRef,
     PlatformStatus,
     ResolvedRef,
 )
-from opendefence_core.models.v1alpha1.group import Group, GroupSpec, GroupStatus
-from opendefence_core.models.v1alpha1.invite import Invite, InviteSpec, InviteStatus
-from opendefence_core.models.v1alpha1.role import Role, RoleSpec, RoleStatus
-from opendefence_core.models.v1alpha1.user import (
+from lib_opendefence_core.models.v1alpha1.group import Group, GroupSpec, GroupStatus
+from lib_opendefence_core.models.v1alpha1.invite import Invite, InviteSpec, InviteStatus
+from lib_opendefence_core.models.v1alpha1.role import Role, RoleSpec, RoleStatus
+from lib_opendefence_core.models.v1alpha1.user import (
     BINDINGS_SYNCED_CONDITION,
     CERTIFICATE_READY_CONDITION,
     BindingObservation,
@@ -18,7 +18,7 @@ from opendefence_core.models.v1alpha1.user import (
     UserSpec,
     UserStatus,
 )
-from opendefence_core.models.v1alpha1.userbinding import (
+from lib_opendefence_core.models.v1alpha1.userbinding import (
     SYNCED_CONDITION,
     UserBinding,
     UserBindingSpec,

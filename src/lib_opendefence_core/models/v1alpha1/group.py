@@ -7,7 +7,7 @@ from cloudcoil.pydantic import BaseModel
 from cloudcoil.resources import Resource
 from pydantic import Field
 
-from opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
+from lib_opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
 
 
 class GroupSpec(BaseModel):

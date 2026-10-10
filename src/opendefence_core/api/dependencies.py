@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from opendefence_core.api.lib.jwt import decode
-from opendefence_core.models.v1alpha1 import User
+from lib_opendefence_core.models.v1alpha1 import User
 
 bearer = HTTPBearer(auto_error=False)
 

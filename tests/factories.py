@@ -5,7 +5,7 @@ from datetime import datetime
 
 from cloudcoil.apimachinery import ObjectMeta
 
-from opendefence_core.models.v1alpha1 import (
+from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
     SYNCED_CONDITION,
@@ -23,7 +23,7 @@ from opendefence_core.models.v1alpha1 import (
     UserBindingStatus,
     UserSpec,
 )
-from opendefence_core.models.v1alpha1.common import PlatformCondition
+from lib_opendefence_core.models.v1alpha1.common import PlatformCondition
 
 
 def refs(names: Iterable[str]) -> list[ObjectRef]:

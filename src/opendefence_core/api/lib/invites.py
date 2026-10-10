@@ -7,7 +7,7 @@ from cloudcoil.controller import get_condition
 from cloudcoil.errors import ResourceConflict
 
 from opendefence_core.api.lib.codes import generate_code
-from opendefence_core.models.v1alpha1 import (
+from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
     Invite,

@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat,
 
 from opendefence_core.api.config import get_config
 from opendefence_core.api.schema import ApiModel
-from opendefence_core.models.v1alpha1 import User
+from lib_opendefence_core.models.v1alpha1 import User
 
 ALGORITHM = "ES256"
 AUDIENCE = "enrollment"

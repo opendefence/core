@@ -3,7 +3,7 @@
 YAML under manifests/ and the Tiltfile can't import these; keep them in sync.
 """
 
-from opendefence_core.models.v1alpha1 import User
+from lib_opendefence_core.models.v1alpha1 import User
 
 SYSTEM_NAMESPACE = "opendefence-system"
 """Namespace of the operator and the REST API."""
