@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: pvarki/config-ci-library/.github/actions/validate-bumpversion@main
 
-  build-packages:
+  build-library:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -38,18 +38,16 @@ jobs:
         with:
           python-version: "3.14"
           uv-version: "0.12.13"
-      - run: uv build --all-packages --no-sources --out-dir dist
+      - run: uv build --package lib-opendefence-core --no-sources --out-dir dist
       - run: uv run --locked python scripts/check_packages.py dist
       - run: uvx --from twine==7.0.0 twine check dist/*
-      - name: Rebuild both source archives outside the checkout
+      - name: Rebuild the library source archive outside the checkout
         shell: bash
         run: |
           tempdir=$(mktemp -d)
-          for archive in dist/*.tar.gz; do tar -xzf "$archive" -C "$tempdir"; done
-          for package in "$tempdir"/lib_opendefence_core-* "$tempdir"/opendefence_core-*; do
-            uv build --no-sources --out-dir "$tempdir/rebuilt" "$package"
-          done
-      - run: sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS
+          tar -xzf dist/lib_opendefence_core-*.tar.gz -C "$tempdir"
+          uv build --no-sources --out-dir "$tempdir/rebuilt" "$tempdir"/lib_opendefence_core-*
+      - run: sha256sum dist/lib_opendefence_core-* > dist/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: library-package
@@ -59,19 +57,12 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: application-package
-          path: |
-            dist/opendefence_core-*.whl
-            dist/opendefence_core-*.tar.gz
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
           name: package-checksums
           path: dist/SHA256SUMS
           if-no-files-found: error
 
-  test-packages:
-    needs: build-packages
+  test-library:
+    needs: build-library
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -85,27 +76,18 @@ jobs:
           path: dist/library
       - uses: actions/download-artifact@v4
         with:
-          name: application-package
-          path: dist/application
-      - uses: actions/download-artifact@v4
-        with:
           name: package-checksums
           path: dist
-      - name: Check and install built wheels
+      - name: Check and install the library wheel
         shell: bash
         run: |
           cp dist/library/* dist/
-          cp dist/application/* dist/
           sha256sum -c dist/SHA256SUMS
           uv run --locked python scripts/check_packages.py dist
           uv venv --python 3.14 /tmp/library
           uv pip install --python /tmp/library/bin/python dist/library/*.whl
-          (cd /tmp && env -u PYTHONPATH /tmp/library/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py" library)
+          (cd /tmp && env -u PYTHONPATH /tmp/library/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py")
           uv pip check --python /tmp/library/bin/python
-          uv venv --python 3.14 /tmp/combined
-          uv pip install --python /tmp/combined/bin/python dist/library/*.whl dist/application/*.whl
-          (cd /tmp && env -u PYTHONPATH /tmp/combined/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py" combined)
-          uv pip check --python /tmp/combined/bin/python
 
   build-image:
     runs-on: ubuntu-latest
@@ -120,8 +102,7 @@ jobs:
 
   publish-library:
     if: github.repository == 'opendefence/core' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs:
-      [checks, bumpversion-check, build-packages, test-packages, build-image]
+    needs: [checks, bumpversion-check, build-library, test-library, build-image]
     runs-on: ubuntu-latest
     concurrency:
       group: core-nexus-publish
@@ -172,7 +153,7 @@ jobs:
           uv venv --python 3.14 /tmp/published
           uv pip install --python /tmp/published/bin/python 'cloudcoil>=0.8.0,<1.0' 'pydantic>=2.12.0,<3.0'
           uv --no-cache --no-config pip install --python /tmp/published/bin/python --index-url https://nexus.dev.pvarki.fi/repository/pypilocal/simple/ --no-deps "lib-opendefence-core==$version"
-          (cd /tmp && env -u PYTHONPATH /tmp/published/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py" library)
+          (cd /tmp && env -u PYTHONPATH /tmp/published/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py")
           uv pip check --python /tmp/published/bin/python
 
   publish-image-package:
