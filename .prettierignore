@@ -1,0 +1,3 @@
+# Go-templated by Zarf at deploy time
+manifests/traefik-middlewares/hsts.yaml
+manifests/ingress/

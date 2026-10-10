@@ -1,0 +1,17 @@
+# Lives next to Traefik so the default TLSStore can use it
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: core-tls
+  namespace: traefik-system
+spec:
+  secretName: core-tls # pragma: allowlist secret
+  dnsNames:
+    - {{ .Values.domain | quote }}
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: public-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

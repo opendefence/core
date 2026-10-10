@@ -1,0 +1,122 @@
+# Local kind cluster, registries and base operators come from opendefence/base;
+# core adds its own package, image and Tilt dev loop on top.
+version: "3"
+
+includes:
+  registries:
+    aliases: [r]
+    taskfile: https://raw.githubusercontent.com/opendefence/base/main/taskfiles/registries.yaml
+    dir: "{{.ROOT_DIR}}"
+  cluster:
+    aliases: [c]
+    taskfile: https://raw.githubusercontent.com/opendefence/base/main/taskfiles/cluster.yaml
+    dir: "{{.ROOT_DIR}}"
+  base:
+    taskfile: https://raw.githubusercontent.com/opendefence/base/main/taskfiles/base.yaml
+    dir: "{{.ROOT_DIR}}"
+
+vars:
+  CLUSTER_NAME: '{{.CLUSTER_NAME | default "opendefence-dev"}}'
+  KUBE_CONTEXT: '{{.KUBE_CONTEXT | default (printf "kind-%s" .CLUSTER_NAME)}}'
+  VALUES_FILE: '{{.VALUES_FILE | default "values/local-dev.yaml"}}'
+  BUILD_DIR: '{{.BUILD_DIR | default ".build"}}'
+  ARCH: '{{.ARCH | default "amd64"}}'
+  IMAGE: '{{.IMAGE | default "opendefence-core"}}'
+  IMAGE_TAG: '{{.IMAGE_TAG | default "dev"}}'
+
+tasks:
+  default:
+    desc: List available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  up:
+    desc: Start the registries and kind cluster, and install the base operators
+    cmds:
+      - task: registries:up
+      - task: cluster:create
+      - task: registries:connect
+      - task: cluster:configure-mirrors
+      - task: cluster:document-local-registry
+      # Base's taskfile defines BASE_VERSION/BASE_ISSUER itself (empty by default)
+      # and derives BASE_PACKAGE at file level, so core's defaults go in as CLI
+      # vars. `latest` is updated by base's publish workflow on every push to main.
+      - >-
+        {{.TASK_EXE}} base:install
+        BASE_VERSION={{.BASE_VERSION | default "latest" | shellQuote}}
+        BASE_ISSUER={{.BASE_ISSUER | default "ca" | shellQuote}}
+
+  down:
+    desc: Delete the kind cluster and leave the registries running
+    cmds:
+      - task: registries:disconnect
+      - task: cluster:down
+
+  reset:
+    desc: Delete the kind cluster, owned registry containers, and anonymous volumes
+    cmds:
+      - task: down
+      - task: registries:down
+
+  status:
+    aliases: [s]
+    desc: Show cluster, registry, and Zarf package status
+    cmds:
+      - task: cluster:status
+      - task: registries:status
+      - task: base:status
+
+  dev:
+    desc: Run core on the cluster with Tilt, hot-reloading the API from src/
+    preconditions: &context
+      - sh: command -v tilt >/dev/null
+        msg: tilt is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT, or run `task up` first
+    cmds:
+      - tilt up
+
+  dev:down:
+    desc: Remove the resources Tilt deployed
+    preconditions: *context
+    cmds:
+      - tilt down
+
+  lint:
+    desc: Run all pre-commit hooks
+    cmds:
+      - uv run --locked prek run --all-files
+
+  test:
+    desc: Run the test suite
+    cmds:
+      - uv run --locked pytest {{.CLI_ARGS}}
+
+  image:build:
+    desc: Build the production container (IMAGE:IMAGE_TAG, default opendefence-core:dev)
+    cmds:
+      - docker build --target production -t {{printf "%s:%s" .IMAGE .IMAGE_TAG | shellQuote}} .
+
+  zarf:lint:
+    desc: Validate the Zarf package schema and sources
+    cmds:
+      - zarf dev lint .
+
+  zarf:inspect:
+    desc: Render the package manifests with VALUES_FILE without deploying
+    cmds:
+      - zarf dev inspect manifests . --values {{.VALUES_FILE | shellQuote}}
+
+  zarf:deploy:
+    desc: Deploy the checkout in connected mode to the selected current kube-context
+    preconditions:
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT before using Zarf
+    cmds:
+      - zarf dev deploy . --connected --values {{.VALUES_FILE | shellQuote}}
+
+  zarf:package:
+    desc: Build a Zarf package archive from the checkout
+    cmds:
+      - zarf package create . --architecture {{.ARCH | shellQuote}} --confirm --output {{.BUILD_DIR | shellQuote}}
