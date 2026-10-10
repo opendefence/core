@@ -4,6 +4,7 @@ from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.controller import Context, Controller, ResourceKey
 from cloudcoil.errors import ResourceNotFound
 
+from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import (
     inspect_parent_chain,
@@ -13,7 +14,6 @@ from opendefence_core.k8s_operator.controllers._refs import (
     resolve_optional_ref,
     resolve_refs,
 )
-from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 
 groups = Controller(Group, name="groups", events=recorder("groups"))
 

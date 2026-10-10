@@ -30,10 +30,8 @@ def test_library_import_boundary() -> None:
     for path in library.rglob("*.py"):
         tree = ast.parse(path.read_text())
         assert not any(
-            isinstance(node, ast.ImportFrom)
-            and (node.module or "").startswith("opendefence_core")
-            or isinstance(node, ast.Import)
-            and any(alias.name.startswith("opendefence_core") for alias in node.names)
+            (isinstance(node, ast.ImportFrom) and (node.module or "").startswith("opendefence_core"))
+            or (isinstance(node, ast.Import) and any(alias.name.startswith("opendefence_core") for alias in node.names))
             for node in ast.walk(tree)
         ), path
 

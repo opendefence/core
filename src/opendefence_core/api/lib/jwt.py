@@ -13,9 +13,9 @@ import jwt
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey, EllipticCurvePublicKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_pem_private_key
 
+from lib_opendefence_core.models.v1alpha1 import User
 from opendefence_core.api.config import get_config
 from opendefence_core.api.schema import ApiModel
-from lib_opendefence_core.models.v1alpha1 import User
 
 ALGORITHM = "ES256"
 AUDIENCE = "enrollment"

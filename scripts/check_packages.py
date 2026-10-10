@@ -8,6 +8,7 @@ from email.parser import BytesParser
 from pathlib import Path
 
 from packaging.requirements import Requirement
+
 from lib_opendefence_core import __version__ as library_version
 from opendefence_core import __version__ as application_version
 
