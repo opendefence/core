@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: ghcr.io/opendefence/core:0.1.1-261010 # package version with "-" for "+", kept in sync by bump-my-version
+          image: ghcr.io/opendefence/core:0.2.0-261010 # package version with "-" for "+", kept in sync by bump-my-version
           command:
             [
               uvicorn,
