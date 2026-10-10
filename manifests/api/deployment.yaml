@@ -44,11 +44,11 @@ spec:
               containerPort: 8000
           readinessProbe:
             httpGet:
-              path: /health
+              path: /api/v3/health
               port: http
           livenessProbe:
             httpGet:
-              path: /health
+              path: /api/v3/health
               port: http
           resources:
             requests:
