@@ -1,6 +1,6 @@
 [project]
 name = "opendefence_core"
-version = "0.1.0"
+version = "0.1.0+261010"
 description = "Runs core operators and REST API for OpenDefence operational platform"
 authors = [{name="Niilo Vuokila", email="niilo@opendefence.fi" }]
 homepage = "https://github.com/opendefence/core"
@@ -11,7 +11,7 @@ requires-python = ">=3.12,<4.0"
 dependencies = ["click>=8.5.0,<9.0"]
 
 [project.scripts]
-opendefence_core = "opendefence_core.console:opendefence_core_cli"
+opendefence_core = "opendefence_core.cli.console:opendefence_core_cli"
 
 
 [tool.ruff]
