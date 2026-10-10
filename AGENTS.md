@@ -22,7 +22,7 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 - The operator only gains permissions through `RBACRule` in `k8s_operator/app.py`; the API's RBAC is hand-written in `manifests/api/rbac.yaml`. Keep both least-privilege.
 - The image is `ghcr.io/opendefence/core` and the Zarf package `core` is published under `oci://ghcr.io/opendefence/packages`. They share version tags, so they must stay in separate repositories.
 - Deployments pass only `args`, keeping the image entrypoint `tini -- opendefence_core`.
-- Bump the version with `uv run --locked bump-my-version bump <part>`. Move `BASE_REF` and `BASE_VERSION` together.
+- Bump the version with `task version:bump -- <part>`. Move `BASE_REF` and `BASE_VERSION` together.
 - Follow base's Taskfile rules: scalar defaults go in each included file's top-level `vars:` using `default`; public tasks get descriptions and tool preconditions; shell arguments are quoted with `shellQuote`. A value derived from a var that includers may set, such as `CORE_PACKAGE` from `CORE_VERSION`, is computed in the task's `vars:`, because file-level vars are evaluated before include vars apply.
 
 ## Validation
