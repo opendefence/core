@@ -1,0 +1,79 @@
+kind: ZarfPackageConfig
+metadata:
+  name: core
+  description: OpenDefence core operator, REST API, and Traefik middlewares
+values:
+  files:
+    - values/values.yaml
+  schema: values/values.schema.json
+components:
+  - name: namespaces
+    required: true
+    manifests:
+      - name: namespaces
+        files:
+          - manifests/namespaces.yaml
+  - name: crds
+    required: true
+    manifests:
+      - name: crds
+        serverSideApply: "true"
+        files:
+          - manifests/crds/crds.yaml
+  - name: traefik-middlewares
+    required: true
+    manifests:
+      - name: traefik-middlewares
+        template: true
+        files:
+          - manifests/traefik-middlewares/hsts.yaml
+          - manifests/traefik-middlewares/strip-identity-headers.yaml
+  - name: operator
+    required: true
+    manifests:
+      - name: operator
+        files:
+          - manifests/operator/certificate.yaml
+          - manifests/operator/operator.yaml
+    healthChecks:
+      - apiVersion: cert-manager.io/v1
+        kind: Certificate
+        name: operator-tls
+        namespace: opendefence-system
+      - apiVersion: apps/v1
+        kind: Deployment
+        name: opendefence-platform
+        namespace: opendefence-system
+  - name: api
+    required: true
+    manifests:
+      - name: api
+        template: true
+        files:
+          - manifests/api/rbac.yaml
+          - manifests/api/jwt-key.yaml
+          - manifests/api/deployment.yaml
+          - manifests/api/service.yaml
+    healthChecks:
+      - apiVersion: cert-manager.io/v1
+        kind: Certificate
+        name: core-api-jwt
+        namespace: opendefence-system
+      - apiVersion: apps/v1
+        kind: Deployment
+        name: core-api
+        namespace: opendefence-system
+  - name: ingress
+    required: true
+    manifests:
+      - name: ingress
+        template: true
+        files:
+          - manifests/ingress/certificate.yaml
+          - manifests/ingress/tlsstore.yaml
+          - manifests/ingress/api.yaml
+    healthChecks:
+      - apiVersion: cert-manager.io/v1
+        kind: Certificate
+        name: core-tls
+        namespace: traefik-system

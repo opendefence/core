@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["domain", "hsts"],
+  "properties": {
+    "domain": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"
+    },
+    "hsts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxAge"],
+      "properties": {
+        "maxAge": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+# Unconditionally clears every client-supplied identity header.
+# In Traefik an empty customRequestHeaders entry removes the
+# header entirely from the request.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-identity-headers
+  namespace: traefik-system
+spec:
+  headers:
+    customRequestHeaders:
+      X-ClientCert-DN: ""
+      X-ClientCert-Serial: ""
+      X-SSL-Client-Verify: ""
+      X-SSL-Client-Fingerprint: ""
+      X-Request-ID: ""
+      Callsign: ""
+      Callsign-Valid: ""
+      Callsign-Valid-Reason: ""
+      l5d-client-id: ""
+      X-Forwarded-Tls-Client-Cert: ""
+      X-Forwarded-Tls-Client-Cert-Info: ""
+      Validity-Secret: ""

@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "0.1.1+261010"
+current_version = "0.2.0+261010"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)\\+(?P<build>\\d+)"
 serialize = ["{major}.{minor}.{patch}+{build}"]
 
@@ -31,3 +31,14 @@ replace = '__version__ = "{new_version}"'
 filename = "tests/test_opendefence_core.py"
 search = '__version__ == "{current_version}"'
 replace = '__version__ == "{new_version}"'
+
+# Container tags can't contain "+", so images use "-" before the build number
+[[tool.bumpversion.files]]
+filename = "manifests/api/deployment.yaml"
+search = "ghcr.io/opendefence/core:{current_major}.{current_minor}.{current_patch}-{current_build}"
+replace = "ghcr.io/opendefence/core:{new_major}.{new_minor}.{new_patch}-{new_build}"
+
+[[tool.bumpversion.files]]
+filename = "manifests/operator/operator.yaml"
+search = "ghcr.io/opendefence/core:{current_major}.{current_minor}.{current_patch}-{current_build}"
+replace = "ghcr.io/opendefence/core:{new_major}.{new_minor}.{new_patch}-{new_build}"

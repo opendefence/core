@@ -1,0 +1,11 @@
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Invite
+metadata:
+  name: first-admin
+spec:
+  code: "123456ABCDEF" # pragma: allowlist secret
+  roleRefs:
+    - name: superadmin
+  useCount: 1
+  validUntil: "2137-01-01T00:00:00Z"
+  autoApprove: true

@@ -41,6 +41,25 @@ RUN cd /python/cpython-3.14.*/ \
         lib/python3.14/site-packages/pip lib/python3.14/site-packages/pip-*
 
 
+#######################
+# Development (Tilt) #
+#######################
+# Same runtime with busybox (Tilt's live update needs tar). Source synced to
+# /app/src shadows the installed package via PYTHONPATH.
+FROM gcr.io/distroless/cc-debian13:debug AS dev
+ENV \
+  LANG=C.UTF-8 \
+  PATH="/.venv/bin:$PATH" \
+  PYTHONPATH=/app/src
+COPY --from=build /usr/bin/tini-static /sbin/tini
+COPY --from=build /python /python
+COPY --from=build /.venv /.venv
+COPY --chown=65532:65532 ./src /app/src/
+WORKDIR /app
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["opendefence_core"]
+
+
 ##############
 # Production #
 ##############

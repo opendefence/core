@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: core-api
+  namespace: opendefence-system
+  labels:
+    app.kubernetes.io/name: core-api
+    app.kubernetes.io/part-of: opendefence
+spec:
+  selector:
+    app.kubernetes.io/name: core-api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

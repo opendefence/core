@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: hsts
+  namespace: traefik-system
+spec:
+  headers:
+{{- if eq (int .Values.hsts.maxAge) 0 }}
+    # Clear HSTS that browsers may have pinned for the hostname earlier
+    customResponseHeaders:
+      Strict-Transport-Security: max-age=0
+{{- else }}
+    stsSeconds: {{ .Values.hsts.maxAge }}
+    stsIncludeSubdomains: true
+    forceSTSHeader: true
+{{- end }}

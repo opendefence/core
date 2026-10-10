@@ -1,0 +1,20 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: core-api
+  namespace: opendefence-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.domain }}`) && PathPrefix(`/api`)
+      middlewares:
+        - name: strip-identity-headers
+          namespace: traefik-system
+        - name: hsts
+          namespace: traefik-system
+      services:
+        - name: core-api
+          port: http
+  tls: {}

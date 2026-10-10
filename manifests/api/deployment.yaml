@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: opendefence-system
+  labels:
+    app.kubernetes.io/name: core-api
+    app.kubernetes.io/part-of: opendefence
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: core-api
+        app.kubernetes.io/part-of: opendefence
+    spec:
+      serviceAccountName: core-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ghcr.io/opendefence/core:0.2.0-261010 # package version with "-" for "+", kept in sync by bump-my-version
+          command:
+            [
+              uvicorn,
+              opendefence_core.api.app:app,
+              --host,
+              0.0.0.0,
+              --port,
+              "8000",
+            ]
+          env:
+            - name: CORE_API_DOMAIN
+              value: {{ .Values.domain | quote }}
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /api/v3/health
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /api/v3/health
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: jwt-key
+              mountPath: /var/run/secrets/opendefence/jwt
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: jwt-key
+          secret:
+            secretName: core-api-jwt # pragma: allowlist secret
+            items:
+              - key: tls.key
+                path: tls.key
+        - name: tmp
+          emptyDir: {}
