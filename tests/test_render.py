@@ -1,6 +1,7 @@
 """Rendered operator manifests: in sync with the code, hardened, and consistent with the package."""
 
 import re
+import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _documents(path: Path) -> list[dict[str, Any]]:
     return list(yaml.safe_load_all(render()[path]))
+
+
+def _kustomized() -> list[dict[str, Any]]:
+    """The operator manifests as Zarf deploys them, hardened by manifests/operator/kustomization.yaml."""
+    output = subprocess.run(  # nosec B603 B607
+        ["kubectl", "kustomize", str(ROOT / OPERATOR_PATH.parent)], check=True, capture_output=True, text=True
+    ).stdout
+    return list(yaml.safe_load_all(output))
 
 
 def _one(documents: list[dict[str, Any]], kind: str, namespace: str | None = None) -> dict[str, Any]:
@@ -46,7 +55,7 @@ def test_crds() -> None:
 
 def test_operator_deployment_is_hardened() -> None:
     """Non-root, read-only, labelled, and started through the image entrypoint."""
-    deployment = _one(_documents(OPERATOR_PATH), "Deployment")
+    deployment = _one(_kustomized(), "Deployment")
     assert deployment["metadata"]["name"] == OPERATOR_NAME
     assert deployment["metadata"]["labels"]["app.kubernetes.io/part-of"] == "opendefence"
     pod = deployment["spec"]["template"]["spec"]
@@ -56,8 +65,9 @@ def test_operator_deployment_is_hardened() -> None:
     assert container["args"] == ["operator", "run"]
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert container["securityContext"]["readOnlyRootFilesystem"] is True
-    assert container["volumeMounts"][0]["name"] == "webhook-tls"
-    assert pod["volumes"][0]["secret"]["secretName"] == OPERATOR_TLS_SECRET
+    assert {mount["name"] for mount in container["volumeMounts"]} == {"webhook-tls", "tmp"}
+    volumes = {volume["name"]: volume for volume in pod["volumes"]}
+    assert volumes["webhook-tls"]["secret"]["secretName"] == OPERATOR_TLS_SECRET
 
 
 def test_operator_rbac() -> None:
@@ -77,7 +87,7 @@ def test_operator_rbac() -> None:
 
 def test_webhooks_have_ca_injected() -> None:
     """cert-manager injects the webhook CA; Group writes and User deletes are validated."""
-    webhook = _one(_documents(OPERATOR_PATH), "ValidatingWebhookConfiguration")
+    webhook = _one(_kustomized(), "ValidatingWebhookConfiguration")
     annotations = webhook["metadata"]["annotations"]
     assert annotations["cert-manager.io/inject-ca-from"] == f"{SYSTEM_NAMESPACE}/{OPERATOR_TLS_SECRET}"
     assert all("caBundle" not in hook["clientConfig"] for hook in webhook["webhooks"])

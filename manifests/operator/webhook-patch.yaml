@@ -1,0 +1,15 @@
+# cert-manager injects the CA from the operator's Certificate, so drop the
+# placeholder caBundle that cloudcoil needs to render the webhooks
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: core-operator.opendefence-system.cloudcoil.io
+  annotations:
+    cert-manager.io/inject-ca-from: opendefence-system/core-operator-tls
+webhooks:
+  - name: validate-0.core-operator.opendefence-system.cloudcoil.io
+    clientConfig:
+      caBundle: null
+  - name: validate-1.core-operator.opendefence-system.cloudcoil.io
+    clientConfig:
+      caBundle: null

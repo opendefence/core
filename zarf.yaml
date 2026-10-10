@@ -32,9 +32,8 @@ components:
     required: true
     manifests:
       - name: operator
-        files:
-          - manifests/operator/certificate.yaml
-          - manifests/operator/operator.yaml
+        kustomizations:
+          - manifests/operator
     healthChecks:
       - apiVersion: cert-manager.io/v1
         kind: Certificate

@@ -1,0 +1,51 @@
+# Match core's API Deployment: labels, non-root, read-only, resources, probes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-operator
+  namespace: opendefence-system
+  labels:
+    app.kubernetes.io/part-of: opendefence
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: opendefence
+      annotations:
+        # The API server calls the webhook directly, outside the mesh
+        config.linkerd.io/skip-inbound-ports: "9443"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: operator
+          args: [operator, run] # after the image entrypoint, tini -- opendefence_core
+          ports:
+            - name: health
+              containerPort: 8080 # HEALTH_PORT in k8s_operator/app.py
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            # The root filesystem is read-only, but cloudcoil needs a temporary directory
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
