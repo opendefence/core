@@ -178,8 +178,16 @@ jobs:
           (cd /tmp && env -u PYTHONPATH /tmp/published/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py" library)
           uv pip check --python /tmp/published/bin/python
 
-  tag-release:
+  publish-image-package:
+    if: github.repository == 'opendefence/core' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: verify-published
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish.yaml
+
+  tag-release:
+    needs: publish-image-package
     runs-on: ubuntu-latest
     permissions:
       contents: write
