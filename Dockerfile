@@ -25,10 +25,10 @@ WORKDIR /app
 # Dependencies first, to cache them in a docker layer
 COPY ./uv.lock ./pyproject.toml ./README.md ./LICENSE.txt /app/
 COPY ./src/lib_opendefence_core/pyproject.toml ./src/lib_opendefence_core/README.md ./src/lib_opendefence_core/LICENSE.txt /app/src/lib_opendefence_core/
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --all-extras --no-install-workspace
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-install-workspace
 # The package itself, non-editable so /app is not needed at runtime
 COPY ./src /app/src/
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --all-extras --no-editable
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-editable
 # Drop what a non-interactive runtime never uses. The python binary links
 # libpython statically, so the shared library is only needed for embedding.
 RUN cd /python/cpython-*/ \
