@@ -4,7 +4,7 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 
 ## Structure
 
-- `models/v1alpha1/` defines the custom resources. The operator, the API, and the generated CRDs all use them.
+- `src/lib_opendefence_core/models/v1alpha1/` defines the custom resources in the separate `lib-opendefence-core` package. The library must not import `opendefence_core`. The operator, the API, and the generated CRDs all use them.
 - `naming.py` holds the names shared across components: namespaces, issuers, the operator name, and the user certificate and Secret names. YAML under `manifests/` and the `Tiltfile` repeat them because they can't import Python, so keep them in sync.
 - `k8s_operator/` holds the Application (`app.py`), its controllers, and `render.py`, which generates `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`.
 - `api/` holds the FastAPI app: `routes/<area>/{views,schema}.py`, the shared `ApiModel` base in `schema.py`, the JWT dependency in `dependencies.py`, and helpers in `lib/`.
