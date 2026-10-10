@@ -6,9 +6,6 @@ from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.controller import Context, Controller, ResourceKey
 from cloudcoil.models.cert_manager.v1 import Certificate
 
-from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate, remove_certificate
-from opendefence_core.k8s_operator.controllers._events import recorder
-from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
 from lib_opendefence_core.models.v1alpha1 import (
     BINDINGS_SYNCED_CONDITION,
     BindingObservation,
@@ -18,6 +15,9 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
+from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate, remove_certificate
+from opendefence_core.k8s_operator.controllers._events import recorder
+from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
 
 USER_CERTIFICATE_FINALIZER = "platform.opendefence.fi/user-certificate"
 

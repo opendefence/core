@@ -7,8 +7,8 @@ from cloudcoil.controller import HealthServer
 from cloudcoil.models.cert_manager.v1 import Certificate
 from cloudcoil.models.kubernetes.core.v1 import Secret
 
-from opendefence_core.k8s_operator.controllers import ALL_CONTROLLERS
 from lib_opendefence_core.models.v1alpha1 import UserBinding
+from opendefence_core.k8s_operator.controllers import ALL_CONTROLLERS
 from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, PUBLIC_CERT_NAMESPACE, SYSTEM_NAMESPACE
 
 HEALTH_PORT = 8080

@@ -4,9 +4,9 @@ from typing import Self
 
 from pydantic import Field
 
+from lib_opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN, User
 from opendefence_core.api.lib.jwt import Token
 from opendefence_core.api.schema import ApiModel
-from lib_opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN, User
 
 
 class CheckRequest(ApiModel):

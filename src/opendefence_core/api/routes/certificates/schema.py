@@ -4,8 +4,8 @@ from typing import Annotated, Any
 
 from fastapi import Path
 
-from opendefence_core.api.schema import ErrorResponse
 from lib_opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN
+from opendefence_core.api.schema import ErrorResponse
 
 PFX_MEDIA_TYPE = "application/x-pkcs12"
 

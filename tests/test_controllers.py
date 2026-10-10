@@ -8,17 +8,6 @@ import pytest
 from cloudcoil.controller import Context, Controller, ResourceKey, TerminalError, Wait
 from cloudcoil.resources import Resource
 
-from opendefence_core.k8s_operator.controllers import groups, invites, users
-from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
-from opendefence_core.k8s_operator.controllers.groups import manager_changed, parent_group_changed, reconcile_group
-from opendefence_core.k8s_operator.controllers.groups import role_changed as group_role_changed
-from opendefence_core.k8s_operator.controllers.invites import group_changed as invite_group_changed
-from opendefence_core.k8s_operator.controllers.invites import reconcile_invite
-from opendefence_core.k8s_operator.controllers.invites import role_changed as invite_role_changed
-from opendefence_core.k8s_operator.controllers.roles import reconcile_role
-from opendefence_core.k8s_operator.controllers.users import group_changed as user_group_changed
-from opendefence_core.k8s_operator.controllers.users import reconcile_user, userbinding_changed
-from opendefence_core.k8s_operator.controllers.users import role_changed as user_role_changed
 from lib_opendefence_core.models.v1alpha1 import (
     BINDINGS_SYNCED_CONDITION,
     REFERENCES_RESOLVED_CONDITION,
@@ -30,6 +19,17 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
+from opendefence_core.k8s_operator.controllers import groups, invites, users
+from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
+from opendefence_core.k8s_operator.controllers.groups import manager_changed, parent_group_changed, reconcile_group
+from opendefence_core.k8s_operator.controllers.groups import role_changed as group_role_changed
+from opendefence_core.k8s_operator.controllers.invites import group_changed as invite_group_changed
+from opendefence_core.k8s_operator.controllers.invites import reconcile_invite
+from opendefence_core.k8s_operator.controllers.invites import role_changed as invite_role_changed
+from opendefence_core.k8s_operator.controllers.roles import reconcile_role
+from opendefence_core.k8s_operator.controllers.users import group_changed as user_group_changed
+from opendefence_core.k8s_operator.controllers.users import reconcile_user, userbinding_changed
+from opendefence_core.k8s_operator.controllers.users import role_changed as user_role_changed
 from tests.factories import make_binding, make_group, make_invite, make_role, make_user
 from tests.fakes import FakeCache, FakeContext
 

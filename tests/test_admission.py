@@ -5,9 +5,9 @@ from typing import cast
 import pytest
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 
+from lib_opendefence_core.models.v1alpha1 import Group, User
 from opendefence_core.k8s_operator.controllers.groups import validate_group
 from opendefence_core.k8s_operator.controllers.users import validate_user_delete
-from lib_opendefence_core.models.v1alpha1 import Group, User
 from tests.factories import make_binding, make_group, make_user
 from tests.fakes import FakeAdmissionRequest
 
