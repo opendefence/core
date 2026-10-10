@@ -2,7 +2,9 @@
 
 on:
   pull_request:
-  workflow_dispatch: # Allow manual triggering
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   checks:
@@ -24,7 +26,165 @@ jobs:
 
   bumpversion-check:
     runs-on: ubuntu-latest
-    name: Validate .bumpversion.toml
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: pvarki/config-ci-library/.github/actions/validate-bumpversion@main
+
+  build-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
+        with:
+          python-version: "3.14"
+          uv-version: "0.12.13"
+      - run: uv build --all-packages --no-sources --out-dir dist
+      - run: uv run --locked python scripts/check_packages.py dist
+      - run: uvx --from twine==7.0.0 twine check dist/*
+      - name: Rebuild both source archives outside the checkout
+        shell: bash
+        run: |
+          tempdir=$(mktemp -d)
+          for archive in dist/*.tar.gz; do tar -xzf "$archive" -C "$tempdir"; done
+          for package in "$tempdir"/lib_opendefence_core-* "$tempdir"/opendefence_core-*; do
+            uv build --no-sources --out-dir "$tempdir/rebuilt" "$package"
+          done
+      - run: sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: library-package
+          path: |
+            dist/lib_opendefence_core-*.whl
+            dist/lib_opendefence_core-*.tar.gz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: application-package
+          path: |
+            dist/opendefence_core-*.whl
+            dist/opendefence_core-*.tar.gz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-checksums
+          path: dist/SHA256SUMS
+          if-no-files-found: error
+
+  test-packages:
+    needs: build-packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
+        with:
+          python-version: "3.14"
+          uv-version: "0.12.13"
+      - uses: actions/download-artifact@v4
+        with:
+          name: library-package
+          path: dist/library
+      - uses: actions/download-artifact@v4
+        with:
+          name: application-package
+          path: dist/application
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-checksums
+          path: dist
+      - name: Check and install built wheels
+        shell: bash
+        run: |
+          cp dist/library/* dist/
+          cp dist/application/* dist/
+          sha256sum -c dist/SHA256SUMS
+          uv run --locked python scripts/check_packages.py dist
+          uv venv --python 3.14 /tmp/library
+          uv pip install --python /tmp/library/bin/python dist/library/*.whl
+          (cd /tmp && env -u PYTHONPATH /tmp/library/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py" library)
+          uv pip check --python /tmp/library/bin/python
+          uv venv --python 3.14 /tmp/combined
+          uv pip install --python /tmp/combined/bin/python dist/library/*.whl dist/application/*.whl
+          (cd /tmp && env -u PYTHONPATH /tmp/combined/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py" combined)
+          uv pip check --python /tmp/combined/bin/python
+
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker build --target production -t core-package-check .
+      - name: Smoke-test installed packages and entrypoints
+        run: |
+          docker run --rm --entrypoint /.venv/bin/python core-package-check -I -c 'from importlib.metadata import version; from pathlib import Path; from lib_opendefence_core.models.v1alpha1 import User; from opendefence_core.api.app import app; from opendefence_core.k8s_operator.app import app as operator; assert version("lib-opendefence-core") == version("opendefence-core") == app.version; assert operator.webhook and not Path("/app/src").exists()'
+          docker run --rm core-package-check opendefence_core --version
+          docker run --rm core-package-check opendefence_core operator manifests --without-webhooks > /dev/null
+
+  publish-library:
+    if: github.repository == 'opendefence/core' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs:
+      [checks, bumpversion-check, build-packages, test-packages, build-image]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: core-nexus-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
+        with:
+          python-version: "3.14"
+          uv-version: "0.12.13"
+      - uses: actions/download-artifact@v4
+        with:
+          name: library-package
+          path: dist/library
+      - name: Reject a tag from a different commit
+        shell: bash
+        run: |
+          version=$(uv run --locked python -c 'import tomllib; print(tomllib.load(open(".bumpversion.toml", "rb"))["tool"]["bumpversion"]["current_version"])')
+          tag="v$version"
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$GITHUB_SHA" || { echo "Tag $tag points to a different commit" >&2; exit 1; }
+          fi
+      - name: Publish identical or missing library artifacts
+        env:
+          TWINE_USERNAME: nexusbot
+          TWINE_PASSWORD: ${{ secrets.NEXUSBOT_PAT }}
+          TWINE_NON_INTERACTIVE: "1"
+        run: |
+          test -n "$TWINE_PASSWORD"
+          uvx --from twine==7.0.0 twine check dist/library/*
+          uv run --locked python scripts/nexus_publish.py dist/library > /tmp/missing-artifacts
+          while IFS= read -r artifact; do
+            uvx --from twine==7.0.0 twine upload --repository-url https://nexus.dev.pvarki.fi/repository/pypilocal/ "$artifact"
+          done < /tmp/missing-artifacts
+
+  verify-published:
+    needs: publish-library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
+        with:
+          python-version: "3.14"
+          uv-version: "0.12.13"
+      - name: Install exact release from Nexus
+        shell: bash
+        run: |
+          version=$(uv run --locked python -c 'import tomllib; print(tomllib.load(open(".bumpversion.toml", "rb"))["tool"]["bumpversion"]["current_version"])')
+          uv venv --python 3.14 /tmp/published
+          uv pip install --python /tmp/published/bin/python 'cloudcoil>=0.8.0,<1.0' 'pydantic>=2.12.0,<3.0'
+          uv --no-cache --no-config pip install --python /tmp/published/bin/python --index-url https://nexus.dev.pvarki.fi/repository/pypilocal/simple/ --no-deps "lib-opendefence-core==$version"
+          (cd /tmp && env -u PYTHONPATH /tmp/published/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py" library)
+          uv pip check --python /tmp/published/bin/python
+
+  tag-release:
+    needs: verify-published
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pvarki/config-ci-library/.github/actions/tag-release@main
