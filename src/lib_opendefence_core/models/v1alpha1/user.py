@@ -8,7 +8,7 @@ from cloudcoil.pydantic import BaseModel
 from cloudcoil.resources import Resource
 from pydantic import ConfigDict, Field
 
-from opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
+from lib_opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
 
 BINDINGS_SYNCED_CONDITION = "BindingsSynced"
 CERTIFICATE_READY_CONDITION = "CertificateReady"

@@ -26,7 +26,7 @@ from opendefence_core.k8s_operator.controllers._certificates import (
     wants_certificate,
 )
 from opendefence_core.k8s_operator.controllers.users import finalize_user
-from opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, User
+from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, User
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name, user_secret_name
 from tests.factories import make_user
 from tests.fakes import FakeClient, FakeContext

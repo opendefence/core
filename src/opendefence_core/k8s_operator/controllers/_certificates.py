@@ -13,7 +13,7 @@ from cloudcoil.resources import Resource
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 
-from opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, User
+from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, User
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name, user_secret_name
 
 REVOKED_REASON = "Revoked"
