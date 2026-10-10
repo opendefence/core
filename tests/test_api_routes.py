@@ -11,27 +11,19 @@ from cloudcoil.models.kubernetes.core.v1 import Secret
 from fastapi.testclient import TestClient
 
 from opendefence_core.api.app import app
-from opendefence_core.api.lib.common.invites import CallsignTaken, InviteNotRedeemable
-from opendefence_core.api.lib.common.jwt import Token
-from opendefence_core.api.lib.middleware.jwt import jwt_user
+from opendefence_core.api.dependencies import jwt_user
+from opendefence_core.api.lib.invites import CallsignTaken, InviteNotRedeemable
+from opendefence_core.api.lib.jwt import Token
 from opendefence_core.api.routes.certificates import views as certificate_views
 from opendefence_core.api.routes.enrollment import views as enrollment_views
-from opendefence_core.k8s_operator.models.v1alpha1 import API_VERSION, Invite, User, UserSpec
+from opendefence_core.models.v1alpha1 import Invite, User
+from tests.factories import make_invite, make_user
 
 client = TestClient(app)
 
 
 def _user(callsign: str = "alpha1", approved: bool = False) -> User:
-    return User(
-        api_version=API_VERSION,
-        kind="User",
-        metadata=ObjectMeta(name=callsign, uid=f"uid-{callsign}"),
-        spec=UserSpec(
-            callsign=callsign,
-            approval_code="ABCD1234",
-            approved_at=datetime.now(UTC) if approved else None,
-        ),
-    )
+    return make_user(callsign, approval_code="ABCD1234", approved_at=datetime.now(UTC) if approved else None)
 
 
 def _token() -> Token:
@@ -44,6 +36,13 @@ def as_user() -> Iterator[None]:
     app.dependency_overrides[jwt_user] = lambda: _user(approved=True)
     yield
     app.dependency_overrides.clear()
+
+
+def test_health() -> None:
+    """The probe endpoint answers ok."""
+    response = client.get("/api/v3/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
 
 
 def test_healthcheck() -> None:
@@ -60,7 +59,7 @@ def test_docs_under_api() -> None:
     assert client.get("/api/openapi.json").status_code == 200
 
 
-@pytest.mark.parametrize(("invite", "valid"), [(object(), True), (None, False)])
+@pytest.mark.parametrize(("invite", "valid"), [(make_invite(), True), (None, False)])
 def test_check(monkeypatch: pytest.MonkeyPatch, invite: Invite | None, valid: bool) -> None:
     """Check reports whether the code can be redeemed."""
 
@@ -81,18 +80,18 @@ def test_enroll(monkeypatch: pytest.MonkeyPatch) -> None:
         _ = code
         return _user(callsign)
 
-    monkeypatch.setattr(enrollment_views, "redeem", redeem)
-
     def issue(user: User) -> Token:
         _ = user
         return _token()
 
+    monkeypatch.setattr(enrollment_views, "redeem", redeem)
     monkeypatch.setattr(enrollment_views, "issue", issue)
     response = client.post("/api/v3/enrollment", json={"code": "CODE1234", "callsign": "bravo2"})
     assert response.status_code == 201
     body = response.json()
     assert body["status"] == {"callsign": "bravo2", "approvalCode": "ABCD1234", "approved": False}
     assert body["token"]["accessToken"] == "token"
+    assert body["token"]["tokenType"] == "Bearer"
 
 
 @pytest.mark.parametrize(("error", "status"), [(InviteNotRedeemable, 404), (CallsignTaken, 409)])
@@ -126,18 +125,26 @@ def test_enrollment_status(as_user: None) -> None:
     assert response.json()["approved"] is True
 
 
+def test_pfx_requires_token() -> None:
+    """Certificates need a bearer token."""
+    assert client.get("/api/v3/certificates/alpha1.pfx").status_code == 401
+
+
 def test_pfx_only_own_certificate(as_user: None) -> None:
     """Users can't download another user's certificate."""
     _ = as_user
     assert client.get("/api/v3/certificates/bravo2.pfx").status_code == 403
 
 
-def test_pfx_not_issued(monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
-    """Missing certificate Secrets are 409."""
+@pytest.mark.parametrize("data", [None, {"tls.crt": "Y3J0"}], ids=["missing", "incomplete"])
+def test_pfx_not_issued(monkeypatch: pytest.MonkeyPatch, as_user: None, data: dict[str, str] | None) -> None:
+    """Missing or incomplete certificate Secrets are 409."""
     _ = as_user
 
     async def async_get(name: str, namespace: str) -> Secret:
-        raise ResourceNotFound(f"{namespace}/{name}")
+        if data is None:
+            raise ResourceNotFound(f"{namespace}/{name}")
+        return Secret(metadata=ObjectMeta(name=name, namespace=namespace), data=data)
 
     monkeypatch.setattr(Secret, "async_get", async_get)
     assert client.get("/api/v3/certificates/alpha1.pfx").status_code == 409
@@ -153,12 +160,11 @@ def test_pfx_download(monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
         data = {"tls.key": base64.b64encode(b"key").decode(), "tls.crt": base64.b64encode(b"crt").decode()}
         return Secret(metadata=ObjectMeta(name=name, namespace=namespace), data=data)
 
-    monkeypatch.setattr(Secret, "async_get", async_get)
-
     def build_pfx(callsign: str, key: bytes, chain: bytes) -> bytes:
         _ = callsign
         return b"pfx:" + key + chain
 
+    monkeypatch.setattr(Secret, "async_get", async_get)
     monkeypatch.setattr(certificate_views, "build_pfx", build_pfx)
     response = client.get("/api/v3/certificates/alpha1.pfx")
     assert response.status_code == 200

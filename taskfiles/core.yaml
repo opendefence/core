@@ -1,12 +1,58 @@
-# Apply CRDs without a local checkout.
+# Install, remove, and inspect a published core package, or apply only core's
+# CRDs. Remote-safe: other repositories include this file by URL at a pinned
+# core commit, without a checkout or companion files.
 version: "3"
 
 vars:
   CLUSTER_NAME: '{{.CLUSTER_NAME | default "opendefence-dev"}}'
   KUBE_CONTEXT: '{{.KUBE_CONTEXT | default (printf "kind-%s" .CLUSTER_NAME)}}'
+  CORE_VERSION: '{{.CORE_VERSION | default ""}}'
+  CORE_PACKAGE: '{{.CORE_PACKAGE | default ""}}'
+  CORE_VALUES_FILE: '{{.CORE_VALUES_FILE | default ""}}'
+  CORE_SET_VALUES: '{{.CORE_SET_VALUES | default ""}}'
   CORE_REF: '{{.CORE_REF | default ""}}'
 
 tasks:
+  install:
+    aliases: [up]
+    desc: Deploy the core package to the selected current kube-context
+    vars:
+      # Derived here rather than at file level so include vars can set CORE_VERSION
+      PACKAGE: '{{.CORE_PACKAGE | default (printf "oci://ghcr.io/opendefence/packages/core:%s" .CORE_VERSION)}}'
+    preconditions:
+      - sh: command -v zarf >/dev/null
+        msg: zarf is not on PATH
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT before using Zarf
+      - sh: test -n {{.CORE_VERSION | shellQuote}} || test -n {{.CORE_PACKAGE | shellQuote}}
+        msg: Set CORE_VERSION or CORE_PACKAGE before installing core
+    cmds:
+      - zarf package deploy {{.PACKAGE | shellQuote}} --connected --confirm {{if .CORE_VALUES_FILE}}--values {{.CORE_VALUES_FILE | shellQuote}}{{end}} {{if .CORE_SET_VALUES}}--set-values {{.CORE_SET_VALUES | shellQuote}}{{end}}
+
+  remove:
+    aliases: [down]
+    desc: Remove the core package from the selected current kube-context
+    preconditions:
+      - sh: command -v zarf >/dev/null
+        msg: zarf is not on PATH
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT before using Zarf
+    cmds:
+      - zarf package remove core --confirm
+
+  status:
+    desc: Show the platform resources and core's workloads in the selected kube-context
+    preconditions:
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+    cmds:
+      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} -n opendefence-system get deployments
+      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} get users.platform.opendefence.fi,groups.platform.opendefence.fi,roles.platform.opendefence.fi,invites.platform.opendefence.fi
+
   crds:
     desc: Apply only core's CRDs from CORE_REF, for working with the platform kinds without core running
     preconditions:

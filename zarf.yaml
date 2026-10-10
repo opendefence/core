@@ -38,11 +38,11 @@ components:
     healthChecks:
       - apiVersion: cert-manager.io/v1
         kind: Certificate
-        name: operator-tls
+        name: core-operator-tls
         namespace: opendefence-system
       - apiVersion: apps/v1
         kind: Deployment
-        name: opendefence-platform
+        name: core-operator
         namespace: opendefence-system
   - name: api
     required: true

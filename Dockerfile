@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 ARG PYTHON_VERSION=3.14.8
+
 ##########################################
 # Build the venv with a standalone Python #
 ##########################################
@@ -14,28 +15,22 @@ ENV \
   UV_PROJECT_ENVIRONMENT=/.venv \
   UV_COMPILE_BYTECODE=1 \
   UV_LINK_MODE=copy
+# Keep in step with uv in mise.toml
 COPY --from=ghcr.io/astral-sh/uv:0.12.24 /uv /usr/local/bin/
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        git \
-        openssh-client \
-        tini \
+    && apt-get install -y --no-install-recommends ca-certificates tini \
     && rm -rf /var/lib/apt/lists/* \
-    # Host keys for git+ssh dependencies (used with --mount=type=ssh)
-    && mkdir -p -m 0700 ~/.ssh && ssh-keyscan gitlab.com github.com | sort > ~/.ssh/known_hosts \
     && uv python install "$PYTHON_VERSION"
 WORKDIR /app
 # Dependencies first, to cache them in a docker layer
-COPY ./uv.lock ./pyproject.toml ./README.md ./LICENSE.txt /app/
-COPY ./src/lib_opendefence_core/pyproject.toml ./src/lib_opendefence_core/README.md ./src/lib_opendefence_core/LICENSE.txt /app/src/lib_opendefence_core/
-RUN --mount=type=ssh uv sync --locked --no-dev --no-install-workspace
+COPY ./uv.lock ./pyproject.toml ./README.md /app/
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-install-project
 # The package itself, non-editable so /app is not needed at runtime
 COPY ./src /app/src/
-RUN --mount=type=ssh uv sync --locked --no-dev --no-editable
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-editable
 # Drop what a non-interactive runtime never uses. The python binary links
 # libpython statically, so the shared library is only needed for embedding.
-RUN cd /python/cpython-3.14.*/ \
+RUN cd /python/cpython-*/ \
     && rm -rf \
         bin/idle* bin/pip* bin/pydoc* bin/*-config \
         include share \
@@ -60,8 +55,9 @@ COPY --from=build /python /python
 COPY --from=build /.venv /.venv
 COPY --chown=65532:65532 ./src /app/src/
 WORKDIR /app
-ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["opendefence_core"]
+# Deployments pass the subcommand as args: `api run` or `operator run`
+ENTRYPOINT ["/sbin/tini", "--", "opendefence_core"]
+CMD ["--help"]
 
 
 ##############
@@ -75,5 +71,6 @@ COPY --from=build /usr/bin/tini-static /sbin/tini
 COPY --from=build /python /python
 COPY --from=build /.venv /.venv
 WORKDIR /app
+# Deployments pass the subcommand as args: `api run` or `operator run`
 ENTRYPOINT ["/sbin/tini", "--", "opendefence_core"]
 CMD ["--help"]

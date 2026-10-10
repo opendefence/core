@@ -1,25 +1,87 @@
+# Build, check, and deploy core from this checkout. Needs the checkout, so it
+# is not remote-safe.
 version: "3"
 
+vars:
+  CLUSTER_NAME: '{{.CLUSTER_NAME | default "opendefence-dev"}}'
+  KUBE_CONTEXT: '{{.KUBE_CONTEXT | default (printf "kind-%s" .CLUSTER_NAME)}}'
+  VALUES_FILE: '{{.VALUES_FILE | default "values/local-dev.yaml"}}'
+  BUILD_DIR: '{{.BUILD_DIR | default ".build"}}'
+  ARCH: '{{.ARCH | default "amd64"}}'
+  IMAGE: '{{.IMAGE | default "ghcr.io/opendefence/core"}}'
+  IMAGE_TAG: '{{.IMAGE_TAG | default "dev"}}'
+  # Same detection as base's cluster taskfile: real Docker, then Podman
+  CONTAINER_RUNTIME:
+    sh: |
+      if [ -n "${CONTAINER_RUNTIME:-}" ]; then
+        printf '%s' "$CONTAINER_RUNTIME"
+      elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 && ! docker version 2>&1 | grep -qi podman; then
+        printf '%s' docker
+      elif command -v podman >/dev/null 2>&1 && podman info >/dev/null 2>&1; then
+        printf '%s' podman
+      fi
+
 tasks:
-  manifests:
-    desc: Generate the CRDs and operator manifests
-    dir: "{{.TASKFILE_DIR}}/.."
-    preconditions: &uv
-      - sh: command -v uv >/dev/null
-        msg: uv is not on PATH
-    cmds:
-      - uv run --locked opendefence_core operator render
-  manifests:check:
-    desc: Check that generated manifests are current
-    dir: "{{.TASKFILE_DIR}}/.."
-    preconditions: *uv
-    cmds:
-      - uv run --locked opendefence_core operator render --check
-  lint:
-    desc: Validate the operator Kustomize configuration
+  deploy:
+    desc: Deploy the checkout's package in connected mode to the selected current kube-context
     dir: "{{.TASKFILE_DIR}}/.."
     preconditions:
+      - sh: command -v zarf >/dev/null
+        msg: zarf is not on PATH
       - sh: command -v kubectl >/dev/null
         msg: kubectl is not on PATH
+      - sh: test "$(kubectl config current-context)" = {{.KUBE_CONTEXT | shellQuote}}
+        msg: Switch kubectl to the selected KUBE_CONTEXT before using Zarf
     cmds:
-      - kubectl kustomize manifests/operator >/dev/null
+      - zarf dev deploy . --connected --values {{.VALUES_FILE | shellQuote}}
+
+  lint:
+    desc: Validate the Zarf package schema, sources, and baked values
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions: &zarf
+      - sh: command -v zarf >/dev/null
+        msg: zarf is not on PATH
+    cmds:
+      - zarf dev lint .
+
+  inspect:
+    desc: Render the package manifests with VALUES_FILE without deploying
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions: *zarf
+    cmds:
+      - zarf dev inspect manifests . --values {{.VALUES_FILE | shellQuote}}
+
+  find-images:
+    desc: Discover images to maintain the offline package image lists
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions: *zarf
+    cmds:
+      - zarf dev find-images . --values {{.VALUES_FILE | shellQuote}}
+
+  package:
+    desc: Build a Zarf package archive from the checkout
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions: *zarf
+    cmds:
+      - zarf package create . --architecture {{.ARCH | shellQuote}} --confirm --output {{.BUILD_DIR | shellQuote}}
+
+  image:
+    desc: Build the production container image as IMAGE:IMAGE_TAG
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions:
+      - sh: "{{.CONTAINER_RUNTIME | shellQuote}} info >/dev/null 2>&1"
+        msg: Start Docker or Podman, or select one with CONTAINER_RUNTIME
+    cmds:
+      - '{{.CONTAINER_RUNTIME | shellQuote}} build --target production -t {{printf "%s:%s" .IMAGE .IMAGE_TAG | shellQuote}} .'
+
+  manifests:
+    desc: Regenerate the CRDs and operator manifests from the operator code
+    dir: "{{.TASKFILE_DIR}}/.."
+    cmds:
+      - uv run --locked opendefence_core operator render
+
+  manifests:check:
+    desc: Fail if the committed CRDs or operator manifests are stale
+    dir: "{{.TASKFILE_DIR}}/.."
+    cmds:
+      - uv run --locked opendefence_core operator render --check

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import uvicorn
 from click.testing import CliRunner
 
 from opendefence_core import __version__
@@ -24,11 +25,26 @@ def test_version() -> None:
 
 
 def test_help_lists_commands() -> None:
-    """--help lists the operator command group."""
+    """--help lists the API and operator command groups."""
     result = runner.invoke(opendefence_core_cli, ["--help"])
     assert result.exit_code == 0
-    assert "api" not in result.output
+    assert "api" in result.output
     assert "operator" in result.output
+
+
+def test_api_run_serves_app_with_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
+    """api run hands the app to uvicorn with the given options."""
+    calls: list[tuple[str, dict[str, Any]]] = []
+
+    def run(app: str, **kwargs: Any) -> None:
+        calls.append((app, kwargs))
+
+    monkeypatch.setattr(uvicorn, "run", run)
+    result = runner.invoke(opendefence_core_cli, ["api", "run", "--port", "9000", "--reload", "--reload-dir", "src"])
+    assert result.exit_code == 0, result.output
+    assert calls == [
+        ("opendefence_core.api.app:app", {"host": "0.0.0.0", "port": 9000, "reload": True, "reload_dirs": ["src"]})
+    ]
 
 
 def test_operator_run_starts_application(monkeypatch: pytest.MonkeyPatch) -> None:

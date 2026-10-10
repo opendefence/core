@@ -4,7 +4,8 @@ metadata:
   name: core-api
   namespace: opendefence-system
 ---
-# Enrollment redeems Invites into Users
+# Enrollment redeems Invites into Users: it looks an invite up by code, counts
+# the use in its status, creates the User, and reads it back for each token
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -12,13 +13,13 @@ metadata:
 rules:
   - apiGroups: [platform.opendefence.fi]
     resources: [invites]
-    verbs: [get, list, watch]
+    verbs: [list]
   - apiGroups: [platform.opendefence.fi]
     resources: [invites/status]
-    verbs: [update, patch]
+    verbs: [update]
   - apiGroups: [platform.opendefence.fi]
     resources: [users]
-    verbs: [get, list, watch, create]
+    verbs: [get, create]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

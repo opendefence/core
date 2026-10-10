@@ -1,15 +1,18 @@
 """Configuration from CORE_API_* environment variables."""
 
+from functools import cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Config(BaseSettings):
-    """REST API configuration"""
+    """REST API configuration."""
 
     model_config = SettingsConfigDict(env_prefix="CORE_API_")
-    domain: str = "local-dev.opendefence.fi"
+
+    # Public hostname; the Deployment sets it from the package's domain value
+    domain: str
 
     # JWT
     jwt_key_path: Path = Path("/var/run/secrets/opendefence/jwt/tls.key")  # PEM ECDSA private key
@@ -18,8 +21,11 @@ class Config(BaseSettings):
 
     @property
     def deployment(self) -> str:
-        """First DNS label, e.g. local-dev."""
+        """First DNS label of the domain, e.g. local-dev."""
         return self.domain.split(".", maxsplit=1)[0]
 
 
-config = Config()
+@cache
+def get_config() -> Config:
+    """Configuration, read from the environment on first use."""
+    return Config()

@@ -1,9 +1,10 @@
-"""Command line entrypoint for the core operator."""
+"""Command line entrypoint for the core operator and REST API."""
 
 import logging
 from pathlib import Path
 
 import click
+import uvicorn
 
 from opendefence_core import __version__
 from opendefence_core.k8s_operator import render
@@ -31,8 +32,35 @@ def _configure_logging(loglevel: int, verbose: int) -> None:
 )
 @click.option("-v", "--verbose", count=True, help="Shorthand for info/debug loglevel (-v/-vv)")
 def opendefence_core_cli(loglevel: int, verbose: int) -> None:
-    """OpenDefence core: the platform operator."""
+    """OpenDefence core: the platform operator and REST API."""
     _configure_logging(loglevel, verbose)
+
+
+@opendefence_core_cli.group()
+def api() -> None:
+    """REST API for enrollment and certificate downloads."""
+
+
+@api.command("run")
+@click.option("--host", default="0.0.0.0", show_default=True, help="Address to listen on.")  # nosec B104
+@click.option("--port", type=int, default=8000, show_default=True, help="Port to listen on.")
+@click.option("--reload", is_flag=True, help="Restart when the source changes (development).")
+@click.option(
+    "--reload-dir",
+    "reload_dirs",
+    multiple=True,
+    type=click.Path(file_okay=False),
+    help="Directory to watch with --reload; repeatable.",
+)
+def api_run(host: str, port: int, reload: bool, reload_dirs: tuple[str, ...]) -> None:
+    """Serve the REST API with uvicorn."""
+    uvicorn.run(
+        "opendefence_core.api.app:app",
+        host=host,
+        port=port,
+        reload=reload,
+        reload_dirs=list(reload_dirs) or None,
+    )
 
 
 @opendefence_core_cli.group()

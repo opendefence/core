@@ -2,14 +2,12 @@
 
 on:
   pull_request:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: # Allow manual triggering
 
 jobs:
   checks:
     runs-on: ubuntu-latest
-    name: Lint, test, and validate the operator
+    name: Lint, test, and validate the package
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: jdx/mise-action@v5.1.1
@@ -21,115 +19,12 @@ jobs:
         run: uv run --locked prek run --all-files
       - name: Tests, including the stale manifest check
         run: uv run --locked pytest
-      - name: Build and smoke-test the production image
-        run: |
-          docker build --target production -t core-check .
-          docker run --rm core-check --version
-      - name: Import the app without dev dependencies
-        run: |
-          uv sync --locked --no-dev --no-editable
-          .venv/bin/python -I -c 'import opendefence_core.k8s_operator.app'
-          .venv/bin/opendefence_core --version
+      - name: Zarf package lint
+        run: zarf dev lint .
 
   bumpversion-check:
     runs-on: ubuntu-latest
+    name: Validate .bumpversion.toml
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: pvarki/config-ci-library/.github/actions/validate-bumpversion@main
-
-  build-library:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
-        with:
-          python-version: "3.14"
-          uv-version: "0.12.24"
-      - run: uv build --package lib-opendefence-core --no-sources --out-dir dist
-      - run: uv run --locked python scripts/check_packages.py dist
-      - run: uvx --from twine==7.0.0 twine check dist/*
-      - name: Rebuild the library source archive outside the checkout
-        shell: bash
-        run: |
-          tempdir=$(mktemp -d)
-          tar -xzf dist/lib_opendefence_core-*.tar.gz -C "$tempdir"
-          uv build --no-sources --out-dir "$tempdir/rebuilt" "$tempdir"/lib_opendefence_core-*
-      - name: Install the library wheel
-        run: |
-          uv venv --python 3.14 /tmp/library
-          uv pip install --python /tmp/library/bin/python dist/lib_opendefence_core-*.whl
-          (cd /tmp && env -u PYTHONPATH /tmp/library/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py")
-          uv pip check --python /tmp/library/bin/python
-      - uses: actions/upload-artifact@v4.6.2
-        with:
-          name: library-package
-          path: |
-            dist/lib_opendefence_core-*.whl
-            dist/lib_opendefence_core-*.tar.gz
-          if-no-files-found: error
-
-  publish-library:
-    if: github.repository == 'opendefence/core' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: [checks, bumpversion-check, build-library]
-    runs-on: ubuntu-latest
-    concurrency:
-      group: core-nexus-publish
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
-        with:
-          python-version: "3.14"
-          uv-version: "0.12.24"
-      - uses: actions/download-artifact@v4.3.0
-        with:
-          name: library-package
-          path: dist/library
-      - name: Reject a tag from a different commit
-        shell: bash
-        run: |
-          version=$(python3 -c 'import tomllib; print(tomllib.load(open(".bumpversion.toml", "rb"))["tool"]["bumpversion"]["current_version"])')
-          tag="v$version"
-          if git show-ref --verify --quiet "refs/tags/$tag"; then
-            test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$GITHUB_SHA" || { echo "Tag $tag points to a different commit" >&2; exit 1; }
-          fi
-      - name: Publish library artifacts
-        env:
-          TWINE_USERNAME: nexusbot
-          TWINE_PASSWORD: ${{ secrets.NEXUSBOT_PAT }}
-          TWINE_NON_INTERACTIVE: "1"
-        run: |
-          test -n "$TWINE_PASSWORD"
-          uvx --from twine==7.0.0 twine check dist/library/*
-          uvx --from twine==7.0.0 twine upload --repository-url https://nexus.dev.pvarki.fi/repository/pypilocal/ dist/library/*
-
-  verify-published:
-    needs: publish-library
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
-        with:
-          python-version: "3.14"
-          uv-version: "0.12.24"
-      - name: Install exact release from Nexus
-        shell: bash
-        run: |
-          version=$(python3 -c 'import tomllib; print(tomllib.load(open(".bumpversion.toml", "rb"))["tool"]["bumpversion"]["current_version"])')
-          uv venv --python 3.14 /tmp/published
-          uv --no-cache --no-config pip install --python /tmp/published/bin/python --extra-index-url https://nexus.dev.pvarki.fi/repository/pypilocal/simple/ "lib-opendefence-core==$version"
-          (cd /tmp && env -u PYTHONPATH /tmp/published/bin/python "$GITHUB_WORKSPACE/scripts/smoke_packages.py")
-          uv pip check --python /tmp/published/bin/python
-
-  tag-release:
-    needs: verify-published
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: pvarki/config-ci-library/.github/actions/tag-release@main
