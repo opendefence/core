@@ -12,9 +12,15 @@ search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 
 [[tool.bumpversion.files]]
-filename = "README.rst"
-search = "opendefence_core:{current_version}"
-replace = "opendefence_core:{new_version}"
+filename = "uv.lock"
+search = """
+name = "opendefence-core"
+version = "{current_version}"
+"""
+replace = """
+name = "opendefence-core"
+version = "{new_version}"
+"""
 
 [[tool.bumpversion.files]]
 filename = "src/opendefence_core/__init__.py"
