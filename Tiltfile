@@ -35,7 +35,12 @@ dev_build = dict(
 docker_build(
     'ghcr.io/opendefence/core',
     live_update=[
-        fall_back_on(['pyproject.toml', 'uv.lock']),
+        fall_back_on([
+            'pyproject.toml', 'uv.lock', 'README.md',
+            'src/lib_opendefence_core/pyproject.toml',
+            'src/lib_opendefence_core/README.md',
+            'src/lib_opendefence_core/LICENSE',
+        ]),
         sync('src', '/app/src'),
     ],
     **dev_build
