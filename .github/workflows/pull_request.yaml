@@ -3,12 +3,19 @@ on:
   workflow_dispatch: # Allow manual triggering
 
 jobs:
-  pre-commit:
+  pre_commit:
+    name: Run pre-commit checks
     runs-on: ubuntu-latest
-    name: Pre-commit
     steps:
       - uses: actions/checkout@v6
-      - uses: j178/prek-action@5337cb91e0fa35a7ff31b9ca345126d8bbbcdf16
+        with:
+          submodules: recursive
+      - uses: pvarki/config-ci-library/.github/actions/setup-python@main
+        with:
+          python-version: "3.14"
+      - name: Run pre-commit checks
+        run: |
+          uv run docker/pre_commit_init.sh
 
   bumpversion-check:
     runs-on: ubuntu-latest
