@@ -12,27 +12,38 @@ objects = decode_yaml_stream(local(
     quiet=True,
 ))
 
-# Tilt syncs source into the API container, so its filesystem must be writable
 for obj in objects:
-    if obj['kind'] == 'Deployment' and obj['metadata']['name'] == 'core-api':
-        for container in obj['spec']['template']['spec']['containers']:
-            container['securityContext']['readOnlyRootFilesystem'] = False
+    if obj['kind'] != 'Deployment':
+        continue
+    container = obj['spec']['template']['spec']['containers'][0]
+    if obj['metadata']['name'] == 'core-api':
+        # uvicorn reloads source that Tilt syncs in, so the filesystem must be writable
+        container['command'] = [
+            'uvicorn', 'opendefence_core.api.app:app',
+            '--host', '0.0.0.0', '--port', '8000',
+            '--reload', '--reload-dir', '/app/src',
+        ]
+        container['securityContext']['readOnlyRootFilesystem'] = False
+    elif obj['metadata']['name'] == 'opendefence-platform':
+        # The operator can't reload in place; give it its own image so Tilt
+        # rebuilds and restarts it on change instead of syncing files
+        container['image'] = 'ghcr.io/opendefence/core-operator'
 k8s_yaml(encode_yaml_stream(objects))
 
-docker_build(
-    'ghcr.io/opendefence/core',
-    '.',
+dev_build = dict(
+    context='.',
     target='dev',
     only=['src', 'pyproject.toml', 'uv.lock', 'README.md'],
-    entrypoint=[
-        'uvicorn', 'opendefence_core.api.app:app',
-        '--host', '0.0.0.0', '--port', '8000',
-        '--reload', '--reload-dir', '/app/src',
-    ],
+)
+docker_build(
+    'ghcr.io/opendefence/core',
     live_update=[
         fall_back_on(['pyproject.toml', 'uv.lock']),
         sync('src', '/app/src'),
     ],
+    **dev_build
 )
+docker_build('ghcr.io/opendefence/core-operator', **dev_build)
 
 k8s_resource('core-api', port_forwards='8000')
+k8s_resource('opendefence-platform', labels=['operator'])

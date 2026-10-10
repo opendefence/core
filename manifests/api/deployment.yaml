@@ -17,6 +17,7 @@ spec:
         app.kubernetes.io/name: core-api
         app.kubernetes.io/part-of: opendefence
     spec:
+      serviceAccountName: core-api
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -35,6 +36,9 @@ spec:
               --port,
               "8000",
             ]
+          env:
+            - name: CORE_API_DOMAIN
+              value: {{ .Values.domain | quote }}
           ports:
             - name: http
               containerPort: 8000
@@ -57,3 +61,18 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: [ALL]
+          volumeMounts:
+            - name: jwt-key
+              mountPath: /var/run/secrets/opendefence/jwt
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: jwt-key
+          secret:
+            secretName: core-api-jwt # pragma: allowlist secret
+            items:
+              - key: tls.key
+                path: tls.key
+        - name: tmp
+          emptyDir: {}

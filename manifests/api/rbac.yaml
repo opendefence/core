@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: core-api
+  namespace: opendefence-system
+---
+# Enrollment redeems Invites into Users
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: core-api
+rules:
+  - apiGroups: [platform.opendefence.fi]
+    resources: [invites]
+    verbs: [get, list, watch]
+  - apiGroups: [platform.opendefence.fi]
+    resources: [invites/status]
+    verbs: [update, patch]
+  - apiGroups: [platform.opendefence.fi]
+    resources: [users]
+    verbs: [get, list, watch, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: core-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: core-api
+subjects:
+  - kind: ServiceAccount
+    name: core-api
+    namespace: opendefence-system
+---
+# Users download their own certificate as .pfx
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: core-api
+  namespace: opendefence-public-certs
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: core-api
+  namespace: opendefence-public-certs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: core-api
+subjects:
+  - kind: ServiceAccount
+    name: core-api
+    namespace: opendefence-system

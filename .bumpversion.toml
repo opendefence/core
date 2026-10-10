@@ -37,3 +37,8 @@ replace = '__version__ == "{new_version}"'
 filename = "manifests/api/deployment.yaml"
 search = "ghcr.io/opendefence/core:{current_major}.{current_minor}.{current_patch}-{current_build}"
 replace = "ghcr.io/opendefence/core:{new_major}.{new_minor}.{new_patch}-{new_build}"
+
+[[tool.bumpversion.files]]
+filename = "manifests/operator/operator.yaml"
+search = "ghcr.io/opendefence/core:{current_major}.{current_minor}.{current_patch}-{current_build}"
+replace = "ghcr.io/opendefence/core:{new_major}.{new_minor}.{new_patch}-{new_build}"
