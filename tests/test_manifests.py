@@ -21,12 +21,16 @@ def test_manifests_include_crds_and_leader_election_rbac() -> None:
         "userbindings.platform.opendefence.fi",
     }
     assert "opendefence-platform" in kinds["ServiceAccount"]
-    assert any(name.endswith(".default") for name in kinds["ClusterRole"])
+    assert "opendefence-platform.opendefence-system" in kinds["ClusterRole"]
     cluster_role = next(document for document in documents if document["kind"] == "ClusterRole")
     userbinding_rule = next(rule for rule in cluster_role["rules"] if rule.get("resources") == ["userbindings"])
     assert userbinding_rule["verbs"] == ["get", "list", "watch"]
     assert not any(rule.get("resources") == ["userbindings/status"] for rule in cluster_role["rules"])
-    role = next(document for document in documents if document["kind"] == "Role")
+    role = next(
+        document
+        for document in documents
+        if document["kind"] == "Role" and document["metadata"]["namespace"] == "opendefence-system"
+    )
     resources = [rule.get("resources") for rule in role["rules"]]
     assert any(resource == ["leases"] for resource in resources)
     assert "ValidatingWebhookConfiguration" not in kinds

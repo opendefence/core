@@ -1,0 +1,19 @@
+# Serving certificate for the operator's admission webhook. cert-manager
+# injects its CA into the ValidatingWebhookConfiguration (inject-ca-from).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: operator-tls
+  namespace: opendefence-system
+spec:
+  secretName: operator-tls # pragma: allowlist secret
+  dnsNames:
+    - opendefence-platform.opendefence-system.svc
+    - opendefence-platform.opendefence-system.svc.cluster.local
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: internal-root-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
