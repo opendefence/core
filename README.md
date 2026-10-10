@@ -199,16 +199,19 @@ is `tini -- opendefence_core`, and the Deployments pass `api run` or
 
 ## Publishing and versioning
 
-Every push to `main` publishes the image `ghcr.io/opendefence/core:<tag>`, then
-the package `oci://ghcr.io/opendefence/packages/core:<tag>` and `:latest`; the
-package lives under `packages/` because it shares version tags with the image. The tag
-is the version with `-` for `+`, because OCI tags can't contain `+`: version
-`0.2.0+261010` is tag `0.2.0-261010`.
+A successful `main` release publishes `lib-opendefence-core` to Nexus, the
+image `ghcr.io/opendefence/core:<tag>`, and the Zarf package
+`oci://ghcr.io/opendefence/packages/core:<tag>`. The workflow then creates
+the Git tag. The OCI tag uses `-` in place of `+`: version `0.2.1+261010`
+uses tag `0.2.1-261010`.
 
-`uv run --locked bump-my-version bump patch` updates the version in
-`pyproject.toml` and `uv.lock`, and the image tag in
-`manifests/api/deployment.yaml` and `manifests/operator/operator.yaml`.
-`opendefence_core.__version__` reads the installed package metadata.
+Run `task version:bump` to update both package versions, the exact library
+dependency, the image tags, and `uv.lock`. The application version comes from
+installed package metadata. The library version is in its `__init__.py` file.
+Set `NEXUSBOT_PAT` in the `opendefence/core` repository before a release.
+
+Import resource models from `lib_opendefence_core.models.v1alpha1`. The old
+`opendefence_core.models` path is no longer available.
 
 ## GitHub Actions
 
