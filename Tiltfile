@@ -30,7 +30,7 @@ k8s_yaml(encode_yaml_stream(objects))
 dev_build = dict(
     context='.',
     target='dev',
-    only=['src', 'pyproject.toml', 'uv.lock', 'README.md'],
+    only=['src', 'pyproject.toml', 'uv.lock', 'README.md', 'LICENSE.txt'],
 )
 docker_build(
     'ghcr.io/opendefence/core',
@@ -39,7 +39,7 @@ docker_build(
             'pyproject.toml', 'uv.lock', 'README.md',
             'src/lib_opendefence_core/pyproject.toml',
             'src/lib_opendefence_core/README.md',
-            'src/lib_opendefence_core/LICENSE',
+            'src/lib_opendefence_core/LICENSE.txt',
         ]),
         sync('src', '/app/src'),
     ],
