@@ -1,6 +1,6 @@
 [project]
 name = "lib-opendefence-core"
-version = "0.2.1+261010"
+version = "0.2.2+261011"
 description = "OpenDefence Kubernetes resource models"
 authors = [{name = "Niilo Vuokila", email = "niilo@opendefence.fi"}]
 license = "MPL-2.0"
