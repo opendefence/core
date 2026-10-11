@@ -5,7 +5,7 @@
 Install the package with `pip install lib-opendefence-core`.
 
 ```python
-from lib_opendefence_core.models.v1alpha1 import Group, Invite, Role, User, UserBinding
+from lib_opendefence_core.models.v1alpha1 import Group, Integration, Invite, Role, User, UserBinding
 ```
 
 The package uses Cloudcoil and Pydantic. Its release version matches the

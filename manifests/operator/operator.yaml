@@ -40,6 +40,21 @@ rules:
 - apiGroups:
   - platform.opendefence.fi
   resources:
+  - integrations
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - platform.opendefence.fi
+  resources:
+  - integrations/status
+  verbs:
+  - patch
+- apiGroups:
+  - platform.opendefence.fi
+  resources:
   - invites
   verbs:
   - get
@@ -57,6 +72,8 @@ rules:
   resources:
   - roles
   verbs:
+  - create
+  - delete
   - get
   - list
   - patch

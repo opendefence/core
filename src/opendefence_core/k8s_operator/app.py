@@ -7,7 +7,7 @@ from cloudcoil.controller import HealthServer
 from cloudcoil.models.cert_manager.v1 import Certificate
 from cloudcoil.models.kubernetes.core.v1 import Secret
 
-from lib_opendefence_core.models.v1alpha1 import UserBinding
+from lib_opendefence_core.models.v1alpha1 import Role, UserBinding
 from opendefence_core.k8s_operator.controllers import ALL_CONTROLLERS
 from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, PUBLIC_CERT_NAMESPACE, SYSTEM_NAMESPACE
 
@@ -22,6 +22,8 @@ app = Application(
     webhook=WebhookServer(tls_secret=OPERATOR_TLS_SECRET),
     resources=(UserBinding,),
     rules=(
+        # Owning Roles grants create and patch; delete covers roles an Integration drops
+        RBACRule(Role, verbs=("delete",)),
         RBACRule(Certificate, verbs=("delete",), plural="certificates", scope="Namespaced", all_namespaces=True),
         # Read the issued key pair, and delete it on revoke so re-approval gets a new key
         RBACRule(

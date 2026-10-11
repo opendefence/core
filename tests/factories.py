@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from datetime import datetime
 
-from cloudcoil.apimachinery import ObjectMeta
+from cloudcoil.apimachinery import ObjectMeta, OwnerReference
 
 from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
@@ -11,6 +11,9 @@ from lib_opendefence_core.models.v1alpha1 import (
     SYNCED_CONDITION,
     Group,
     GroupSpec,
+    Integration,
+    IntegrationRole,
+    IntegrationSpec,
     Invite,
     InviteSpec,
     InviteStatus,
@@ -68,13 +71,38 @@ def make_user(
     )
 
 
-def make_role(name: str) -> Role:
-    """Role displayed by its name, with uid uid-<name>."""
+def make_role(name: str, *, owner: str | None = None) -> Role:
+    """Role displayed by its name, with uid uid-<name>. owner names the controlling Integration."""
+    metadata = ObjectMeta(name=name, uid=f"uid-{name}")
+    if owner is not None:
+        metadata.owner_references = [
+            OwnerReference(
+                api_version=API_VERSION,
+                kind="Integration",
+                name=owner,
+                uid=f"uid-{owner}",
+                controller=True,
+            )
+        ]
     return Role(
         api_version=API_VERSION,
         kind="Role",
-        metadata=ObjectMeta(name=name, uid=f"uid-{name}"),
+        metadata=metadata,
         spec=RoleSpec(display_name=name),
+    )
+
+
+def make_integration(name: str, *, roles: Iterable[str] = ()) -> Integration:
+    """Integration displayed by its name, with uid uid-<name>."""
+    return Integration(
+        api_version=API_VERSION,
+        kind="Integration",
+        metadata=ObjectMeta(name=name, uid=f"uid-{name}"),
+        spec=IntegrationSpec(
+            display_name=name,
+            version="1.0.0",
+            extra_roles=[IntegrationRole(name=role, display_name=role) for role in roles],
+        ),
     )
 
 
