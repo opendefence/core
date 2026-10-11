@@ -1,6 +1,6 @@
 # Demo platform.opendefence.fi/v1alpha1 objects for a cluster running core
-# (`task up`). User, Group, Role, and Invite are cluster-scoped; UserBinding is
-# namespaced. Users are named after their callsigns.
+# (`task up`). User, Group, Role, Invite, and Integration are cluster-scoped;
+# UserBinding is namespaced. Users are named after their callsigns.
 #   kubectl apply -f examples/demo.yaml
 ---
 apiVersion: platform.opendefence.fi/v1alpha1
@@ -73,6 +73,32 @@ spec:
     - name: group-admin
   useCount: 5
   validUntil: "2137-01-01T00:00:00Z"
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Integration
+metadata:
+  name: tak
+spec:
+  displayName: TAK
+  version: "0.0.1"
+  productInfo:
+    icon: /ui/tak/taklogo.svg
+    docs: https://docs.pvarki.fi/
+    component:
+      type: component
+      ref: /ui/tak/remoteEntry.js
+    descriptions:
+      - language: en
+        title: "TAK: Team Awareness Kit"
+        description: Situational awareness system
+      - language: fi
+        title: "TAK: Team Awareness Kit"
+        description: Tilannekuvasovellus
+  extraRoles:
+    - name: tak-user
+      displayName: TAK user
+    - name: tak-admin
+      displayName: TAK admin
 ---
 # Integrations create UserBindings in their own namespaces. Status.conditions
 # with type Synced is written by the integration, not this operator.

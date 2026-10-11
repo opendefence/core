@@ -65,7 +65,7 @@ kubectl patch user <callsign> --type merge --patch-file examples/users/approve.y
 
 ## How it works
 
-Users, Groups, Roles, and Invites are cluster-scoped; UserBindings are
+Users, Groups, Roles, Invites, and Integrations are cluster-scoped; UserBindings are
 namespaced. Objects reference each other by name (`roleRefs`, `groupRefs`,
 `parentRef`, `managerRefs`), and the operator resolves the names to UIDs in
 their status, reporting `ReferencesResolved`. A User is named after its
@@ -103,6 +103,12 @@ when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
 `CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
 
 ### Integrations
+
+An `Integration` records an installed product: its version, UI product info, extra
+roles, and the ingress and egress it intends. The operator creates each extra
+role as a cluster `Role` owned by the Integration, and deletes that Role when
+the Integration drops it. The network policy is stored only; core does not
+enforce it yet.
 
 An integration creates one `UserBinding` per User in its own namespace, naming
 the User in `spec.userRef`, and sets the binding's `Synced` condition to
@@ -145,7 +151,7 @@ Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
 1. `namespaces`: `opendefence-system` (Linkerd-injected) and
    `opendefence-public-certs` (user certificates).
 2. `crds`: the `platform.opendefence.fi/v1alpha1` CRDs (User, Group, Role,
-   Invite, UserBinding).
+   Invite, UserBinding, Integration).
 3. `traefik-middlewares`: shared middlewares in Traefik's `traefik-system`
    namespace, referenced as `traefik-system-<name>@kubernetescrd`.
 4. `operator`: the operator, its RBAC, and its admission webhook. The webhook's

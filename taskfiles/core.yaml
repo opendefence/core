@@ -51,7 +51,7 @@ tasks:
         msg: kubectl is not on PATH
     cmds:
       - kubectl --context {{.KUBE_CONTEXT | shellQuote}} -n opendefence-system get deployments
-      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} get users.platform.opendefence.fi,groups.platform.opendefence.fi,roles.platform.opendefence.fi,invites.platform.opendefence.fi
+      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} get users.platform.opendefence.fi,groups.platform.opendefence.fi,roles.platform.opendefence.fi,invites.platform.opendefence.fi,integrations.platform.opendefence.fi
 
   crds:
     desc: Apply only core's CRDs from CORE_REF, for working with the platform kinds without core running

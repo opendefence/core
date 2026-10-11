@@ -40,7 +40,7 @@ def test_committed_manifests_are_current() -> None:
 
 
 def test_crds() -> None:
-    """All five kinds, with the callsign rule on users."""
+    """All six kinds, with the callsign rule on users."""
     crds = {document["metadata"]["name"]: document for document in _documents(CRDS_PATH)}
     assert set(crds) == {
         "users.platform.opendefence.fi",
@@ -48,6 +48,7 @@ def test_crds() -> None:
         "roles.platform.opendefence.fi",
         "invites.platform.opendefence.fi",
         "userbindings.platform.opendefence.fi",
+        "integrations.platform.opendefence.fi",
     }
     schema = crds["users.platform.opendefence.fi"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
     assert schema["x-kubernetes-validations"][0]["rule"] == "self.spec.callsign == self.metadata.name"

@@ -9,7 +9,7 @@ import yaml
 from cloudcoil.crd import CRD
 from cloudcoil.resources import Resource
 
-from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Invite, Role, User, UserBinding
+from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Integration, Invite, Role, User, UserBinding
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 MODELS: dict[str, type[Resource]] = {
@@ -18,6 +18,7 @@ MODELS: dict[str, type[Resource]] = {
     "Role": Role,
     "Invite": Invite,
     "UserBinding": UserBinding,
+    "Integration": Integration,
 }
 
 
@@ -95,7 +96,12 @@ def test_userbinding_crd_is_namespaced_with_sync_columns() -> None:
 
 @pytest.mark.parametrize(
     ("model", "plural", "short"),
-    [(Group, "groups", "odgroup"), (Role, "roles", "odrole"), (Invite, "invites", "odinvite")],
+    [
+        (Group, "groups", "odgroup"),
+        (Role, "roles", "odrole"),
+        (Invite, "invites", "odinvite"),
+        (Integration, "integrations", "odintegration"),
+    ],
 )
 def test_group_role_invite_crds(model: type[Resource], plural: str, short: str) -> None:
     """Remaining kinds share the API group, cluster scope, and status subresource."""
@@ -107,9 +113,9 @@ def test_group_role_invite_crds(model: type[Resource], plural: str, short: str) 
     assert "status" in _version(manifest)["subresources"]
 
 
-@pytest.mark.parametrize("model", [Group, Role])
+@pytest.mark.parametrize("model", [Group, Role, Integration])
 def test_specs_do_not_repeat_metadata_name(model: type[Resource]) -> None:
-    """Groups and roles are identified by metadata.name alone."""
+    """These kinds are identified by metadata.name alone."""
     assert "name" not in _schema(model)["properties"]["spec"]["properties"]
 
 
@@ -148,7 +154,7 @@ def test_examples_parse_as_typed_resources() -> None:
         if isinstance(parsed, User):
             assert parsed.spec.callsign == parsed.name, path
         kinds[document["kind"]] = kinds.get(document["kind"], 0) + 1
-    assert kinds == {"Role": 3, "Group": 1, "User": 2, "Invite": 4, "UserBinding": 1}
+    assert kinds == {"Role": 3, "Group": 1, "User": 2, "Invite": 4, "UserBinding": 1, "Integration": 1}
 
 
 def test_approve_patch_applies_to_a_user() -> None:

@@ -12,6 +12,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     BINDINGS_SYNCED_CONDITION,
     REFERENCES_RESOLVED_CONDITION,
     Group,
+    Integration,
     Invite,
     ObjectRef,
     Role,
@@ -23,6 +24,7 @@ from opendefence_core.k8s_operator.controllers import groups, invites, users
 from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
 from opendefence_core.k8s_operator.controllers.groups import manager_changed, parent_group_changed, reconcile_group
 from opendefence_core.k8s_operator.controllers.groups import role_changed as group_role_changed
+from opendefence_core.k8s_operator.controllers.integrations import reconcile_integration
 from opendefence_core.k8s_operator.controllers.invites import group_changed as invite_group_changed
 from opendefence_core.k8s_operator.controllers.invites import reconcile_invite
 from opendefence_core.k8s_operator.controllers.invites import role_changed as invite_role_changed
@@ -30,8 +32,8 @@ from opendefence_core.k8s_operator.controllers.roles import reconcile_role
 from opendefence_core.k8s_operator.controllers.users import group_changed as user_group_changed
 from opendefence_core.k8s_operator.controllers.users import reconcile_user, userbinding_changed
 from opendefence_core.k8s_operator.controllers.users import role_changed as user_role_changed
-from tests.factories import make_binding, make_group, make_invite, make_role, make_user
-from tests.fakes import FakeCache, FakeContext
+from tests.factories import make_binding, make_group, make_integration, make_invite, make_role, make_user
+from tests.fakes import FakeCache, FakeClient, FakeContext
 
 
 async def test_reconcile_user_resolves_refs() -> None:
@@ -100,6 +102,19 @@ async def test_reconcile_group_waits_for_missing_ancestor() -> None:
         await reconcile_group(make_group("ops", parent="eng"), cast(Context[Group], ctx))
     assert raised.value.reason == "MissingReference"
     assert ctx.conditions[0][2] == "MissingReference"
+
+
+async def test_reconcile_integration_syncs_extra_roles() -> None:
+    """Extra roles are created, dropped owned Roles are deleted, and other Roles stay."""
+    owned = make_role("old-role", owner="tak")
+    other = make_role("superadmin")
+    client = FakeClient([owned, other])
+    ctx = FakeContext({Role: FakeCache([owned, other])}, {Role: client})
+    await reconcile_integration(make_integration("tak", roles=["mission-lead"]), cast(Context[Integration], ctx))
+    assert [role.name for role in ctx.ensured] == ["mission-lead"]
+    assert cast(Role, ctx.ensured[0]).spec.display_name == "mission-lead"
+    assert client.deleted == [(None, "old-role")]
+    assert ctx.conditions[-1][:3] == (REFERENCES_RESOLVED_CONDITION, True, "Resolved")
 
 
 async def test_reconcile_role_marks_resolved() -> None:

@@ -250,6 +250,273 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
+  name: integrations.platform.opendefence.fi
+spec:
+  group: platform.opendefence.fi
+  scope: Cluster
+  names:
+    plural: integrations
+    singular: integration
+    kind: Integration
+    listKind: IntegrationList
+    shortNames:
+    - odintegration
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        description: Cluster-scoped record of an installed integration.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Desired configuration of the integration.
+            properties:
+              displayName:
+                description: Human-readable name of the integration.
+                minLength: 1
+                title: Displayname
+                type: string
+              version:
+                description: Version of the integration.
+                minLength: 1
+                title: Version
+                type: string
+              productInfo:
+                description: How the integration is presented in the platform UI.
+                properties:
+                  icon:
+                    type: string
+                    default: null
+                    description: URL of the product icon.
+                    title: Icon
+                    nullable: true
+                  docs:
+                    type: string
+                    default: null
+                    description: URL of the product documentation.
+                    title: Docs
+                    nullable: true
+                  component:
+                    description: How the product is opened in the platform UI.
+                    properties:
+                      type:
+                        description: Whether ref is a link, a markdown document, or
+                          a UI component.
+                        enum:
+                        - link
+                        - markdown
+                        - component
+                        title: Type
+                        type: string
+                      ref:
+                        description: URL, markdown path, or component reference for
+                          the product.
+                        minLength: 1
+                        title: Ref
+                        type: string
+                    required:
+                    - type
+                    - ref
+                    title: ProductComponent
+                    type: object
+                    default: null
+                    nullable: true
+                  descriptions:
+                    description: Localized titles and descriptions, one entry per
+                      language.
+                    items:
+                      description: Localized title and description of the product.
+                      properties:
+                        language:
+                          description: Language of this title and description, such
+                            as en or fi.
+                          minLength: 1
+                          title: Language
+                          type: string
+                        title:
+                          description: Human-readable product title in this language.
+                          minLength: 1
+                          title: Title
+                          type: string
+                        description:
+                          description: Short description of the product in this language.
+                          minLength: 1
+                          title: Description
+                          type: string
+                      required:
+                      - language
+                      - title
+                      - description
+                      title: ProductDescription
+                      type: object
+                    title: Descriptions
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - language
+                    x-kubernetes-list-type: map
+                title: ProductInfo
+                type: object
+                default: null
+                nullable: true
+              additionalMetadata:
+                type: string
+                default: null
+                description: Extra information about the integration, stored as text.
+                title: Additionalmetadata
+                nullable: true
+              extraRoles:
+                description: Roles this integration adds. The operator creates each
+                  as a cluster Role.
+                items:
+                  description: A platform role created for an integration.
+                  properties:
+                    name:
+                      description: Kubernetes resource name of the Role this integration
+                        adds.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      title: Name
+                      type: string
+                    displayName:
+                      description: Human-readable name of the role.
+                      minLength: 1
+                      title: Displayname
+                      type: string
+                  required:
+                  - name
+                  - displayName
+                  title: IntegrationRole
+                  type: object
+                title: Extraroles
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              networkPolicy:
+                description: Intended ingress and egress. Core stores this and does
+                  not enforce it yet.
+                properties:
+                  ingress:
+                    default: Local
+                    description: 'Who may connect in: Local is the integration namespace,
+                      Cluster is the cluster, Public is outside.'
+                    enum:
+                    - Local
+                    - Cluster
+                    - Public
+                    title: Ingress
+                    type: string
+                  egress:
+                    default: Internet
+                    description: 'Where the integration may connect: Local is its
+                      namespace, Cluster is the cluster, Internet is outside.'
+                    enum:
+                    - Local
+                    - Cluster
+                    - Internet
+                    title: Egress
+                    type: string
+                title: IntegrationNetworkPolicy
+                type: object
+            required:
+            - displayName
+            - version
+            title: IntegrationSpec
+            type: object
+          status:
+            description: Current observed state of the integration.
+            properties:
+              conditions:
+                description: Conditions describing the resource's current reconciliation
+                  state.
+                items:
+                  description: Kubernetes condition with descriptions for generated
+                    CRD schemas.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      title: Time
+                      type: string
+                      description: RFC 3339 timestamp when the condition last changed
+                        status.
+                    message:
+                      description: Human-readable details about the condition's current
+                        state.
+                      title: Message
+                      type: string
+                    observedGeneration:
+                      type: integer
+                      default: null
+                      description: Resource generation used to determine the condition.
+                      title: Observedgeneration
+                      nullable: true
+                    reason:
+                      description: Machine-readable reason for the condition's current
+                        state.
+                      title: Reason
+                      type: string
+                    status:
+                      description: Whether the condition is True, False, or Unknown.
+                      title: Status
+                      type: string
+                    type:
+                      description: Machine-readable type identifying the condition.
+                      title: Type
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  title: PlatformCondition
+                  type: object
+                title: Conditions
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              observedGeneration:
+                type: integer
+                default: null
+                description: Most recent metadata.generation observed by the controller.
+                title: Observedgeneration
+                nullable: true
+            title: IntegrationStatus
+            type: object
+            default: null
+            nullable: true
+        required:
+        - spec
+        title: Integration
+        type: object
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Display name
+      type: string
+      priority: 0
+      jsonPath: .spec.displayName
+    - name: Version
+      type: string
+      priority: 0
+      jsonPath: .spec.version
+    - name: Age
+      type: date
+      priority: 0
+      jsonPath: .metadata.creationTimestamp
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
   name: invites.platform.opendefence.fi
 spec:
   group: platform.opendefence.fi

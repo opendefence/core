@@ -8,6 +8,12 @@ from lib_opendefence_core.models.v1alpha1.common import (
     ResolvedRef,
 )
 from lib_opendefence_core.models.v1alpha1.group import Group, GroupSpec, GroupStatus
+from lib_opendefence_core.models.v1alpha1.integration import (
+    Integration,
+    IntegrationRole,
+    IntegrationSpec,
+    IntegrationStatus,
+)
 from lib_opendefence_core.models.v1alpha1.invite import Invite, InviteSpec, InviteStatus
 from lib_opendefence_core.models.v1alpha1.role import Role, RoleSpec, RoleStatus
 from lib_opendefence_core.models.v1alpha1.user import (
@@ -36,6 +42,10 @@ __all__ = [
     "Group",
     "GroupSpec",
     "GroupStatus",
+    "Integration",
+    "IntegrationRole",
+    "IntegrationSpec",
+    "IntegrationStatus",
     "Invite",
     "InviteSpec",
     "InviteStatus",
