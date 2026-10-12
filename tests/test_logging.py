@@ -120,7 +120,9 @@ def test_logging_oldskool(capsys: Any, monkeypatch: Any) -> None:
     add_trace_and_audit()
     # we must explicitly init again due to capsys
     init_logging(logging.TRACE)  # type: ignore[attr-defined]  #  pylint: disable=E1101
-    isots_thismin_regex = r"^\[" + re.escape(datetime.datetime.utcnow().isoformat()[:17]) + r"[0-9]{2}\.[0-9]{3}Z\]"
+    isots_thismin_regex = (
+        r"^\[" + re.escape(datetime.datetime.now(datetime.UTC).isoformat()[:17]) + r"[0-9]{2}\.[0-9]{3}Z\]"
+    )
     logging.getLogger(__name__).trace("Test message trace")  # type: ignore[attr-defined]  #  pylint: disable=E1101
     logging.getLogger(__name__).debug("Test message debug")
     logging.getLogger(__name__).info("Test message info")
