@@ -29,6 +29,31 @@ def test_global_labels_preserve_record_after_input_changes() -> None:
     assert record.__dict__["deployment"] == "core"
 
 
+@pytest.mark.parametrize("level", ["trace", "audit"])
+@pytest.mark.parametrize("target", ["logger", "adapter", "module"])
+@pytest.mark.parametrize("stacklevel", [None, 1, 2])
+def test_custom_level_caller(
+    caplog: pytest.LogCaptureFixture, level: str, target: str, stacklevel: int | None
+) -> None:
+    add_trace_and_audit()
+    logger = logging.getLogger(__name__)
+    loggers = {"logger": logger, "adapter": logging.LoggerAdapter(logger, {}), "module": logging}
+    log = getattr(loggers[target], level)
+
+    def helper() -> None:
+        if stacklevel is None:
+            log("caller attribution")
+        else:
+            log("caller attribution", stacklevel=stacklevel)
+
+    with caplog.at_level(logging.DEBUG - 5):
+        helper()
+
+    assert len(caplog.records) == 1
+    assert caplog.records[0].pathname == __file__
+    assert caplog.records[0].funcName == ("test_custom_level_caller" if stacklevel == 2 else "helper")
+
+
 def test_log_format() -> None:
     """Check that the default format contains some things we want"""
     assert "pathname" in DEFAULT_LOG_FORMAT

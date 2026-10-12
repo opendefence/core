@@ -129,20 +129,20 @@ def add_logging_level(  # pylint: disable=R0912,R0915,R0913,R0914
     def for_logger_adapter(self: Any, msg: Any, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("exc_info", exc_info)
         kwargs.setdefault("stack_info", stack_info)
-        kwargs.setdefault("stacklevel", 2)
+        kwargs["stacklevel"] = kwargs.get("stacklevel", 1) + 1
         self.log(level_num, msg, *args, **kwargs)
 
     def for_logger_class(self: Any, msg: Any, *args: Any, **kwargs: Any) -> None:
         if self.isEnabledFor(level_num):
             kwargs.setdefault("exc_info", exc_info)
             kwargs.setdefault("stack_info", stack_info)
-            kwargs.setdefault("stacklevel", 2)
+            kwargs["stacklevel"] = kwargs.get("stacklevel", 1) + 1
             self._log(level_num, msg, args, **kwargs)  # pylint: disable=W0212
 
     def for_logging_module(*args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("exc_info", exc_info)
         kwargs.setdefault("stack_info", stack_info)
-        kwargs.setdefault("stacklevel", 2)
+        kwargs["stacklevel"] = kwargs.get("stacklevel", 1) + 1
         logging.log(level_num, *args, **kwargs)
 
     if not method_name:
