@@ -8,9 +8,34 @@ from typing import Any
 
 import pytest
 
-from lib_opendefence_core.logging import DEFAULT_LOG_FORMAT, add_trace_and_audit, init_logging
+from lib_opendefence_core.logging import AUDIT, DEFAULT_LOG_FORMAT, TRACE, add_trace_and_audit, get_logger, init_logging
 from lib_opendefence_core.logging.common import AddExtrasFilter
 from lib_opendefence_core.logging.levels import RAISE, add_logging_level
+
+
+@pytest.mark.parametrize("name", [__name__, None])
+def test_get_logger(name: str | None, caplog: pytest.LogCaptureFixture) -> None:
+    existing = logging.getLogger(name)
+    logger = get_logger(name)
+    assert logger is existing
+    assert get_logger(name) is logger
+
+    with caplog.at_level(TRACE):
+        logger.trace("Tracing")
+        logger.audit("User %s enrolled", "alice", extra={"actor": "alice"})
+
+    assert [record.levelno for record in caplog.records] == [TRACE, AUDIT]
+    assert caplog.records[1].getMessage() == "User alice enrolled"
+    assert caplog.records[1].__dict__["actor"] == "alice"
+    assert caplog.records[1].funcName == "test_get_logger"
+
+
+@pytest.mark.parametrize("method", ["trace", "audit"])
+def test_get_logger_rejects_missing_methods(monkeypatch: pytest.MonkeyPatch, method: str) -> None:
+    logger = get_logger(__name__)
+    monkeypatch.setattr(logger, method, None)
+    with pytest.raises(TypeError, match="does not support AUDIT and TRACE"):
+        get_logger(__name__)
 
 
 @pytest.mark.parametrize(
@@ -55,7 +80,7 @@ def test_global_labels_preserve_record_after_input_changes() -> None:
 @pytest.mark.parametrize("stacklevel", [None, 1, 2])
 def test_custom_level_caller(caplog: pytest.LogCaptureFixture, level: str, target: str, stacklevel: int | None) -> None:
     add_trace_and_audit()
-    logger = logging.getLogger(__name__)
+    logger = get_logger(__name__)
     loggers = {"logger": logger, "adapter": logging.LoggerAdapter(logger, {}), "module": logging}
     log = getattr(loggers[target], level)
 
@@ -96,13 +121,14 @@ def test_logging_ecs(capsys: Any, monkeypatch: Any) -> None:
     monkeypatch.setenv("LOG_GLOBAL_LABELS_JSON", '{"hierarchical.tag.value": "get", "another_global_tag": "ditto"}')
     add_trace_and_audit()
     # we must explicitly init again due to capsys
-    init_logging(logging.TRACE)  # type: ignore[attr-defined]  #  pylint: disable=E1101
-    logging.getLogger(__name__).trace("Test message trace")  # type: ignore[attr-defined]  #  pylint: disable=E1101
-    logging.getLogger(__name__).debug("Test message debug")
-    logging.getLogger(__name__).info("Test message info")
-    logging.getLogger(__name__).warning("Test message warn")
-    logging.getLogger(__name__).error("Test message error")
-    logging.getLogger(__name__).audit("Test message audit")  # type: ignore[attr-defined]  #  pylint: disable=E1101
+    init_logging(TRACE)
+    logger = get_logger(__name__)
+    logger.trace("Test message trace")
+    logger.debug("Test message debug")
+    logger.info("Test message info")
+    logger.warning("Test message warn")
+    logger.error("Test message error")
+    logger.audit("Test message audit")
 
     # Check that the log lines start as expected
     (_, stderr) = capsys.readouterr()
@@ -119,16 +145,17 @@ def test_logging_oldskool(capsys: Any, monkeypatch: Any) -> None:
     monkeypatch.setenv("LOG_CONSOLE_FORMATTER", "utc")
     add_trace_and_audit()
     # we must explicitly init again due to capsys
-    init_logging(logging.TRACE)  # type: ignore[attr-defined]  #  pylint: disable=E1101
+    init_logging(TRACE)
     isots_thismin_regex = (
         r"^\[" + re.escape(datetime.datetime.now(datetime.UTC).isoformat()[:17]) + r"[0-9]{2}\.[0-9]{3}Z\]"
     )
-    logging.getLogger(__name__).trace("Test message trace")  # type: ignore[attr-defined]  #  pylint: disable=E1101
-    logging.getLogger(__name__).debug("Test message debug")
-    logging.getLogger(__name__).info("Test message info")
-    logging.getLogger(__name__).warning("Test message warn")
-    logging.getLogger(__name__).error("Test message error")
-    logging.getLogger(__name__).audit("Test message audit")  # type: ignore[attr-defined]  #  pylint: disable=E1101
+    logger = get_logger(__name__)
+    logger.trace("Test message trace")
+    logger.debug("Test message debug")
+    logger.info("Test message info")
+    logger.warning("Test message warn")
+    logger.error("Test message error")
+    logger.audit("Test message audit")
 
     # Check that the log lines start as expected
     (_, stderr) = capsys.readouterr()
