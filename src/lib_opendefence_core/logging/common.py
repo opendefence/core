@@ -65,7 +65,9 @@ class AddExtrasFilter(logging.Filter):  # pylint: disable=R0903
         """init"""
         if not extras or not isinstance(extras, Mapping):
             raise ValueError("extras must be non-empty mapping")
-        self.add_extras = extras
+        self.add_extras = dict(extras)
+        if reserved := DEFAULT_RECORD_DIR.intersection(self.add_extras):
+            raise ValueError(f"extras must not overwrite log record attributes: {', '.join(sorted(reserved))}")
         super().__init__(name)
 
     def filter(self, record: logging.LogRecord) -> bool:
