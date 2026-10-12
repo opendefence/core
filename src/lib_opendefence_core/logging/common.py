@@ -1,10 +1,10 @@
 """Things common for all handlers"""
 
-from typing import Optional, Mapping, Any
+import datetime
 import logging.config
 import time
-import datetime
-
+from collections.abc import Mapping
+from typing import Any, override
 
 import ecs_logging
 
@@ -14,8 +14,9 @@ class UTCISOFormatter(logging.Formatter):
 
     converter = time.gmtime  # type: ignore[assignment]  # false positive
 
-    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
-        converted = datetime.datetime.fromtimestamp(record.created, tz=datetime.timezone.utc)
+    @override
+    def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
+        converted = datetime.datetime.fromtimestamp(record.created, tz=datetime.UTC)
         if datefmt:
             formatted = converted.strftime(datefmt)
         else:
@@ -52,10 +53,10 @@ DEFAULT_LOGGING_CONFIG = {
     },
 }
 
-DEFAULT_RECORD_DIR = set(
-    list(dir(logging.LogRecord("dummy", 10, "dummy.py", 228, "Dummy", None, None, "dummy", None)))
-    + ["message", "asctime"]
-)
+DEFAULT_RECORD_DIR = set(dir(logging.LogRecord("dummy", 10, "dummy.py", 228, "Dummy", None, None, "dummy", None))) | {
+    "message",
+    "asctime",
+}
 
 
 class AddExtrasFilter(logging.Filter):  # pylint: disable=R0903
@@ -70,7 +71,8 @@ class AddExtrasFilter(logging.Filter):  # pylint: disable=R0903
             raise ValueError(f"extras must not overwrite log record attributes: {', '.join(sorted(reserved))}")
         super().__init__(name)
 
-    def filter(self, record: logging.LogRecord) -> bool:
+    @override
+    def filter(self, record: logging.LogRecord) -> bool | logging.LogRecord:
         """Add the extras then call parent filter"""
         for key in self.add_extras:
             setattr(record, key, self.add_extras[key])

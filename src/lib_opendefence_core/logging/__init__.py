@@ -1,14 +1,13 @@
 """Logging helpers"""
 
-from typing import Dict, Any, cast
+import copy
+import json
 import logging
 import logging.config
-import copy
 import os
-import json
+from typing import Any, cast
 
-
-from .common import DEFAULT_LOGGING_CONFIG, UTCISOFormatter, DEFAULT_LOG_FORMAT, AddExtrasFilter
+from .common import DEFAULT_LOG_FORMAT, DEFAULT_LOGGING_CONFIG, AddExtrasFilter, UTCISOFormatter
 from .levels import add_logging_level
 
 
@@ -22,7 +21,7 @@ def init_logging(level: int = logging.INFO) -> None:
     """Initialize logging, call this if you don't know any better logging arrangements"""
     labels_json = os.environ.get("LOG_GLOBAL_LABELS_JSON")
     console_formatter = os.environ.get("LOG_CONSOLE_FORMATTER", "ecs")
-    config = cast(Dict[str, Any], copy.deepcopy(DEFAULT_LOGGING_CONFIG))
+    config = cast(dict[str, Any], copy.deepcopy(DEFAULT_LOGGING_CONFIG))
     # If we have the labels env set, apply filter that sets these labels to all log records
     if labels_json:
         config["filters"] = {
@@ -41,4 +40,4 @@ def init_logging(level: int = logging.INFO) -> None:
     logging.config.dictConfig(config)
 
 
-__all__ = ["DEFAULT_LOG_FORMAT", "UTCISOFormatter", "DEFAULT_LOGGING_CONFIG", "init_logging", "add_trace_and_audit"]
+__all__ = ["DEFAULT_LOGGING_CONFIG", "DEFAULT_LOG_FORMAT", "UTCISOFormatter", "add_trace_and_audit", "init_logging"]
