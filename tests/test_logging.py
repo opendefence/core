@@ -10,6 +10,27 @@ import pytest
 
 from lib_opendefence_core.logging import DEFAULT_LOG_FORMAT, add_trace_and_audit, init_logging
 from lib_opendefence_core.logging.common import AddExtrasFilter
+from lib_opendefence_core.logging.levels import RAISE, add_logging_level
+
+
+@pytest.mark.parametrize(
+    ("target", "attribute"),
+    [(logging, "TRACE"), (logging, "trace"), (logging.Logger, "trace"), (logging.LoggerAdapter, "trace")],
+)
+def test_partial_registration_raises(monkeypatch: pytest.MonkeyPatch, target: Any, attribute: str) -> None:
+    add_trace_and_audit()
+    monkeypatch.delattr(target, attribute)
+
+    with pytest.raises(AttributeError, match="partially configured"):
+        add_logging_level("TRACE", logging.DEBUG - 5, if_exists=RAISE)
+
+    assert not hasattr(target, attribute)
+
+
+def test_complete_registration_allows_raise_policy() -> None:
+    add_trace_and_audit()
+    add_logging_level("TRACE", logging.DEBUG - 5, if_exists=RAISE)
+    assert logging.getLevelName(logging.DEBUG - 5) == "TRACE"
 
 
 @pytest.mark.parametrize("key", ["msg", "args", "levelno", "levelname", "created", "message", "asctime"])

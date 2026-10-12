@@ -212,6 +212,9 @@ def add_logging_level(  # noqa: PLR0913, PLR0915
             )
 
         if items_found > 0:
+            check_conflict(
+                items_found < 5, f"Logging level {level_name!r} is partially configured ({items_found}/5 items)"
+            )
             # items_found >= items_conflict always
             if (items_conflict or items_found < 5) and if_exists in (KEEP_WARN, OVERWRITE_WARN):
                 action = "Keeping" if if_exists == KEEP_WARN else "Overwriting"
