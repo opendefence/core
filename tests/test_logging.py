@@ -6,7 +6,27 @@ import datetime
 import json
 import re
 
+import pytest
+
 from lib_opendefence_core.logging import DEFAULT_LOG_FORMAT, init_logging, add_trace_and_audit
+from lib_opendefence_core.logging.common import AddExtrasFilter
+
+
+@pytest.mark.parametrize("key", ["msg", "args", "levelno", "levelname", "created", "message", "asctime"])
+def test_global_labels_reject_record_attributes(key: str) -> None:
+    with pytest.raises(ValueError, match="log record attributes"):
+        AddExtrasFilter({key: "overwritten"})
+
+
+def test_global_labels_preserve_record_after_input_changes() -> None:
+    extras = {"deployment": "core"}
+    label_filter = AddExtrasFilter(extras)
+    extras["msg"] = "overwritten"
+    record = logging.LogRecord("test", logging.WARNING, __file__, 1, "User %s", ("alice",), None)
+
+    assert label_filter.filter(record)
+    assert record.getMessage() == "User alice"
+    assert record.__dict__["deployment"] == "core"
 
 
 def test_log_format() -> None:
