@@ -24,6 +24,11 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 - Deployments pass only `args`, keeping the image entrypoint `tini -- opendefence_core`.
 - Bump the version with `task version:bump -- <part>`. Move `BASE_REF` and `BASE_VERSION` together.
 - Follow base's Taskfile rules: scalar defaults go in each included file's top-level `vars:` using `default`; public tasks get descriptions and tool preconditions; shell arguments are quoted with `shellQuote`. A value derived from a var that includers may set, such as `CORE_PACKAGE` from `CORE_VERSION`, is computed in the task's `vars:`, because file-level vars are evaluated before include vars apply.
+- Use the [`ponytail`](https://github.com/DietrichGebert/ponytail) skill for all coding work.
+- Ensure pre-commit checks are enabled the local clone. `uv run --locked prek install` will do it, this installs the basic pre-commit checks.
+- Run `uv run --locked prek run --all-files` regularly. Run it before pushing or creating a PR when those actions are authorized.
+- Run `ponytail-audit` before every commit. Fix findings caused by the staged change before committing.
+- Write all documentation in Simplified Technical English (STE). Use short, active sentences and consistent terms. Give one instruction per sentence. Preserve exact commands and identifiers.
 
 ## Validation
 
