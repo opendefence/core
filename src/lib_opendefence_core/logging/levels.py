@@ -3,9 +3,9 @@
 Adapted from https://stackoverflow.com/a/35804945 and pointers therein
 """
 
-from typing import Any, Optional
 import logging
 import warnings
+from typing import Any
 
 from ..sentinel import Sentinel
 
@@ -35,10 +35,10 @@ OVERWRITE_WARN = "overwrite-warn"
 RAISE = "raise"
 
 
-def add_logging_level(  # pylint: disable=R0912,R0915,R0913,R0914
+def add_logging_level(  # noqa: PLR0913, PLR0915
     level_name: str,
     level_num: int,
-    method_name: Optional[str] = None,
+    method_name: str | None = None,
     if_exists: str = KEEP_WARN,
     *,
     exc_info: bool = False,
@@ -180,14 +180,14 @@ def add_logging_level(  # pylint: disable=R0912,R0915,R0913,R0914
         if registered_num != "Level " + level_name:
             items_found += 1
             items_conflict += check_conflict(
-                registered_num != level_num, "Level {!r} already registered " "in logging module".format(level_name)
+                registered_num != level_num, f"Level {level_name!r} already registered in logging module"
             )
 
         current_level = getattr(logging, level_name, Sentinel)
         if current_level is not Sentinel:
             items_found += 1
             items_conflict += check_conflict(
-                current_level != level_num, "Level {!r} already defined " "in logging module".format(level_name)
+                current_level != level_num, f"Level {level_name!r} already defined in logging module"
             )
 
         logging_func = getattr(logging, method_name, Sentinel)
@@ -222,7 +222,7 @@ def add_logging_level(  # pylint: disable=R0912,R0915,R0913,R0914
                     problem = "is partially configured"
                     items = items_found
                 warnings.warn(
-                    "Logging level {!r} {} already ({}/5 items): {}".format(level_name, problem, items, action)
+                    f"Logging level {level_name!r} {problem} already ({items}/5 items): {action}", stacklevel=2
                 )
 
             if if_exists in (KEEP, KEEP_WARN):

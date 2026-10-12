@@ -1,14 +1,14 @@
 """Test the logging stuff"""
 
-from typing import Any
-import logging
 import datetime
 import json
+import logging
 import re
+from typing import Any
 
 import pytest
 
-from lib_opendefence_core.logging import DEFAULT_LOG_FORMAT, init_logging, add_trace_and_audit
+from lib_opendefence_core.logging import DEFAULT_LOG_FORMAT, add_trace_and_audit, init_logging
 from lib_opendefence_core.logging.common import AddExtrasFilter
 
 
@@ -32,9 +32,7 @@ def test_global_labels_preserve_record_after_input_changes() -> None:
 @pytest.mark.parametrize("level", ["trace", "audit"])
 @pytest.mark.parametrize("target", ["logger", "adapter", "module"])
 @pytest.mark.parametrize("stacklevel", [None, 1, 2])
-def test_custom_level_caller(
-    caplog: pytest.LogCaptureFixture, level: str, target: str, stacklevel: int | None
-) -> None:
+def test_custom_level_caller(caplog: pytest.LogCaptureFixture, level: str, target: str, stacklevel: int | None) -> None:
     add_trace_and_audit()
     logger = logging.getLogger(__name__)
     loggers = {"logger": logger, "adapter": logging.LoggerAdapter(logger, {}), "module": logging}
@@ -73,7 +71,7 @@ def test_logging_init(monkeypatch: Any) -> None:
 # FIXME: what is the correct type for capsys ??
 def test_logging_ecs(capsys: Any, monkeypatch: Any) -> None:
     """Check that we got all level of messages to capsys"""
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     monkeypatch.setenv("LOG_GLOBAL_LABELS_JSON", '{"hierarchical.tag.value": "get", "another_global_tag": "ditto"}')
     add_trace_and_audit()
     # we must explicitly init again due to capsys
@@ -87,7 +85,7 @@ def test_logging_ecs(capsys: Any, monkeypatch: Any) -> None:
 
     # Check that the log lines start as expected
     (_, stderr) = capsys.readouterr()
-    for line, level in zip(stderr.splitlines(), ("trace", "debug", "info", "warning", "error", "audit")):
+    for line, level in zip(stderr.splitlines(), ("trace", "debug", "info", "warning", "error", "audit"), strict=True):
         parsed = json.loads(line)
         assert parsed["log.level"] == level
         msgtime = datetime.datetime.fromisoformat(parsed["@timestamp"].replace("Z", "+00:00"))
