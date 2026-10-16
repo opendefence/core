@@ -11,7 +11,7 @@ from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Integration, Invite, Role, User, UserBinding
 
-EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
+EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 MODELS: dict[str, type[Resource]] = {
     "User": User,
     "Group": Group,
@@ -27,7 +27,7 @@ def _schema(model: type[Resource]) -> dict[str, Any]:
 
 
 def test_library_import_boundary() -> None:
-    library = Path(__file__).resolve().parents[1] / "src/lib_opendefence_core"
+    library = Path(__file__).resolve().parents[2] / "src/lib_opendefence_core"
     for path in library.rglob("*.py"):
         tree = ast.parse(path.read_text())
         assert not any(
