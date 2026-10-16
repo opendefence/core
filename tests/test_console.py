@@ -83,11 +83,7 @@ def test_operator_render_writes_what_check_expects(tmp_path: Path) -> None:
 def test_log_level_flags(monkeypatch: pytest.MonkeyPatch, flags: list[str], level: int) -> None:
     """-v and -vv select info and debug; -l sets the level directly."""
     levels: list[int] = []
-
-    def basic_config(**kwargs: Any) -> None:
-        levels.append(kwargs["level"])
-
-    monkeypatch.setattr(logging, "basicConfig", basic_config)
+    monkeypatch.setattr(console, "init_logging", levels.append)
     result = runner.invoke(opendefence_core_cli, [*flags, "operator", "render", "--check", "--root", str(ROOT)])
     assert result.exit_code == 0, result.output
     assert levels == [level]

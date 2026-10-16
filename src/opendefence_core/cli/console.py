@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 import uvicorn
 
+from lib_opendefence_core.logging import init_logging
 from opendefence_core import __version__, config
 from opendefence_core.k8s_operator import render
 from opendefence_core.k8s_operator.app import app as operator_app
@@ -17,7 +18,7 @@ def _configure_logging(loglevel: int, verbose: int) -> None:
         loglevel = logging.INFO
     if verbose >= 2:
         loglevel = logging.DEBUG
-    logging.basicConfig(level=loglevel, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    init_logging(loglevel)
 
 
 @click.group()
