@@ -14,7 +14,7 @@ rules:
 - apiGroups:
   - cert-manager.io
   resources:
-  - certificates
+  - certificaterequests
   verbs:
   - create
   - delete
@@ -131,6 +131,15 @@ rules:
   - ''
   resources:
   - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
   verbs:
   - delete
   - get

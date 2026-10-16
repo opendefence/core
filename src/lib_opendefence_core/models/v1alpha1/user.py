@@ -12,6 +12,7 @@ from lib_opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, 
 
 BINDINGS_SYNCED_CONDITION = "BindingsSynced"
 CERTIFICATE_READY_CONDITION = "CertificateReady"
+ACCEPTED_CREDENTIALS_ANNOTATION = "platform.opendefence.fi/accepted-credentials"
 CALLSIGN_PATTERN = r"^[a-z0-9]{3,30}$"
 
 
@@ -66,7 +67,12 @@ class UserSpec(BaseModel):
     approved_at: Annotated[datetime | None, PrinterColumn(name="Approved")] = Field(
         default=None,
         alias="approvedAt",
-        description="RFC 3339 timestamp when the user was approved; omit while approval is pending.",
+        description="RFC 3339 timestamp of the original user approval; omit while enrollment is pending.",
+    )
+    certificate_approved_at: datetime | None = Field(
+        default=None,
+        alias="certificateApprovedAt",
+        description="RFC 3339 timestamp authorizing certificate replacement. Must be later than the consumed approval.",
     )
 
 

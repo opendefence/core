@@ -36,7 +36,8 @@ async def test_cluster_scoped_events_use_operator_namespace() -> None:
     assert body["metadata"]["namespace"] == "opendefence-system"
     assert body["regarding"]["namespace"] == "opendefence-system"
     assert body["regarding"]["name"] == "bob"
-    assert body["regarding"]["uid"] == "uid-bob"
+    assert user.metadata is not None
+    assert body["regarding"]["uid"] == user.metadata.uid
 
 
 async def test_namespaced_events_keep_object_namespace() -> None:

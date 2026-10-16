@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 from datetime import datetime
+from uuid import NAMESPACE_DNS, uuid5
 
 from cloudcoil.apimachinery import ObjectMeta, OwnerReference
 
@@ -54,19 +55,21 @@ def make_user(
     groups: Iterable[str] = (),
     approval_code: str | None = None,
     approved_at: datetime | None = None,
+    certificate_approved_at: datetime | None = None,
     revoked_at: datetime | None = None,
 ) -> User:
-    """User whose callsign is its name, with uid uid-<name>."""
+    """User whose callsign is its name, with a stable UUID and resource version."""
     return User(
         api_version=API_VERSION,
         kind="User",
-        metadata=ObjectMeta(name=name, namespace=namespace, uid=f"uid-{name}"),
+        metadata=ObjectMeta(name=name, namespace=namespace, uid=str(uuid5(NAMESPACE_DNS, name)), resource_version="1"),
         spec=UserSpec(
             callsign=name,
             role_refs=refs(roles),
             group_refs=refs(groups),
             approval_code=approval_code,
             approved_at=approved_at,
+            certificate_approved_at=certificate_approved_at,
             revoked_at=revoked_at,
         ),
     )

@@ -1,8 +1,9 @@
 """In-memory stand-ins for cloudcoil clients, caches, contexts, and admission requests."""
 
 from collections.abc import AsyncIterator, Iterable
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
+from cloudcoil.apimachinery import ObjectMeta, OwnerReference
 from cloudcoil.errors import ResourceConflict, ResourceNotFound
 from cloudcoil.resources import Resource
 
@@ -30,6 +31,7 @@ class FakeClient[T: Resource]:
     def __init__(self, objects: Iterable[T] = ()) -> None:
         self._objects: dict[Key, T] = {_key(obj): obj for obj in objects}
         self.deleted: list[Key] = []
+        self.patches: list[list[dict[str, Any]]] = []
 
     async def get(self, name: str, namespace: str | None = None) -> T:
         if (namespace, name) not in self._objects:
@@ -44,6 +46,29 @@ class FakeClient[T: Resource]:
             raise ResourceConflict("UID precondition failed")
         self.deleted.append((namespace, name))
         return self._objects.pop((namespace, name))
+
+    async def patch(self, body: T, operations: list[dict[str, Any]]) -> T:
+        """Apply the guarded metadata patches used by the operator."""
+        current = await self.get(body.name or "", body.namespace)
+        document = current.model_dump(mode="json", by_alias=True, exclude_none=True)
+        for operation in operations:
+            parts = [part.replace("~1", "/").replace("~0", "~") for part in operation["path"].split("/")[1:]]
+            target = document
+            for part in parts[:-1]:
+                target = target[part]
+            key = parts[-1]
+            if operation["op"] == "test":
+                if target.get(key) != operation["value"]:
+                    raise ResourceConflict("Patch precondition failed")
+            elif operation["op"] == "remove":
+                del target[key]
+            else:
+                target[key] = operation["value"]
+        document["metadata"]["resourceVersion"] = str(int(current.resource_version or "0") + 1)
+        updated = cast(type[T], type(body)).model_validate(document)
+        self._objects[_key(updated)] = updated
+        self.patches.append(operations)
+        return updated
 
     async def list(self, namespace: str | None = None, *, all_namespaces: bool = False) -> FakeList[T]:
         _ = namespace, all_namespaces
@@ -71,12 +96,14 @@ class FakeContext:
         self,
         caches: dict[type[Resource], FakeCache[Any]] | None = None,
         clients: dict[type[Resource], FakeClient[Any]] | None = None,
+        parent: Resource | None = None,
     ) -> None:
         self._caches = caches or {}
         self.clients = clients or {}
         self.status: dict[str, Any] = {}
         self.conditions: list[tuple[str, bool | Literal["Unknown"], str, str]] = []
         self.ensured: list[Resource] = []
+        self.parent = parent
 
     async def client[U: Resource](self, resource: type[U]) -> FakeClient[U]:
         return self.clients.setdefault(resource, FakeClient())
@@ -86,13 +113,31 @@ class FakeContext:
         return await client.get(name, namespace=namespace)
 
     async def ensure[U: Resource](self, desired: U) -> U:
-        """Record the desired child; return the stored observed object if one is seeded."""
+        """Persist desired fields and preserve the observed status of owned children."""
         self.ensured.append(desired)
         client = await self.client(type(desired))
         try:
-            return await client.get(desired.name or "", namespace=desired.namespace)
+            current = await client.get(desired.name or "", namespace=desired.namespace)
         except ResourceNotFound:
-            return desired
+            current = desired.model_copy(deep=True)
+            if current.metadata is None:
+                current.metadata = ObjectMeta()
+            current.metadata.uid = f"uid-{current.name}"
+            if self.parent and self.parent.metadata:
+                current.metadata.owner_references = [
+                    OwnerReference(
+                        api_version=self.parent.gvk().api_version,
+                        kind=self.parent.gvk().kind,
+                        name=self.parent.name or "",
+                        uid=self.parent.metadata.uid or "",
+                        controller=True,
+                    )
+                ]
+        else:
+            values = desired.model_dump(exclude_unset=True, exclude={"metadata"})
+            current = cast(type[U], type(desired)).model_validate({**current.model_dump(), **values})
+        client._objects[_key(current)] = current
+        return current
 
     def cached[U: Resource](self, resource: type[U]) -> FakeCache[U]:
         return self._caches.get(resource) or FakeCache()

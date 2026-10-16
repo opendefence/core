@@ -1063,9 +1063,17 @@ spec:
                 format: date-time
                 type: string
                 default: null
-                description: RFC 3339 timestamp when the user was approved; omit while
-                  approval is pending.
+                description: RFC 3339 timestamp of the original user approval; omit
+                  while enrollment is pending.
                 title: Approvedat
+                nullable: true
+              certificateApprovedAt:
+                format: date-time
+                type: string
+                default: null
+                description: RFC 3339 timestamp authorizing certificate replacement.
+                  Must be later than the consumed approval.
+                title: Certificateapprovedat
                 nullable: true
             required:
             - callsign

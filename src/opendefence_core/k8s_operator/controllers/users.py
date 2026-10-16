@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.controller import Context, Controller, ResourceKey
-from cloudcoil.models.cert_manager.v1 import Certificate
+from cloudcoil.models.cert_manager.v1 import CertificateRequest
 
 from lib_opendefence_core.models.v1alpha1 import (
     BINDINGS_SYNCED_CONDITION,
@@ -15,13 +15,17 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
-from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate, remove_certificate
+from opendefence_core.k8s_operator.controllers._certificates import (
+    reconcile_certificate,
+    remove_certificate,
+    wants_certificate,
+)
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
 
 USER_CERTIFICATE_FINALIZER = "platform.opendefence.fi/user-certificate"
 
-users = Controller(User, name="users", owns=(Certificate,), events=recorder("users"))
+users = Controller(User, name="users", owns=(CertificateRequest,), events=recorder("users"))
 
 
 @users.validate(operations=("DELETE",))
@@ -54,11 +58,14 @@ async def reconcile_user(user: User, ctx: Context[User]) -> None:
     observed, pending = observe_bindings(user, ctx.cached(UserBinding).list(all_namespaces=True))
     report_bindings_synced(ctx, observed, pending)
     ctx.set_status(bindings=observed)
+    if not wants_certificate(user):
+        await reconcile_certificate(user, ctx)
     roles = resolve_refs(ctx, Role, user.spec.role_refs)
     groups = resolve_refs(ctx, Group, user.spec.group_refs)
     mark_resolved(ctx)
     ctx.set_status(roles=roles, groups=groups)
-    await reconcile_certificate(user, ctx)
+    if wants_certificate(user):
+        await reconcile_certificate(user, ctx)
 
 
 @users.finalize(USER_CERTIFICATE_FINALIZER)

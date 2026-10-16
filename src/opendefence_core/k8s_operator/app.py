@@ -4,7 +4,7 @@ import os
 
 from cloudcoil.application import Application, RBACRule, WebhookServer
 from cloudcoil.controller import HealthServer
-from cloudcoil.models.cert_manager.v1 import Certificate
+from cloudcoil.models.cert_manager.v1 import Certificate, CertificateRequest
 from cloudcoil.models.kubernetes.core.v1 import Secret
 
 from lib_opendefence_core.models.v1alpha1 import Role, UserBinding
@@ -24,10 +24,23 @@ app = Application(
     rules=(
         # Owning Roles grants create and patch; delete covers roles an Integration drops
         RBACRule(Role, verbs=("delete",)),
-        RBACRule(Certificate, verbs=("delete",), plural="certificates", scope="Namespaced", all_namespaces=True),
-        # Read the issued key pair, and delete it on revoke so re-approval gets a new key
         RBACRule(
-            Secret, verbs=("get", "delete"), plural="secrets", scope="Namespaced", namespace=PUBLIC_CERT_NAMESPACE
+            Certificate,
+            verbs=("get", "delete"),
+            plural="certificates",
+            scope="Namespaced",
+            namespace=PUBLIC_CERT_NAMESPACE,
+        ),
+        RBACRule(
+            CertificateRequest, verbs=("delete",), plural="certificaterequests", scope="Namespaced", all_namespaces=True
+        ),
+        # One-shot requests use keys created by this operator.
+        RBACRule(
+            Secret,
+            verbs=("get", "create", "patch", "delete"),
+            plural="secrets",
+            scope="Namespaced",
+            namespace=PUBLIC_CERT_NAMESPACE,
         ),
     ),
 )

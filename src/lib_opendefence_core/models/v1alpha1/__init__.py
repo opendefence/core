@@ -17,6 +17,7 @@ from lib_opendefence_core.models.v1alpha1.integration import (
 from lib_opendefence_core.models.v1alpha1.invite import Invite, InviteSpec, InviteStatus
 from lib_opendefence_core.models.v1alpha1.role import Role, RoleSpec, RoleStatus
 from lib_opendefence_core.models.v1alpha1.user import (
+    ACCEPTED_CREDENTIALS_ANNOTATION,
     BINDINGS_SYNCED_CONDITION,
     CERTIFICATE_READY_CONDITION,
     BindingObservation,
@@ -33,6 +34,7 @@ from lib_opendefence_core.models.v1alpha1.userbinding import (
 )
 
 __all__ = [
+    "ACCEPTED_CREDENTIALS_ANNOTATION",
     "API_VERSION",
     "BINDINGS_SYNCED_CONDITION",
     "CERTIFICATE_READY_CONDITION",

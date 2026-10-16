@@ -78,9 +78,12 @@ def test_operator_rbac() -> None:
     rules = {tuple(rule["resources"]): rule["verbs"] for rule in cluster_role["rules"]}
     assert rules[("userbindings",)] == ["get", "list", "watch"]
     assert ("userbindings/status",) not in rules
-    assert "delete" in rules[("certificates",)]
+    assert ("certificates",) not in rules
+    assert "delete" in rules[("certificaterequests",)]
     secrets = _one(documents, "Role", PUBLIC_CERT_NAMESPACE)
-    assert secrets["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["delete", "get"]}]
+    namespaced_rules = {tuple(rule["resources"]): rule["verbs"] for rule in secrets["rules"]}
+    assert namespaced_rules[("secrets",)] == ["create", "delete", "get", "patch"]
+    assert namespaced_rules[("certificates",)] == ["delete", "get"]
     leases = _one(documents, "Role", SYSTEM_NAMESPACE)
     assert any(rule["resources"] == ["leases"] for rule in leases["rules"])
 

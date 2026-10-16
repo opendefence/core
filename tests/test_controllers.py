@@ -69,7 +69,9 @@ async def test_reconcile_group_and_invite() -> None:
     group = make_group("ops", parent="root", managers=["alice"], roles=["group-admin"])
     await reconcile_group(group, cast(Context[Group], ctx))
     assert ctx.status["parent"].uid == "uid-root"
-    assert ctx.status["managers"][0].uid == "uid-alice"
+    manager = ctx.cached(User).get("alice")
+    assert manager is not None and manager.metadata is not None
+    assert ctx.status["managers"][0].uid == manager.metadata.uid
     assert ctx.status["roles"][0].uid == "uid-group-admin"
 
     invite_ctx = FakeContext({Group: FakeCache([parent]), Role: FakeCache([role])})
