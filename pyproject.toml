@@ -1,6 +1,6 @@
 [project]
 name = "opendefence_core"
-version = "0.2.1+261010"
+version = "0.2.4+261016"
 description = "Runs core operators and REST API for OpenDefence operational platform"
 authors = [{name="Niilo Vuokila", email="niilo@opendefence.fi" }]
 license = "MPL-2.0"
@@ -8,7 +8,7 @@ license-files = ["LICENSE.txt"]
 readme = "README.md"
 requires-python = ">=3.14,<4.0"
 dependencies = [
-    "lib-opendefence-core==0.2.1+261010",
+    "lib-opendefence-core==0.2.4+261016",
     "click>=8.5.0,<9.0",
     "cloudcoil[cert-manager,kubernetes,operator]>=0.8.0,<1.0",
     "cryptography>=46.0.7,<47.0",

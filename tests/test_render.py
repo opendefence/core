@@ -72,6 +72,9 @@ def test_operator_deployment_is_hardened() -> None:
 
 def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
     """Kustomize changes both the configured lifetime and the Deployment's hashed reference."""
+    package = yaml.safe_load((ROOT / "zarf.yaml").read_text())
+    operator = next(component for component in package["components"] if component["name"] == "operator")
+    assert operator["manifests"] == [{"name": "operator", "kustomizations": ["manifests/operator"]}]
     base = _kustomized()
     config = _one(base, "ConfigMap")
     assert config["data"]["USER_CERTIFICATE_DURATION"] == "2880h"
