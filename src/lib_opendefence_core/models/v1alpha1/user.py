@@ -6,7 +6,7 @@ from typing import Annotated
 from cloudcoil.crd import ListType, PrinterColumn, custom_resource
 from cloudcoil.pydantic import BaseModel
 from cloudcoil.resources import Resource
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from lib_opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, PlatformStatus, ResolvedRef
 
@@ -41,7 +41,7 @@ class UserSpec(BaseModel):
 
     callsign: Annotated[str, PrinterColumn(name="Callsign")] = Field(
         min_length=1,
-        description="Unique callsign used to identify the user on the platform.",
+        description="Mutable callsign displayed for the user. The Kubernetes UID identifies the user.",
         pattern=CALLSIGN_PATTERN,
     )
     revoked_at: Annotated[datetime | None, PrinterColumn(name="Revoked")] = Field(
@@ -105,19 +105,7 @@ class UserStatus(PlatformStatus):
     short_names=("oduser",),
 )
 class User(Resource):
-    """Cluster-scoped platform user, named after its callsign."""
-
-    # metadata.name is immutable, so this also keeps the callsign from changing
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-kubernetes-validations": [
-                {
-                    "rule": "self.spec.callsign == self.metadata.name",
-                    "message": "spec.callsign must equal metadata.name",
-                }
-            ]
-        }
-    )
+    """Cluster-scoped platform user with an immutable Kubernetes UID."""
 
     spec: UserSpec = Field(description="Desired configuration of the user.")
     status: UserStatus | None = Field(

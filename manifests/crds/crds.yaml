@@ -987,7 +987,7 @@ spec:
     storage: true
     schema:
       openAPIV3Schema:
-        description: Cluster-scoped platform user, named after its callsign.
+        description: Cluster-scoped platform user with an immutable Kubernetes UID.
         properties:
           apiVersion:
             type: string
@@ -999,7 +999,8 @@ spec:
             description: Desired configuration of the user.
             properties:
               callsign:
-                description: Unique callsign used to identify the user on the platform.
+                description: Mutable callsign displayed for the user. The Kubernetes
+                  UID identifies the user.
                 minLength: 1
                 pattern: ^[a-z0-9]{3,30}$
                 title: Callsign
@@ -1245,9 +1246,6 @@ spec:
         - spec
         title: User
         type: object
-        x-kubernetes-validations:
-        - message: spec.callsign must equal metadata.name
-          rule: self.spec.callsign == self.metadata.name
     subresources:
       status: {}
     additionalPrinterColumns:

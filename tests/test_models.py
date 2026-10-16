@@ -75,10 +75,9 @@ def test_user_crd_is_cluster_scoped_with_status_and_aliases() -> None:
     assert "bindings" in status
 
 
-def test_user_callsign_must_equal_name() -> None:
-    """The API server keeps spec.callsign equal to the immutable metadata.name."""
-    rules = _schema(User)["x-kubernetes-validations"]
-    assert [rule["rule"] for rule in rules] == ["self.spec.callsign == self.metadata.name"]
+def test_user_callsign_can_change() -> None:
+    """Callsign can change without changing the immutable resource name or UID."""
+    assert "x-kubernetes-validations" not in _schema(User)
 
 
 def test_userbinding_crd_is_namespaced_with_sync_columns() -> None:

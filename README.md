@@ -50,6 +50,7 @@ This transition removes their key pair Secrets.
 The certificate URI SAN is `urn:uuid:<canonical Kubernetes User UID>`.
 The CN is `<deployment display name> · <identity tag>`.
 The tag is the first eight lowercase hexadecimal digits of SHA-256 over the canonical UUID text.
+Callsign changes preserve the User UID and certificate.
 Deployment label and duration changes apply to the next approved issuance.
 Restoring a User under a new Kubernetes UID requires a new certificate.
 
