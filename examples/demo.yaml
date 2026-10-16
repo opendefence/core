@@ -1,0 +1,112 @@
+# Demo platform.opendefence.fi/v1alpha1 objects for a cluster running core
+# (`task up`). User, Group, Role, Invite, and Integration are cluster-scoped;
+# UserBinding is namespaced. Users are named after their callsigns.
+#   kubectl apply -f examples/demo.yaml
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Role
+metadata:
+  name: superadmin
+spec:
+  displayName: Superadmin
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Role
+metadata:
+  name: group-admin
+spec:
+  displayName: Group admin
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Role
+metadata:
+  name: role-admin
+spec:
+  displayName: Role admin
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Group
+metadata:
+  name: group-admin
+spec:
+  displayName: Group admin
+  managerRefs:
+    - name: bob
+  roleRefs:
+    - name: role-admin
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: User
+metadata:
+  name: bob
+spec:
+  callsign: bob
+  roleRefs:
+    - name: superadmin
+  groupRefs:
+    - name: group-admin
+  approvalCode: let-him-in
+  approvedAt: "2026-09-12T12:00:00Z"
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: User
+metadata:
+  name: charlie
+spec:
+  callsign: charlie
+  roleRefs:
+    - name: group-admin
+  groupRefs:
+    - name: group-admin
+  approvalCode: let-him-in
+  approvedAt: "2026-09-12T12:00:00Z"
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Invite
+metadata:
+  name: onboarding
+spec:
+  code: let-me-in
+  groupRefs:
+    - name: group-admin
+  roleRefs:
+    - name: group-admin
+  useCount: 5
+  validUntil: "2137-01-01T00:00:00Z"
+---
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: Integration
+metadata:
+  name: tak
+spec:
+  displayName: TAK
+  version: "0.0.1"
+  productInfo:
+    icon: /ui/tak/taklogo.svg
+    docs: https://docs.pvarki.fi/
+    component:
+      type: component
+      ref: /ui/tak/remoteEntry.js
+    descriptions:
+      - language: en
+        title: "TAK: Team Awareness Kit"
+        description: Situational awareness system
+      - language: fi
+        title: "TAK: Team Awareness Kit"
+        description: Tilannekuvasovellus
+  extraRoles:
+    - name: tak-user
+      displayName: TAK user
+    - name: tak-admin
+      displayName: TAK admin
+---
+# Integrations create UserBindings in their own namespaces. Status.conditions
+# with type Synced is written by the integration, not this operator.
+apiVersion: platform.opendefence.fi/v1alpha1
+kind: UserBinding
+metadata:
+  name: bob
+  namespace: default
+spec:
+  userRef:
+    name: bob

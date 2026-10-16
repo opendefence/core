@@ -1,0 +1,18 @@
+# Apply CRDs without a local checkout.
+version: "3"
+
+vars:
+  CLUSTER_NAME: '{{.CLUSTER_NAME | default "opendefence-dev"}}'
+  KUBE_CONTEXT: '{{.KUBE_CONTEXT | default (printf "kind-%s" .CLUSTER_NAME)}}'
+  CORE_REF: '{{.CORE_REF | default ""}}'
+
+tasks:
+  crds:
+    desc: Apply only core's CRDs from CORE_REF, for working with the platform kinds without core running
+    preconditions:
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+      - sh: test -n {{.CORE_REF | shellQuote}}
+        msg: Set CORE_REF to the opendefence/core commit whose CRDs to apply
+    cmds:
+      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} apply --server-side -f {{printf "https://raw.githubusercontent.com/opendefence/core/%s/manifests/crds/crds.yaml" .CORE_REF | shellQuote}}

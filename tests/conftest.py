@@ -1,5 +1,1 @@
-"""pytest automagics"""
-
-import logging
-
-LOGGER = logging.getLogger(__name__)
+"""Shared pytest setup."""

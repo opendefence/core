@@ -1,17 +1,20 @@
 # syntax=docker/dockerfile:1
+ARG PYTHON_VERSION=3.14.8
 ##########################################
 # Build the venv with a standalone Python #
 ##########################################
 # Distroless is glibc based, so build on the matching Debian release with a
 # uv-managed standalone Python that can be copied into the runtime image as-is
 FROM debian:trixie-slim AS build
+ARG PYTHON_VERSION
 ENV \
+  UV_PYTHON=${PYTHON_VERSION} \
   UV_PYTHON_INSTALL_DIR=/python \
   UV_PYTHON_PREFERENCE=only-managed \
   UV_PROJECT_ENVIRONMENT=/.venv \
   UV_COMPILE_BYTECODE=1 \
   UV_LINK_MODE=copy
-COPY --from=ghcr.io/astral-sh/uv:0.12.13 /uv /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.24 /uv /usr/local/bin/
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -21,14 +24,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     # Host keys for git+ssh dependencies (used with --mount=type=ssh)
     && mkdir -p -m 0700 ~/.ssh && ssh-keyscan gitlab.com github.com | sort > ~/.ssh/known_hosts \
-    && uv python install 3.14
+    && uv python install "$PYTHON_VERSION"
 WORKDIR /app
 # Dependencies first, to cache them in a docker layer
-COPY ./uv.lock ./pyproject.toml ./README.md /app/
-RUN --mount=type=ssh uv sync --locked --no-dev --all-extras --no-install-project
+COPY ./uv.lock ./pyproject.toml ./README.md ./LICENSE.txt /app/
+COPY ./src/lib_opendefence_core/pyproject.toml ./src/lib_opendefence_core/README.md ./src/lib_opendefence_core/LICENSE.txt /app/src/lib_opendefence_core/
+RUN --mount=type=ssh uv sync --locked --no-dev --no-install-workspace
 # The package itself, non-editable so /app is not needed at runtime
 COPY ./src /app/src/
-RUN --mount=type=ssh uv sync --locked --no-dev --all-extras --no-editable
+RUN --mount=type=ssh uv sync --locked --no-dev --no-editable
 # Drop what a non-interactive runtime never uses. The python binary links
 # libpython statically, so the shared library is only needed for embedding.
 RUN cd /python/cpython-3.14.*/ \
@@ -52,5 +56,5 @@ COPY --from=build /usr/bin/tini-static /sbin/tini
 COPY --from=build /python /python
 COPY --from=build /.venv /.venv
 WORKDIR /app
-ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["opendefence_core"]
+ENTRYPOINT ["/sbin/tini", "--", "opendefence_core"]
+CMD ["--help"]

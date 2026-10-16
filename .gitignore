@@ -137,3 +137,7 @@ venv.bak/
 
 # Pyre type checker
 .pyre/
+
+# Local task cache and package builds
+.task/
+dist/

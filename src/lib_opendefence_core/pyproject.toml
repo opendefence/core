@@ -1,0 +1,27 @@
+[project]
+name = "lib-opendefence-core"
+version = "0.2.4+261016"
+description = "OpenDefence Kubernetes resource models"
+authors = [{name = "Niilo Vuokila", email = "niilo@opendefence.fi"}]
+license = "MPL-2.0"
+license-files = ["LICENSE.txt"]
+readme = "README.md"
+requires-python = ">=3.14,<4.0"
+dependencies = [
+    "cloudcoil>=0.8.0,<1.0",
+    "pydantic>=2.12.0,<3.0",
+    "ecs-logging>=2.3.0",
+]
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+dev-mode-dirs = [".."]
+
+[tool.hatch.build.targets.wheel]
+include = ["*.py", "py.typed"]
+
+[tool.hatch.build.targets.wheel.sources]
+"" = "lib_opendefence_core"

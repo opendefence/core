@@ -1,0 +1,25 @@
+version: "3"
+
+tasks:
+  manifests:
+    desc: Generate the CRDs and operator manifests
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions: &uv
+      - sh: command -v uv >/dev/null
+        msg: uv is not on PATH
+    cmds:
+      - uv run --locked opendefence_core operator render
+  manifests:check:
+    desc: Check that generated manifests are current
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions: *uv
+    cmds:
+      - uv run --locked opendefence_core operator render --check
+  lint:
+    desc: Validate the operator Kustomize configuration
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions:
+      - sh: command -v kubectl >/dev/null
+        msg: kubectl is not on PATH
+    cmds:
+      - kubectl kustomize manifests/operator >/dev/null
