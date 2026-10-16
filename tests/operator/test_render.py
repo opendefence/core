@@ -11,7 +11,7 @@ import yaml
 from opendefence_core.k8s_operator.render import CRDS_PATH, IMAGE, OPERATOR_PATH, render
 from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, PUBLIC_CERT_NAMESPACE, SYSTEM_NAMESPACE
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _documents(path: Path) -> list[dict[str, Any]]:
