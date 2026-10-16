@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.14, <4.0"
 
 [manifest]
@@ -542,7 +542,7 @@ wheels = [
 
 [[package]]
 name = "lib-opendefence-core"
-version = "0.2.3+261012"
+version = "0.2.4+261016"
 source = { editable = "src/lib_opendefence_core" }
 dependencies = [
     { name = "cloudcoil" },
@@ -580,7 +580,7 @@ wheels = [
 
 [[package]]
 name = "opendefence-core"
-version = "0.2.3+261012"
+version = "0.2.4+261016"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
