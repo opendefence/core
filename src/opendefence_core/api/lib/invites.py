@@ -6,6 +6,7 @@ from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.controller import get_condition
 from cloudcoil.errors import ResourceConflict
 
+from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
@@ -19,6 +20,8 @@ from opendefence_core.api.lib.codes import generate_code
 
 APPROVAL_CODE_LENGTH = 8
 UNLIMITED = -1
+
+logger = get_logger(__name__)
 
 
 class InviteNotRedeemable(Exception):
@@ -46,7 +49,9 @@ async def redeem(code: str, callsign: str) -> User:
     user = _new_user(invite, callsign)
     await _check_callsign(user)
     await _use(invite)
-    return await user.async_create()
+    created = await user.async_create()
+    logger.audit("Invite %s redeemed as user %s", invite.name, created.name)
+    return created
 
 
 def _used(invite: Invite) -> int:
