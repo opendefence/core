@@ -22,7 +22,10 @@ rules:
     resources: [users]
     verbs: [get, list, create, update, patch]
   - apiGroups: [platform.opendefence.fi]
-    resources: [roles, groups]
+    resources: [roles]
+    verbs: [list, create, delete]
+  - apiGroups: [platform.opendefence.fi]
+    resources: [groups]
     verbs: [list]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
