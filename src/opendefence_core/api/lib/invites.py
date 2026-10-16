@@ -4,13 +4,14 @@ from datetime import UTC, datetime
 
 from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.controller import get_condition
-from cloudcoil.errors import ResourceConflict
+from cloudcoil.errors import ResourceConflict, ResourceNotFound
 
 from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
     Invite,
+    InviteSpec,
     InviteStatus,
     User,
     UserSpec,
@@ -18,6 +19,7 @@ from lib_opendefence_core.models.v1alpha1 import (
 from opendefence_core.api.lib.codes import generate_code
 
 APPROVAL_CODE_LENGTH = 8
+INVITE_CODE_LENGTH = 8
 UNLIMITED = -1
 
 logger = get_logger(__name__)
@@ -33,11 +35,57 @@ class CallsignTaken(Exception):
 
 async def find_invite(code: str) -> Invite | None:
     """Invite with the code, if it can still be redeemed."""
-    # TODO: Lists every Invite per lookup; index them (label or informer) before this sees real load
     async for invite in await Invite.async_list():
         if invite.spec.code == code and _is_redeemable(invite):
             return invite
     return None
+
+
+async def list_invites() -> list[Invite]:
+    """Invites an administrator can manage, auto-approving ones excluded."""
+    return [invite async for invite in await Invite.async_list() if not invite.spec.auto_approve]
+
+
+async def get_invite(name: str) -> Invite | None:
+    """Invite by name, auto-approving ones excluded."""
+    try:
+        invite = await Invite.async_get(name)
+    except ResourceNotFound:
+        return None
+    return None if invite.spec.auto_approve else invite
+
+
+async def unique_invite_code() -> str:
+    """Generated code that no invite holds yet."""
+    taken = {invite.spec.code async for invite in await Invite.async_list()}
+    while (code := generate_code(INVITE_CODE_LENGTH)) in taken:
+        pass
+    return code
+
+
+async def create_invite(spec: InviteSpec) -> Invite:
+    """Create an invite under a generated name."""
+    invite = Invite(
+        api_version=API_VERSION,
+        kind="Invite",
+        metadata=ObjectMeta(generate_name="invite-"),
+        spec=spec,
+    )
+    created = await invite.async_create()
+    logger.audit("Invite %s created", created.name)
+    return created
+
+
+async def update_invite(invite: Invite, spec: InviteSpec) -> Invite:
+    """Replace the invite spec, failing on a concurrent change."""
+    invite.spec = spec
+    return await invite.async_update()
+
+
+async def delete_invite(invite: Invite) -> None:
+    """Delete the invite."""
+    await invite.async_remove()
+    logger.audit("Invite %s deleted", invite.name)
 
 
 async def redeem(code: str, callsign: str) -> User:
