@@ -9,7 +9,7 @@ from uuid import UUID
 
 from cloudcoil.resources import Resource
 from fastapi import Path
-from pydantic import AfterValidator
+from pydantic import AfterValidator, Field
 
 COMPACT_LENGTH = 22
 """Characters in the compact form: 16 raw bytes as unpadded Base64URL."""
@@ -34,6 +34,9 @@ def canonical(value: str) -> str:
 ObjectId = Annotated[str, Path(pattern=ID_PATTERN), AfterValidator(canonical)]
 """Path parameter naming a platform object. The handler receives the canonical uid."""
 
+RefId = Annotated[str, Field(pattern=ID_PATTERN), AfterValidator(canonical)]
+"""Body field naming another platform object. The model receives the canonical uid."""
+
 
 def id_of(obj: Resource) -> str:
     """REST id of a stored object."""
@@ -53,3 +56,8 @@ async def by_uid[T: Resource](kind: type[T], uid: str) -> T | None:
         if obj.metadata is not None and obj.metadata.uid == uid:
             return obj
     return None
+
+
+async def ids_by_name[T: Resource](kind: type[T]) -> dict[str, str]:
+    """Ids of every object of the kind, keyed by name, to resolve the refs specs hold."""
+    return {obj.name: id_of(obj) async for obj in await kind.async_list() if obj.name}
