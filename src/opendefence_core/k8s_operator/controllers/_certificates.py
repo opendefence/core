@@ -40,7 +40,8 @@ def wants_certificate(user: User) -> bool:
 
 def certificate_approval(user: User) -> datetime:
     """Use enrollment once; only a fresh certificate approval can advance issuance."""
-    assert user.spec.approved_at is not None
+    if user.spec.approved_at is None:
+        raise ValueError("Certificate issuance requires user approval")
     consumed = (user.metadata.annotations or {}).get(APPROVAL_ANNOTATION) if user.metadata else None
     previous = datetime.fromisoformat(consumed) if consumed else user.spec.approved_at
     return max(previous, user.spec.certificate_approved_at or previous)
@@ -157,7 +158,8 @@ def accepted_credential(user: User, request: CertificateRequest, secret: Secret)
 
 async def _annotate(user: User, ctx: Context[User], values: dict[str, str]) -> User:
     desired = user.model_copy(deep=True)
-    assert desired.metadata is not None
+    if desired.metadata is None:
+        raise ValueError("Cannot annotate a User without metadata")
     values = {
         key: value
         for key, value in values.items()
@@ -181,7 +183,8 @@ async def reconcile_certificate(user: User, ctx: Context[User]) -> None:
         await _unavailable(user, ctx, reason)
         await remove_certificate(user, ctx)
         return
-    assert user.spec.approved_at is not None and user.metadata is not None
+    if user.metadata is None:
+        raise ValueError("Cannot issue a certificate for a User without metadata")
     approved_at = certificate_approval(user)
     approval = approved_at.astimezone(UTC).isoformat()
     consumed = (user.metadata.annotations or {}).get(APPROVAL_ANNOTATION)
@@ -219,7 +222,8 @@ async def reconcile_certificate(user: User, ctx: Context[User]) -> None:
     if not datetime.fromisoformat(credential["notBefore"]) <= now < datetime.fromisoformat(credential["notAfter"]):
         await _unavailable(user, ctx, "CertificateOutsideValidity")
         return
-    assert request.status.certificate is not None
+    if request.status.certificate is None:
+        raise ValueError("CertificateRequest has no issued certificate")
     data = {**(secret.data or {}), "tls.crt": request.status.certificate}
     if request.status.ca:
         data["ca.crt"] = request.status.ca
@@ -272,7 +276,8 @@ async def remove_certificate(user: User, ctx: Context[User]) -> None:
         existing = await _get(ctx, resource, name)
         if existing is None:
             continue
-        assert existing.metadata is not None and existing.metadata.uid
+        if existing.metadata is None or not existing.metadata.uid:
+            raise ValueError(f"Refusing to delete {existing.kind} {name} without a UID")
         # Legacy cert-manager Secrets did not have an owner reference.
         if resource is not Secret or existing.metadata.owner_references:
             _check_owner(user, existing)

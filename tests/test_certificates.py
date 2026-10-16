@@ -22,10 +22,12 @@ from opendefence_core.k8s_operator.controllers._certificates import (
     APPROVAL_ANNOTATION,
     EMPTY_CREDENTIALS,
     accepted_credential,
+    certificate_approval,
     certificate_identity,
     new_request,
     public_key_fingerprint,
     reconcile_certificate,
+    remove_certificate,
     wants_certificate,
 )
 from opendefence_core.k8s_operator.controllers.users import finalize_user, reconcile_user
@@ -36,6 +38,24 @@ from tests.fakes import FakeClient, FakeContext
 
 def _context(user: User) -> FakeContext:
     return FakeContext(clients={User: FakeClient([user])}, parent=user)
+
+
+def test_certificate_approval_requires_enrollment_approval() -> None:
+    """Replacement approval cannot bypass enrollment approval."""
+    user = make_user(certificate_approved_at=datetime.now(UTC))
+    with pytest.raises(ValueError, match="requires user approval"):
+        certificate_approval(user)
+
+
+async def test_cleanup_requires_uid_precondition() -> None:
+    """Never delete private material without a resource identity guard."""
+    user = make_user()
+    secret = Secret(metadata=ObjectMeta(name=user_secret_name(user), namespace=PUBLIC_CERT_NAMESPACE))
+    client = FakeClient([secret])
+    ctx = FakeContext(clients={Secret: client})
+    with pytest.raises(ValueError, match="without a UID"):
+        await remove_certificate(user, cast(Context[User], ctx))
+    assert client.deleted == []
 
 
 async def _current(ctx: FakeContext) -> User:

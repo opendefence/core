@@ -93,6 +93,7 @@ repos:
     rev: 1.9.2
     hooks:
       - id: bandit
+        language_version: python3.14
         stages: [pre-commit]
         args: ["--exclude", ".tox,.eggs,tests"]
   - repo: https://github.com/facebook/pyrefly-pre-commit
