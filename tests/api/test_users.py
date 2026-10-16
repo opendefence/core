@@ -36,7 +36,12 @@ def users(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[User]]:
         _ = cls, kwargs
         return FakeList(store)
 
+    async def async_update(self: User, dry_run: bool = False) -> User:
+        _ = dry_run
+        return self
+
     monkeypatch.setattr(User, "async_list", classmethod(async_list))
+    monkeypatch.setattr(User, "async_update", async_update)
     app.dependency_overrides[jwt_user] = lambda: active
     yield store
     app.dependency_overrides.clear()
@@ -98,3 +103,24 @@ def test_unknown_user(users: list[User]) -> None:
     """An id no user holds is 404."""
     _ = users
     assert client.get(f"/api/v3/users/{user_id('user-99')}").status_code == 404
+
+
+def test_approve_and_revoke(users: list[User]) -> None:
+    """Approving and revoking move the user between states."""
+    _ = users
+    target = user_id("user-2")
+    assert client.post(f"/api/v3/users/{target}/approve").json()["state"] == "active"
+    assert client.post(f"/api/v3/users/{target}/revoke").json()["state"] == "revoked"
+
+
+def test_cannot_revoke_yourself(users: list[User]) -> None:
+    """An administrator cannot revoke their own access, named by either form of their id."""
+    _ = users
+    assert client.post(f"/api/v3/users/{user_id('user-1')}/revoke").status_code == 409
+    assert client.post(f"/api/v3/users/{uid('user-1')}/revoke").status_code == 409
+
+
+def test_approve_unknown_user(users: list[User]) -> None:
+    """An id no user holds is 404 before anything is written."""
+    _ = users
+    assert client.post(f"/api/v3/users/{user_id('user-99')}/approve").status_code == 404
