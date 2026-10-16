@@ -12,12 +12,12 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 
+from lib_opendefence_core.models.v1alpha1 import Invite
 from opendefence_core.api.config import get_config
 from opendefence_core.api.lib import invites
 from opendefence_core.api.lib import jwt as api_jwt
 from opendefence_core.api.lib.codes import ALPHABET, generate_code
 from opendefence_core.api.lib.pfx import build_pfx
-from lib_opendefence_core.models.v1alpha1 import Invite
 from tests.factories import make_invite, make_user
 
 
@@ -72,10 +72,12 @@ def test_generate_code() -> None:
 def test_jwt_round_trip(jwt_key: ec.EllipticCurvePrivateKey) -> None:
     """Issued tokens decode with the user's name and uid."""
     _ = jwt_key
-    token = api_jwt.issue(make_user())
+    user = make_user()
+    token = api_jwt.issue(user)
     claims = api_jwt.decode(token.access_token)
     assert claims["sub"] == "alpha1"
-    assert claims["uid"] == "uid-alpha1"
+    assert user.metadata is not None
+    assert claims["uid"] == user.metadata.uid
     assert claims["iss"] == get_config().jwt_issuer
     assert token.expires_at > datetime.now(UTC)
 

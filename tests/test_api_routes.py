@@ -10,13 +10,13 @@ from cloudcoil.errors import ResourceNotFound
 from cloudcoil.models.kubernetes.core.v1 import Secret
 from fastapi.testclient import TestClient
 
+from lib_opendefence_core.models.v1alpha1 import Invite, User
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import jwt_user
 from opendefence_core.api.lib.invites import CallsignTaken, InviteNotRedeemable
 from opendefence_core.api.lib.jwt import Token
 from opendefence_core.api.routes.certificates import views as certificate_views
 from opendefence_core.api.routes.enrollment import views as enrollment_views
-from lib_opendefence_core.models.v1alpha1 import Invite, User
 from tests.factories import make_invite, make_user
 
 client = TestClient(app)
@@ -150,9 +150,13 @@ def test_pfx_not_issued(monkeypatch: pytest.MonkeyPatch, as_user: None, data: di
     assert client.get("/api/v3/certificates/alpha1.pfx").status_code == 409
 
 
-def test_pfx_download(monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
+@pytest.mark.parametrize("callsign", ["alpha1", "renamed"])
+def test_pfx_download(monkeypatch: pytest.MonkeyPatch, as_user: None, callsign: str) -> None:
     """Issued certificates download as a .pfx named after the callsign and deployment."""
     _ = as_user
+    user = _user(approved=True)
+    user.spec.callsign = callsign
+    app.dependency_overrides[jwt_user] = lambda: user
     seen: list[tuple[str, str]] = []
 
     async def async_get(name: str, namespace: str) -> Secret:
@@ -166,8 +170,19 @@ def test_pfx_download(monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
 
     monkeypatch.setattr(Secret, "async_get", async_get)
     monkeypatch.setattr(certificate_views, "build_pfx", build_pfx)
-    response = client.get("/api/v3/certificates/alpha1.pfx")
+    response = client.get(f"/api/v3/certificates/{callsign}.pfx")
     assert response.status_code == 200
     assert response.content == b"pfx:keycrt"
     assert seen == [("opendefence-public-certs", "user-alpha1")]
-    assert 'filename="alpha1_local-dev.pfx"' in response.headers["content-disposition"]
+    assert f'filename="{callsign}_local-dev.pfx"' in response.headers["content-disposition"]
+
+
+@pytest.mark.parametrize("revoked", [False, True])
+def test_pfx_rejects_removed_approval(as_user: None, revoked: bool) -> None:
+    """Deny delivery before the operator cleans up a disabled user's Secret."""
+    _ = as_user
+    user = _user(approved=revoked)
+    if revoked:
+        user.spec.revoked_at = datetime.now(UTC)
+    app.dependency_overrides[jwt_user] = lambda: user
+    assert client.get("/api/v3/certificates/alpha1.pfx").status_code == 403

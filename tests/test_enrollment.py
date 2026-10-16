@@ -9,9 +9,9 @@ from cloudcoil.errors import ResourceConflict, ResourceNotFound
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
+from lib_opendefence_core.models.v1alpha1 import Invite, User
 from opendefence_core.api import dependencies
 from opendefence_core.api.lib import invites
-from lib_opendefence_core.models.v1alpha1 import Invite, User
 from tests.factories import make_invite, make_user
 from tests.fakes import FakeList
 
@@ -106,7 +106,9 @@ def _credentials(token: str = "token") -> HTTPAuthorizationCredentials:
 @pytest.fixture
 def claims(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     """Claims every token decodes to; an empty dict makes tokens invalid."""
-    decoded: dict[str, Any] = {"sub": "alpha1", "uid": "uid-alpha1"}
+    user = make_user()
+    assert user.metadata is not None
+    decoded: dict[str, Any] = {"sub": user.name, "uid": user.metadata.uid}
 
     def decode(token: str) -> dict[str, Any]:
         _ = token

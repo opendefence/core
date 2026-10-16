@@ -23,7 +23,9 @@ FORBIDDEN_MESSAGE = "Only your own certificate can be downloaded."
 @router.get("/{callsign}.pfx", response_class=Response, responses=PFX_RESPONSES)
 async def get_user_pfx(callsign: Callsign, user: JWTUser) -> Response:
     """Download the calling user's certificate and private key as a PKCS#12 (.pfx) bundle."""
-    if user.name != callsign:
+    if user.spec.callsign != callsign:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=FORBIDDEN_MESSAGE)
+    if user.spec.approved_at is None or user.spec.revoked_at is not None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail=FORBIDDEN_MESSAGE)
     try:
         secret = await Secret.async_get(user_secret_name(user), PUBLIC_CERT_NAMESPACE)
