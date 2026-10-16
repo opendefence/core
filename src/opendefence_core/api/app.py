@@ -11,6 +11,7 @@ from opendefence_core.api.routes.certificates.views import router as certificate
 from opendefence_core.api.routes.enrollment.views import router as enrollment_router
 from opendefence_core.api.routes.health.views import router as health_router
 from opendefence_core.api.routes.invites.views import router as invites_router
+from opendefence_core.api.routes.users.views import router as users_router
 
 
 @asynccontextmanager
@@ -34,4 +35,5 @@ v3.include_router(certificates_router)
 v3.include_router(enrollment_router)
 v3.include_router(health_router)
 v3.include_router(invites_router)
+v3.include_router(users_router)
 app.include_router(v3)
