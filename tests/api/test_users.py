@@ -38,8 +38,13 @@ def users(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[User]]:
             raise ResourceNotFound(f"users {name} not found", status_code=404)
         return user
 
+    async def async_update(self: User, dry_run: bool = False) -> User:
+        _ = dry_run
+        return self
+
     monkeypatch.setattr(User, "async_list", classmethod(async_list))
     monkeypatch.setattr(User, "async_get", classmethod(async_get))
+    monkeypatch.setattr(User, "async_update", async_update)
     app.dependency_overrides[jwt_user] = lambda: active
     yield store
     app.dependency_overrides.clear()
@@ -93,3 +98,16 @@ def test_unknown_user(users: list[User]) -> None:
     """A callsign no user holds is 404."""
     _ = users
     assert client.get("/api/v3/users/zulu99").status_code == 404
+
+
+def test_approve_and_revoke(users: list[User]) -> None:
+    """Approving and revoking move the user between states."""
+    _ = users
+    assert client.post("/api/v3/users/bravo2/approve").json()["state"] == "active"
+    assert client.post("/api/v3/users/bravo2/revoke").json()["state"] == "revoked"
+
+
+def test_cannot_revoke_yourself(users: list[User]) -> None:
+    """An administrator cannot revoke their own access."""
+    _ = users
+    assert client.post("/api/v3/users/alpha1/revoke").status_code == 409

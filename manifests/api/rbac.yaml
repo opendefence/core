@@ -19,7 +19,7 @@ rules:
     verbs: [update]
   - apiGroups: [platform.opendefence.fi]
     resources: [users]
-    verbs: [get, list, create]
+    verbs: [get, list, create, update]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

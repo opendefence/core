@@ -1,12 +1,16 @@
-"""Reading platform users."""
+"""Reading and managing platform users."""
 
+from datetime import UTC, datetime
 from typing import Literal
 
 from cloudcoil.errors import ResourceNotFound
 
+from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import User
 
 type UserState = Literal["pending", "active", "revoked"]
+
+logger = get_logger(__name__)
 
 
 def state_of(user: User) -> UserState:
@@ -31,3 +35,19 @@ async def get_user(callsign: str) -> User | None:
         return await User.async_get(callsign)
     except ResourceNotFound:
         return None
+
+
+async def approve(user: User) -> User:
+    """Approve the user"""
+    user.spec.approved_at = datetime.now(UTC)
+    approved = await user.async_update()
+    logger.audit("User %s approved", user.name)
+    return approved
+
+
+async def revoke(user: User) -> User:
+    """Revoke the user"""
+    user.spec.revoked_at = datetime.now(UTC)
+    revoked = await user.async_update()
+    logger.audit("User %s revoked", user.name)
+    return revoked
