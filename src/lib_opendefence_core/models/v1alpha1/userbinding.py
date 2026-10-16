@@ -55,6 +55,12 @@ class UserBinding(Resource):
 def is_synced(binding: UserBinding) -> bool:
     """Return True when the integration has reported the Synced condition as True."""
     status = binding.status
-    if status is None:
+    generation = binding.metadata.generation if binding.metadata else None
+    if status is None or generation is None:
         return False
-    return any(condition.type == SYNCED_CONDITION and condition.status == "True" for condition in status.conditions)
+    return any(
+        condition.type == SYNCED_CONDITION
+        and condition.status == "True"
+        and condition.observed_generation == generation
+        for condition in status.conditions
+    )

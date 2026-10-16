@@ -131,6 +131,20 @@ async def test_integration_does_not_delete_replaced_role() -> None:
     assert client.deleted == []
 
 
+def test_stale_binding_condition_does_not_acknowledge_new_spec() -> None:
+    binding = make_binding("binding", user="alice", synced=True)
+    assert binding.metadata is not None and binding.status is not None
+    binding.metadata.generation = 2
+    binding.spec.user_ref.name = "bobby"
+    assert not is_synced(binding)
+    binding.status.conditions[0].observed_generation = None
+    assert not is_synced(binding)
+    binding.status.conditions[0].observed_generation = 2
+    assert is_synced(binding)
+    binding.metadata.generation = None
+    assert not is_synced(binding)
+
+
 async def test_reconcile_role_marks_resolved() -> None:
     """Roles have no outgoing refs and report ReferencesResolved."""
     ctx = FakeContext()

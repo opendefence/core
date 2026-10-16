@@ -42,6 +42,7 @@ def condition(condition_type: str, status: bool, reason: str) -> PlatformConditi
         reason=reason,
         status="True" if status else "False",
         type=condition_type,
+        observed_generation=1,
     )
 
 
@@ -171,7 +172,7 @@ def make_binding(name: str, *, user: str, namespace: str = "taky", synced: bool 
     return UserBinding(
         api_version=API_VERSION,
         kind="UserBinding",
-        metadata=ObjectMeta(name=name, namespace=namespace, uid=f"uid-{namespace}-{name}"),
+        metadata=ObjectMeta(name=name, namespace=namespace, uid=f"uid-{namespace}-{name}", generation=1),
         spec=UserBindingSpec(user_ref=ObjectRef(name=user)),
         status=status,
     )
