@@ -86,6 +86,35 @@ The deployment uses image `ghcr.io/opendefence/core`.
 The webhook serving certificate keeps automatic renewal.
 The no-renewal policy applies to user identity certificates.
 
+### Certificate settings
+
+`manifests/operator/kustomization.yaml` generates the operator configuration.
+The default user certificate duration is `2880h` (120 days, or four 30-day months).
+Use a positive whole number of hours.
+The issuer must honor the requested duration.
+Set the deployment display name to a short label.
+The complete CN must have at most 64 characters.
+
+Override the defaults in a Kustomize overlay:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../manifests/operator
+configMapGenerator:
+  - name: core-operator-config
+    namespace: opendefence-system
+    behavior: merge
+    literals:
+      - USER_CERTIFICATE_DURATION=2880h
+      - DEPLOYMENT_DISPLAY_NAME=Training North
+```
+
+Kustomize updates the Deployment's ConfigMap reference when these values change.
+The cert-manager request approver must approve requests for `public-issuer`.
+User approval remains the Core issuance gate.
+
 ## Shared library
 
 Import models from `lib_opendefence_core.models.v1alpha1`.

@@ -24,6 +24,9 @@ spec:
       containers:
         - name: operator
           args: [operator, run] # after the image entrypoint, tini -- opendefence_core
+          envFrom:
+            - configMapRef:
+                name: core-operator-config
           ports:
             - name: health
               containerPort: 8080 # HEALTH_PORT in k8s_operator/app.py

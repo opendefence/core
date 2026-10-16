@@ -16,10 +16,10 @@ def _documents(path: Path) -> list[dict[str, Any]]:
     return list(yaml.safe_load_all(render()[path]))
 
 
-def _kustomized() -> list[dict[str, Any]]:
+def _kustomized(path: Path = ROOT / OPERATOR_PATH.parent) -> list[dict[str, Any]]:
     """The operator manifests as Zarf deploys them, hardened by manifests/operator/kustomization.yaml."""
     output = subprocess.run(  # nosec B603 B607
-        ["kubectl", "kustomize", str(ROOT / OPERATOR_PATH.parent)], check=True, capture_output=True, text=True
+        ["kubectl", "kustomize", str(path)], check=True, capture_output=True, text=True
     ).stdout
     return list(yaml.safe_load_all(output))
 
@@ -68,6 +68,38 @@ def test_operator_deployment_is_hardened() -> None:
     assert {mount["name"] for mount in container["volumeMounts"]} == {"webhook-tls", "tmp"}
     volumes = {volume["name"]: volume for volume in pod["volumes"]}
     assert volumes["webhook-tls"]["secret"]["secretName"] == OPERATOR_TLS_SECRET
+
+
+def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
+    """Kustomize changes both the configured lifetime and the Deployment's hashed reference."""
+    base = _kustomized()
+    config = _one(base, "ConfigMap")
+    assert config["data"]["USER_CERTIFICATE_DURATION"] == "2880h"
+    assert config["data"]["DEPLOYMENT_DISPLAY_NAME"] == "OpenDefence"
+    (tmp_path / "kustomization.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "apiVersion": "kustomize.config.k8s.io/v1beta1",
+                "kind": "Kustomization",
+                "resources": [str((ROOT / OPERATOR_PATH.parent).relative_to(tmp_path, walk_up=True))],
+                "configMapGenerator": [
+                    {
+                        "name": "core-operator-config",
+                        "namespace": SYSTEM_NAMESPACE,
+                        "behavior": "merge",
+                        "literals": ["USER_CERTIFICATE_DURATION=1440h", "DEPLOYMENT_DISPLAY_NAME=Training North"],
+                    }
+                ],
+            }
+        )
+    )
+    overlay = _kustomized(tmp_path)
+    overridden = _one(overlay, "ConfigMap")
+    assert overridden["data"]["USER_CERTIFICATE_DURATION"] == "1440h"
+    assert overridden["data"]["DEPLOYMENT_DISPLAY_NAME"] == "Training North"
+    assert overridden["metadata"]["name"] != config["metadata"]["name"]
+    container = _one(overlay, "Deployment")["spec"]["template"]["spec"]["containers"][0]
+    assert container["envFrom"][0]["configMapRef"]["name"] == overridden["metadata"]["name"]
 
 
 def test_operator_rbac() -> None:
