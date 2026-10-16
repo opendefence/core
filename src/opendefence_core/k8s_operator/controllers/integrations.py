@@ -30,10 +30,16 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
     wanted = {role.name for role in integration.spec.extra_roles}
     client = await ctx.client(Role)
     for existing in ctx.cached(Role).list():
-        if not existing.name or existing.name in wanted or not _owned_by(existing, integration):
+        if (
+            not existing.name
+            or existing.name in wanted
+            or not _owned_by(existing, integration)
+            or not existing.metadata
+            or not existing.metadata.uid
+        ):
             continue
         with suppress(ResourceNotFound):
-            await client.delete(existing.name)
+            await client.delete(existing.name, uid=existing.metadata.uid)
     for role in integration.spec.extra_roles:
         await ctx.ensure(
             Role(

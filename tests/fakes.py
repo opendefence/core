@@ -3,7 +3,7 @@
 from collections.abc import AsyncIterator, Iterable
 from typing import Any, Literal
 
-from cloudcoil.errors import ResourceNotFound
+from cloudcoil.errors import ResourceConflict, ResourceNotFound
 from cloudcoil.resources import Resource
 
 type Key = tuple[str | None, str]
@@ -36,9 +36,12 @@ class FakeClient[T: Resource]:
             raise ResourceNotFound(f"{namespace}/{name} not found")
         return self._objects[(namespace, name)]
 
-    async def delete(self, name: str, namespace: str | None = None) -> T:
+    async def delete(self, name: str, namespace: str | None = None, *, uid: str | None = None) -> T:
         if (namespace, name) not in self._objects:
             raise ResourceNotFound(f"{namespace}/{name} not found")
+        existing = self._objects[(namespace, name)]
+        if uid is not None and (not existing.metadata or existing.metadata.uid != uid):
+            raise ResourceConflict("UID precondition failed")
         self.deleted.append((namespace, name))
         return self._objects.pop((namespace, name))
 

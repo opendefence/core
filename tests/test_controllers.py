@@ -6,6 +6,7 @@ from unittest.mock import Mock, PropertyMock
 
 import pytest
 from cloudcoil.controller import Context, Controller, ResourceKey, TerminalError, Wait
+from cloudcoil.errors import ResourceConflict
 from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import (
@@ -115,6 +116,19 @@ async def test_reconcile_integration_syncs_extra_roles() -> None:
     assert cast(Role, ctx.ensured[0]).spec.display_name == "mission-lead"
     assert client.deleted == [(None, "old-role")]
     assert ctx.conditions[-1][:3] == (REFERENCES_RESOLVED_CONDITION, True, "Resolved")
+
+
+async def test_integration_does_not_delete_replaced_role() -> None:
+    """A stale cache cannot delete a new Role owned by another Integration."""
+    cached = make_role("old-role", owner="tak")
+    replacement = make_role("old-role", owner="radio")
+    assert replacement.metadata is not None
+    replacement.metadata.uid = "replacement-uid"
+    client = FakeClient([replacement])
+    ctx = FakeContext({Role: FakeCache([cached])}, clients={Role: client})
+    with pytest.raises(ResourceConflict):
+        await reconcile_integration(make_integration("tak"), cast(Context[Integration], ctx))
+    assert client.deleted == []
 
 
 async def test_reconcile_role_marks_resolved() -> None:
