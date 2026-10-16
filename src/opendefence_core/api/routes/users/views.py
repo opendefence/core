@@ -1,10 +1,10 @@
 """User endpoints."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from opendefence_core.api.dependencies import JWTUser, jwt_user
 from opendefence_core.api.lib.uids import ObjectId
-from opendefence_core.api.lib.users import UserState, list_users
+from opendefence_core.api.lib.users import UserState, approve, list_users, revoke
 from opendefence_core.api.lookups import user_or_404
 from opendefence_core.api.routes.users.schema import UserResponse
 
@@ -29,3 +29,19 @@ async def read_users(state: UserState | None = None) -> list[UserResponse]:
 async def read_user(user_id: ObjectId) -> UserResponse:
     """User by id."""
     return UserResponse.from_resource(await user_or_404(user_id))
+
+
+@router.post("/{user_id}/approve")
+async def approve_user(user_id: ObjectId) -> UserResponse:
+    """Approve the user"""
+    user = await user_or_404(user_id)
+    return UserResponse.from_resource(await approve(user))
+
+
+@router.post("/{user_id}/revoke")
+async def revoke_user(user_id: ObjectId, caller: JWTUser) -> UserResponse:
+    """Revoke the user"""
+    user = await user_or_404(user_id)
+    if caller.metadata is not None and caller.metadata.uid == user_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="You cannot revoke yourself.")
+    return UserResponse.from_resource(await revoke(user))

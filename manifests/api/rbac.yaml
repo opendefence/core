@@ -20,7 +20,7 @@ rules:
     verbs: [update]
   - apiGroups: [platform.opendefence.fi]
     resources: [users]
-    verbs: [get, list, create, patch]
+    verbs: [get, list, create, update, patch]
   - apiGroups: [platform.opendefence.fi]
     resources: [roles, groups]
     verbs: [list]
