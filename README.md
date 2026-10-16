@@ -29,16 +29,16 @@ task lint
 `task up` is safe to rerun:
 
 1. `env` starts the registries and kind cluster if they are missing, using
-   base's taskfiles at the commit pinned in `BASE_REF`. It then installs base
-   version `BASE_VERSION` in local CA mode, unless a `base` package is already
-   deployed (for example by `task up` in a base checkout). Override with
-   `BASE_VERSION=<tag>` or `BASE_ISSUER`; reinstall explicitly with
-   `task base:install BASE_VERSION=<tag>`.
+   base's taskfiles from its `main` branch. It then installs
+   `oci://ghcr.io/opendefence/base:latest` in local CA mode, unless a `base`
+   package is already deployed (for example by `task up` in a base checkout).
+   Override with `BASE_VERSION=<tag>` or `BASE_ISSUER`; reinstall explicitly
+   with `task base:install BASE_VERSION=<tag>`.
 2. `dev:ci` builds core from this checkout and deploys it once (`tilt ci`).
 
 Remote includes are a Task experiment, enabled in `.taskrc.yml`; Task asks you
-to trust each remote file the first time. Bump `BASE_REF` and `BASE_VERSION`
-in `Taskfile.yaml` together, to a base commit and the version published from it.
+to trust each remote file the first time. To pin base, pass `BASE_REF=<commit>`
+together with a `BASE_VERSION` published from that commit.
 
 `task dev` runs `tilt up`. Tilt renders the package with
 `values/local-dev.yaml`, builds the `dev` Dockerfile target, pushes it to
@@ -65,22 +65,21 @@ kubectl patch user <callsign> --type merge --patch-file examples/users/approve.y
 
 ## How it works
 
-Users, Groups, Roles, and Invites are cluster-scoped; UserBindings are
+Users, Groups, Roles, Invites, and Integrations are cluster-scoped; UserBindings are
 namespaced. Objects reference each other by name (`roleRefs`, `groupRefs`,
 `parentRef`, `managerRefs`), and the operator resolves the names to UIDs in
-their status, reporting `ReferencesResolved`. A User is named after its
-callsign: the API server rejects a `spec.callsign` that differs from
-`metadata.name`.
+their status, reporting `ReferencesResolved`. Enrollment uses the initial
+callsign as the resource name. Later callsign changes preserve the resource
+name, UID, certificate, and bindings.
 
 The **operator** (`opendefence_core operator run`, Deployment `core-operator`)
 reconciles them:
 
-- An approved, unrevoked User gets a cert-manager Certificate `user-<callsign>`
-  from base's `public-issuer` in `opendefence-public-certs`. Its public key
-  fingerprint goes to `status.publicKey`, and `CertificateReady` reports
-  progress. Revoking or unapproving deletes the Certificate and its key pair
-  Secret, so re-approval issues a new key. A finalizer does the same when the
-  User is deleted.
+- An approved, unrevoked User gets a one-shot cert-manager `CertificateRequest`
+  named `user-<resource-name>` in `opendefence-public-certs`.
+  It uses base's `public-issuer`. The operator stores the key pair in a Secret.
+  `CertificateReady` reports progress. `status.publicKey` contains the SHA-256
+  fingerprint of the public key SPKI. See the certificate contract below.
 - The admission webhook rejects Group cycles, missing parent groups, deleting
   a group that still has children, and deleting a User that still has
   UserBindings. With `failurePolicy: Fail`, those writes are rejected while
@@ -102,13 +101,102 @@ when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
 `CORE_API_DOMAIN` (required, from the `domain` value), `CORE_API_JWT_KEY_PATH`,
 `CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
 
+### User certificates
+
+cert-manager does not renew user identity certificates.
+The operator does not replace expired certificates or missing private material.
+
+`approvedAt` records the original user approval and authorizes the first issuance.
+Keep this timestamp unchanged during certificate replacement.
+An administrator sets `certificateApprovedAt` to authorize another issuance.
+The new timestamp must be later than the consumed approval.
+Each approval authorizes one issuance.
+Changing `approvedAt` after issuance does not authorize replacement.
+Clearing or restoring an older `certificateApprovedAt` leaves the current certificate unchanged.
+The operator records consumption before it creates private material.
+If creation stops partway through, missing resources require fresh approval.
+Removing approval or revoking the User clears accepted credentials before cleanup.
+The operator then deletes the signing request and the key pair Secret.
+It also deletes these resources when the User is deleted.
+Legacy managed Certificates are removed to stop renewal.
+Their replacement requires fresh approval.
+This transition removes their key pair Secrets.
+
+The certificate URI SAN is `urn:uuid:<canonical Kubernetes User UID>`.
+The CN is `<deployment display name> · <identity tag>`.
+The tag is the first eight lowercase hexadecimal digits of SHA-256 over the canonical UUID text.
+Callsign changes preserve the User UID and certificate.
+Deployment label and duration changes apply to the next approved issuance.
+Restoring a User under a new Kubernetes UID requires a new certificate.
+
+The operator owns two User annotations:
+
+- `platform.opendefence.fi/certificate-approval` records the consumed approval timestamp.
+- `platform.opendefence.fi/accepted-credentials` contains `{"version":1,"accepted":[...]}`.
+
+Each accepted record contains `fingerprintSha256`, `serial`, `issuerId`, `notBefore`, and `notAfter`.
+The fingerprint is SHA-256 of the complete leaf certificate DER.
+The serial is lowercase hexadecimal without separators.
+The issuer ID is `sha256:` followed by SHA-256 of the signing CA's public key SPKI.
+The validity timestamps use RFC 3339 with a UTC offset.
+The operator verifies the leaf against the approved CSR, key, User UID, and signing CA before publication.
+Integrations must check the accepted fingerprint and validity window.
+Missing, empty, malformed, or unsupported records grant no access.
+Integrations must remove access when the accepted record is removed.
+Deleting a Secret alone does not revoke an exported certificate.
+The current flow accepts one certificate per User.
+Overlapping replacement and first-use retirement are not implemented.
+
+The webhook serving certificate keeps automatic renewal.
+The no-renewal policy applies to user identity certificates.
+
+### Certificate settings
+
+`manifests/operator/kustomization.yaml` generates the operator configuration.
+The default user certificate duration is `2880h` (120 days, or four 30-day months).
+Use a positive whole number of hours.
+The issuer must honor the requested duration.
+Set the deployment display name to a short label.
+The complete CN must have at most 64 characters.
+
+Override the defaults in a Kustomize overlay:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../manifests/operator
+configMapGenerator:
+  - name: core-operator-config
+    namespace: opendefence-system
+    behavior: merge
+    literals:
+      - USER_CERTIFICATE_DURATION=2880h
+      - DEPLOYMENT_DISPLAY_NAME=Training North
+```
+
+Kustomize updates the Deployment's ConfigMap reference when these values change.
+The cert-manager request approver must approve requests for `public-issuer`.
+User approval remains the Core issuance gate.
+
 ### Integrations
+
+An `Integration` records an installed product: its version, UI product info, extra
+roles, and the ingress and egress it intends. The operator creates each extra
+role as a cluster `Role` owned by the Integration, and deletes that Role when
+the Integration drops it. The network policy is stored only; core does not
+enforce it yet.
 
 An integration creates one `UserBinding` per User in its own namespace, naming
 the User in `spec.userRef`, and sets the binding's `Synced` condition to
-`True` once the User is provisioned. Core lists the bindings and their sync
+`True` once the User is provisioned. The condition must include the current
+binding generation in `observedGeneration`. Core lists the bindings and their sync
 state in the User's `status.bindings` and `BindingsSynced` condition, and
 blocks deleting a User while bindings remain.
+
+Integration workloads must not use User or UserBinding identities.
+The current Integration controller manages extra Roles only.
+It does not issue workload credentials.
 
 Integration repositories include `taskfiles/core.yaml` remotely, pinned to a
 core commit, and enable the `REMOTE_TASKFILES` experiment like this repository
@@ -145,7 +233,7 @@ Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
 1. `namespaces`: `opendefence-system` (Linkerd-injected) and
    `opendefence-public-certs` (user certificates).
 2. `crds`: the `platform.opendefence.fi/v1alpha1` CRDs (User, Group, Role,
-   Invite, UserBinding).
+   Invite, UserBinding, Integration).
 3. `traefik-middlewares`: shared middlewares in Traefik's `traefik-system`
    namespace, referenced as `traefik-system-<name>@kubernetescrd`.
 4. `operator`: the operator, its RBAC, and its admission webhook. The webhook's
@@ -158,7 +246,9 @@ Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
 Resources are raw YAML in `manifests/`; the middlewares, API, and ingress use
 Go templates. `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`
 are generated from the operator code; regenerate them after changing models,
-controllers, webhooks, or RBAC rules (a test fails while they are stale):
+controllers, webhooks, or RBAC rules (a test fails while they are stale).
+The hand-written patches in `manifests/operator/kustomization.yaml` harden the
+generated operator Deployment and webhook configuration:
 
 ```sh
 task build:manifests
