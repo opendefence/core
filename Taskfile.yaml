@@ -1,0 +1,35 @@
+version: "3"
+
+includes:
+  build:
+    taskfile: ./taskfiles/build.yaml
+  core:
+    taskfile: ./taskfiles/core.yaml
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+  test:
+    desc: Run the test suite
+    preconditions:
+      - sh: command -v uv >/dev/null
+        msg: uv is not on PATH
+    cmds:
+      - uv run --locked pytest {{.CLI_ARGS}}
+  lint:
+    desc: Run all pre-commit hooks
+    preconditions:
+      - sh: command -v uv >/dev/null
+        msg: uv is not on PATH
+    cmds:
+      - uv run --locked prek run --all-files
+  version:bump:
+    desc: Bump both package versions and refresh the workspace lock
+    preconditions:
+      - sh: command -v uv >/dev/null
+        msg: uv is not on PATH
+    cmds:
+      - uv run --no-sync bump-my-version bump {{.CLI_ARGS | default "patch"}}
+      - uv lock

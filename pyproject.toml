@@ -1,45 +1,53 @@
 [project]
 name = "opendefence_core"
-version = "0.1.1+261010"
-description = "Runs core operators and REST API for OpenDefence operational platform"
+version = "0.2.3+261012"
+description = "OpenDefence platform operator"
 authors = [{name="Niilo Vuokila", email="niilo@opendefence.fi" }]
-homepage = "https://github.com/opendefence/core"
-repository = "https://github.com/opendefence/core"
-license = "MIT"
+license = "MPL-2.0"
+license-files = ["LICENSE.txt"]
 readme = "README.md"
 requires-python = ">=3.14,<4.0"
-dependencies = ["click>=8.5.0,<9.0"]
+dependencies = [
+    "lib-opendefence-core==0.2.3+261012",
+    "click>=8.5.0,<9.0",
+    "cloudcoil[cert-manager,kubernetes,operator]>=0.8.0,<1.0",
+    "cryptography>=46.0.7,<47.0",
+    "pyyaml>=6.0.3,<7.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/opendefence/core"
+Repository = "https://github.com/opendefence/core"
 
 [project.scripts]
 opendefence_core = "opendefence_core.cli.console:opendefence_core_cli"
 
-
 [tool.ruff]
 line-length = 120
 target-version = "py314"
-extend-exclude = ["_build", "buck-out"]
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "PL"]
-# Pylint's optional magic-value extension was not enabled previously.
+select = ["E4", "E7", "E9", "F", "PL", "I", "UP", "B", "RUF"]
+# Literal values in comparisons, such as HTTP status codes, read better inline
 ignore = ["PLR2004"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test builders take a keyword argument per field they can set
+"tests/factories.py" = ["PLR0913"]
 
 [tool.pyrefly]
 preset = "strict"
 project-includes = ["src", "tests"]
-search-path = ["src"]
+search-path = ["src", "."]
 python-version = "3.14"
 
 [tool.pytest.ini_options]
-junit_family="xunit2"
-addopts="--cov=opendefence_core --cov-fail-under=65 --cov-branch"
-asyncio_mode="strict"
-asyncio_default_fixture_loop_scope="function"
+junit_family = "xunit2"
+addopts = "-p no:cloudcoil --cov=opendefence_core --cov=lib_opendefence_core --cov-fail-under=85"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
-# Measure CLI subprocesses with pytest-cov 7 and newer.
-patch = ["subprocess"]
-omit = ["tests/*"]
 branch = true
 
 [dependency-groups]
@@ -54,11 +62,18 @@ dev = [
     "pytest-asyncio>=1.4.0,<2.0",
     "bump-my-version>=1.5.1,<2.0",
     "detect-secrets>=1.5.0,<2.0",
+    "types-pyyaml>=6.0.12,<7.0",
 ]
 
 [build-system]
-requires = ["hatchling>=1.32.0,<2.0"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
+
+[tool.uv.workspace]
+members = ["src/lib_opendefence_core"]
+
+[tool.uv.sources]
+lib-opendefence-core = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/opendefence_core"]

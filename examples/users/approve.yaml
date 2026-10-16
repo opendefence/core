@@ -1,0 +1,4 @@
+# Merge patch that approves a pending user, issuing their certificate:
+#   kubectl patch user <callsign> --type merge --patch-file examples/users/approve.yaml
+spec:
+  approvedAt: "2026-09-26T12:00:00Z"
