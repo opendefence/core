@@ -151,7 +151,7 @@ def test_invite_redeemable(invite: Invite, redeemable: bool) -> None:
 def test_new_user_from_invite() -> None:
     """Users inherit the invite's refs and get an approval code."""
     user = invites._new_user(_invite(), "bravo2")
-    assert user.name == "bravo2"
+    assert user.metadata is not None and user.metadata.generate_name == "user-"
     assert user.spec.callsign == "bravo2"
     assert [ref.name for ref in user.spec.group_refs] == ["team"]
     assert [ref.name for ref in user.spec.role_refs] == ["user"]
