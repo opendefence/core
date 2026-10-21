@@ -6,11 +6,11 @@ import pytest
 from cloudcoil.errors import APIError, ResourceConflict
 from fastapi.testclient import TestClient
 
-from lib_opendefence_core.models.v1alpha1 import Group, User
+from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import jwt_user
 from opendefence_core.api.lib.uids import compact
-from tests.factories import make_group, make_user, uid
+from tests.factories import make_group, make_role, make_user, uid
 from tests.fakes import FakeList
 
 client = TestClient(app)
@@ -19,6 +19,16 @@ client = TestClient(app)
 def object_id(name: str) -> str:
     """REST id of the object the factories build under this name."""
     return compact(uid(name))
+
+
+def role_ref(name: str) -> dict[str, str]:
+    """RoleRef body for the role the factories build under this name."""
+    return {"id": object_id(name), "name": name, "displayName": name}
+
+
+def user_summary(name: str, callsign: str, state: str = "pending") -> dict[str, str]:
+    """UserSummary body for the user the factories build under this name."""
+    return {"id": object_id(name), "callsign": callsign, "state": state}
 
 
 @pytest.fixture
@@ -57,6 +67,11 @@ def groups(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[Group]]:
         _ = dry_run
         return self
 
+    async def role_list(cls: type[Role], **kwargs: object) -> FakeList[Role]:
+        _ = cls, kwargs
+        return FakeList([make_role(name) for name in ("medic", "sniper")])
+
+    monkeypatch.setattr(Role, "async_list", classmethod(role_list))
     monkeypatch.setattr(Group, "async_list", classmethod(async_list))
     monkeypatch.setattr(Group, "async_create", async_create)
     monkeypatch.setattr(Group, "async_update", async_update)
@@ -80,7 +95,7 @@ def test_read_groups(groups: list[Group]) -> None:
     assert response.status_code == 200
     assert [(group["id"], group["name"], group["parentId"], group["roles"]) for group in response.json()] == [
         (object_id("battalion"), "battalion", None, []),
-        (object_id("squad"), "squad", object_id("battalion"), ["medic"]),
+        (object_id("squad"), "squad", object_id("battalion"), [role_ref("medic")]),
     ]
 
 
@@ -180,6 +195,42 @@ def test_add_and_remove_member(groups: list[Group]) -> None:
     assert client.delete(f"/api/v3/groups/{battalion}/members/{bravo}").status_code == 204
     assert client.delete(f"/api/v3/groups/{battalion}/members/{bravo}").status_code == 204
     assert client.get(f"/api/v3/groups/{battalion}/members").json() == []
+
+
+def test_grant_and_revoke_group_role(groups: list[Group]) -> None:
+    """A group grants a role, and both writes are idempotent."""
+    _ = groups
+    battalion, medic = object_id("battalion"), object_id("medic")
+    granted = client.put(f"/api/v3/groups/{battalion}/roles/{medic}")
+    assert granted.status_code == 200
+    assert granted.json()["roles"] == [role_ref("medic")]
+    assert client.put(f"/api/v3/groups/{battalion}/roles/{medic}").json()["roles"] == [role_ref("medic")]
+    assert client.delete(f"/api/v3/groups/{battalion}/roles/{medic}").status_code == 204
+    assert client.delete(f"/api/v3/groups/{battalion}/roles/{medic}").status_code == 204
+    assert client.get(f"/api/v3/groups/{battalion}").json()["roles"] == []
+
+
+def test_grant_unknown_role(groups: list[Group]) -> None:
+    """A role that does not exist is 404."""
+    _ = groups
+    assert client.put(f"/api/v3/groups/{object_id('battalion')}/roles/{object_id('missing')}").status_code == 404
+
+
+def test_add_and_remove_manager(groups: list[Group]) -> None:
+    """Managers are recorded on the group."""
+    _ = groups
+    squad, bravo = object_id("squad"), object_id("user-2")
+    added = client.put(f"/api/v3/groups/{squad}/managers/{bravo}")
+    assert added.status_code == 200
+    assert added.json()["managers"] == [user_summary("user-2", "bravo2")]
+    assert client.delete(f"/api/v3/groups/{squad}/managers/{bravo}").status_code == 204
+    assert client.get(f"/api/v3/groups/{squad}").json()["managers"] == []
+
+
+def test_manager_must_be_a_user(groups: list[Group]) -> None:
+    """An unknown user cannot manage a group."""
+    _ = groups
+    assert client.put(f"/api/v3/groups/{object_id('squad')}/managers/{object_id('user-99')}").status_code == 404
 
 
 def test_admission_denial_is_a_conflict(groups: list[Group], monkeypatch: pytest.MonkeyPatch) -> None:

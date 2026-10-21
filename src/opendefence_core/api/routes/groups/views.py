@@ -5,19 +5,23 @@ from collections.abc import Awaitable
 from cloudcoil.errors import APIError, ResourceConflict
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from lib_opendefence_core.models.v1alpha1 import Group
+from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.api.dependencies import jwt_user
 from opendefence_core.api.lib.groups import (
+    add_manager,
     add_member,
     create_group,
     delete_group,
+    grant_role,
     list_groups,
     members,
+    remove_manager,
     remove_member,
+    revoke_role,
     update_group,
 )
-from opendefence_core.api.lib.uids import ObjectId, ids_by_name
-from opendefence_core.api.lookups import group_or_404, user_or_404
+from opendefence_core.api.lib.uids import ObjectId, by_name
+from opendefence_core.api.lookups import group_or_404, role_or_404, user_or_404
 from opendefence_core.api.routes.groups.schema import CreateGroupRequest, GroupResponse, UpdateGroupRequest
 from opendefence_core.api.routes.users.schema import UserResponse
 from opendefence_core.api.schema import UserSummary
@@ -43,11 +47,16 @@ async def _parent_name(parent_id: str | None) -> str | None:
     return (await group_or_404(parent_id)).name if parent_id else None
 
 
+async def _response(group: Group) -> GroupResponse:
+    """Group response with everything it references resolved to ids."""
+    return GroupResponse.from_resource(group, await by_name(Group), await by_name(Role), await by_name(User))
+
+
 @router.get("")
 async def read_groups() -> list[GroupResponse]:
     """Groups on the platform."""
-    groups = await ids_by_name(Group)
-    return [GroupResponse.from_resource(group, groups) for group in await list_groups()]
+    groups, roles, users = await by_name(Group), await by_name(Role), await by_name(User)
+    return [GroupResponse.from_resource(group, groups, roles, users) for group in await list_groups()]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -58,14 +67,13 @@ async def add_group(request: CreateGroupRequest) -> GroupResponse:
         group = await _admitted(create_group(request.name, request.to_spec(parent)))
     except ResourceConflict as exc:
         raise HTTPException(status.HTTP_409_CONFLICT) from exc
-    return GroupResponse.from_resource(group, await ids_by_name(Group))
+    return await _response(group)
 
 
 @router.get("/{group_id}")
 async def read_group(group_id: ObjectId) -> GroupResponse:
     """Group by id."""
-    group = await group_or_404(group_id)
-    return GroupResponse.from_resource(group, await ids_by_name(Group))
+    return await _response(await group_or_404(group_id))
 
 
 @router.patch("/{group_id}")
@@ -77,7 +85,7 @@ async def patch_group(group_id: ObjectId, request: UpdateGroupRequest) -> GroupR
         updated = await _admitted(update_group(group, request.apply(group.spec, parent)))
     except ResourceConflict as exc:
         raise HTTPException(status.HTTP_409_CONFLICT) from exc
-    return GroupResponse.from_resource(updated, await ids_by_name(Group))
+    return await _response(updated)
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -98,7 +106,7 @@ async def add_group_member(group_id: ObjectId, user_id: ObjectId) -> UserRespons
     """Put the user in the group."""
     group = await group_or_404(group_id)
     user = await user_or_404(user_id)
-    return UserResponse.from_resource(await add_member(user, group.name or ""))
+    return UserResponse.from_resource(await add_member(user, group.name or ""), await by_name(Role))
 
 
 @router.delete("/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -106,3 +114,35 @@ async def remove_group_member(group_id: ObjectId, user_id: ObjectId) -> None:
     """Take the user out of the group."""
     group = await group_or_404(group_id)
     await remove_member(await user_or_404(user_id), group.name or "")
+
+
+@router.put("/{group_id}/roles/{role_id}")
+async def grant_group_role(group_id: ObjectId, role_id: ObjectId) -> GroupResponse:
+    """Make the group grant the role to its effective members."""
+    group = await group_or_404(group_id)
+    role = await role_or_404(role_id)
+    return await _response(await _admitted(grant_role(group, role.name or "")))
+
+
+@router.delete("/{group_id}/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_group_role(group_id: ObjectId, role_id: ObjectId) -> None:
+    """Stop the group granting the role."""
+    group = await group_or_404(group_id)
+    role = await role_or_404(role_id)
+    await _admitted(revoke_role(group, role.name or ""))
+
+
+@router.put("/{group_id}/managers/{user_id}")
+async def add_group_manager(group_id: ObjectId, user_id: ObjectId) -> GroupResponse:
+    """Make the user a manager of the group."""
+    group = await group_or_404(group_id)
+    user = await user_or_404(user_id)
+    return await _response(await _admitted(add_manager(group, user.name or "")))
+
+
+@router.delete("/{group_id}/managers/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_group_manager(group_id: ObjectId, user_id: ObjectId) -> None:
+    """Stop the user managing the group."""
+    group = await group_or_404(group_id)
+    user = await user_or_404(user_id)
+    await _admitted(remove_manager(group, user.name or ""))
