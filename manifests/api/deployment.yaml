@@ -28,9 +28,9 @@ spec:
         - name: api
           image: ghcr.io/opendefence/core:0.2.4-261016 # package version with "-" for "+", kept in sync by bump-my-version
           args: [api, run] # after the image entrypoint, tini -- opendefence_core
-          env:
-            - name: CORE_API_DOMAIN
-              value: {{ .Values.domain | quote }}
+          envFrom:
+            - configMapRef:
+                name: core-config # manifests/config.yaml
           ports:
             - name: http
               containerPort: 8000

@@ -20,6 +20,13 @@ components:
         serverSideApply: "true"
         files:
           - manifests/crds/crds.yaml
+  - name: config
+    required: true
+    manifests:
+      - name: config
+        template: true
+        files:
+          - manifests/config.yaml
   - name: traefik-middlewares
     required: true
     manifests:

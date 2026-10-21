@@ -1,0 +1,11 @@
+# Settings shared by the operator and the REST API, read as CORE_* environment
+# variables through envFrom
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: core-config
+  namespace: opendefence-system
+data:
+  CORE_DOMAIN: {{ .Values.domain | quote }}
+  # First DNS label of the domain, e.g. local-dev
+  CORE_DEPLOYMENT: {{ .Values.domain | splitList "." | first | quote }}

@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from opendefence_core import __version__
-from opendefence_core.api.config import get_config
+from opendefence_core.config import get_config
 
 router = APIRouter(tags=["health"])
 

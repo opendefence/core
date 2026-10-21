@@ -8,10 +8,10 @@ from cloudcoil.models.kubernetes.core.v1 import Secret
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import Response
 
-from opendefence_core.api.config import get_config
 from opendefence_core.api.dependencies import JWTUser
 from opendefence_core.api.lib.pfx import build_pfx
 from opendefence_core.api.routes.certificates.schema import PFX_MEDIA_TYPE, PFX_RESPONSES, Callsign
+from opendefence_core.config import get_config
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, user_secret_name
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
