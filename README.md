@@ -60,7 +60,7 @@ Try the platform objects with the examples:
 
 ```sh
 kubectl apply -f examples/demo.yaml -f examples/invites/
-kubectl patch user <callsign> --type merge --patch-file examples/users/approve.yaml
+kubectl patch user <name> --type merge --patch-file examples/users/approve.yaml
 ```
 
 ## How it works
@@ -68,9 +68,10 @@ kubectl patch user <callsign> --type merge --patch-file examples/users/approve.y
 Users, Groups, Roles, Invites, and Integrations are cluster-scoped; UserBindings are
 namespaced. Objects reference each other by name (`roleRefs`, `groupRefs`,
 `parentRef`, `managerRefs`), and the operator resolves the names to UIDs in
-their status, reporting `ReferencesResolved`. Enrollment uses the initial
-callsign as the resource name. Later callsign changes preserve the resource
-name, UID, certificate, and bindings.
+their status, reporting `ReferencesResolved`. Enrollment generates the resource
+name. The callsign is mutable display metadata. Two users cannot hold the same
+callsign, compared without regard to case. Callsign changes preserve the
+resource name, UID, certificate, and bindings.
 
 The **operator** (`opendefence_core operator run`, Deployment `core-operator`)
 reconciles them:

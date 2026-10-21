@@ -28,7 +28,9 @@ client = TestClient(app)
 
 
 def _user(callsign: str = "alpha1", approved: bool = False) -> User:
-    return make_user(callsign, approval_code="ABCD1234", approved_at=datetime.now(UTC) if approved else None)
+    return make_user(
+        callsign, callsign=callsign, approval_code="ABCD1234", approved_at=datetime.now(UTC) if approved else None
+    )
 
 
 def _token() -> Token:

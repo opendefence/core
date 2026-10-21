@@ -69,6 +69,7 @@ def test_user_crd_is_cluster_scoped_with_status_and_aliases() -> None:
     assert "publicKey" in status
     assert "roleRefs" in spec
     assert "callsign" in spec
+    assert spec["callsign"]["pattern"] == r"^[A-Za-z0-9_]{3,30}$"
     assert spec["certificateApprovedAt"]["format"] == "date-time"
     assert "certificateApprovedAt" not in _schema(User)["properties"]["spec"]["required"]
     assert {"Callsign", "Revoked", "Approved", "Age"} <= _column_names(manifest)
@@ -145,15 +146,13 @@ def _example_documents() -> list[tuple[Path, dict[str, Any]]]:
 
 
 def test_examples_parse_as_typed_resources() -> None:
-    """Every example object validates against its model, and users are named after their callsigns."""
+    """Every example object validates against its model."""
     kinds: dict[str, int] = {}
     for path, document in _example_documents():
         if "kind" not in document:
             continue  # A patch, checked below
         parsed = MODELS[document["kind"]].model_validate(document)
         assert parsed.metadata is not None and parsed.metadata.name, path
-        if isinstance(parsed, User):
-            assert parsed.spec.callsign == parsed.name, path
         kinds[document["kind"]] = kinds.get(document["kind"], 0) + 1
     assert kinds == {"Role": 3, "Group": 1, "User": 2, "Invite": 4, "UserBinding": 1, "Integration": 1}
 
