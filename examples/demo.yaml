@@ -1,6 +1,7 @@
 # Demo platform.opendefence.fi/v1alpha1 objects for a cluster running core
 # (`task up`). User, Group, Role, Invite, and Integration are cluster-scoped;
-# UserBinding is namespaced. Users are named after their callsigns.
+# UserBinding is namespaced. A User is named independently of its callsign, so
+# the callsign can change; everything refers to the user by name.
 #   kubectl apply -f examples/demo.yaml
 ---
 apiVersion: platform.opendefence.fi/v1alpha1
@@ -31,14 +32,14 @@ metadata:
 spec:
   displayName: Group admin
   managerRefs:
-    - name: bob
+    - name: user-1
   roleRefs:
     - name: role-admin
 ---
 apiVersion: platform.opendefence.fi/v1alpha1
 kind: User
 metadata:
-  name: bob
+  name: user-1
 spec:
   callsign: bob
   roleRefs:
@@ -51,7 +52,7 @@ spec:
 apiVersion: platform.opendefence.fi/v1alpha1
 kind: User
 metadata:
-  name: charlie
+  name: user-2
 spec:
   callsign: charlie
   roleRefs:
@@ -105,8 +106,8 @@ spec:
 apiVersion: platform.opendefence.fi/v1alpha1
 kind: UserBinding
 metadata:
-  name: bob
+  name: user-1
   namespace: default
 spec:
   userRef:
-    name: bob
+    name: user-1
