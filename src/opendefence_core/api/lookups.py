@@ -2,7 +2,7 @@
 
 from fastapi import HTTPException, status
 
-from lib_opendefence_core.models.v1alpha1 import Group, Invite, Role, User
+from lib_opendefence_core.models.v1alpha1 import Group, Integration, Invite, Role, User
 from opendefence_core.api.lib.uids import by_uid
 
 
@@ -36,3 +36,11 @@ async def group_or_404(uid: str) -> Group:
     if group is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     return group
+
+
+async def integration_or_404(uid: str) -> Integration:
+    """Integration by id, or 404."""
+    integration = await by_uid(Integration, uid)
+    if integration is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    return integration
