@@ -5,10 +5,16 @@ from typing import Literal
 
 from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import User
+from lib_opendefence_core.models.v1alpha1.user import normalize_callsign
 
 type UserState = Literal["pending", "active", "revoked"]
 
+
 logger = get_logger(__name__)
+
+
+class CallsignTaken(Exception):
+    """A user with the callsign already exists"""
 
 
 def state_of(user: User) -> UserState:
@@ -25,6 +31,22 @@ async def list_users(state: UserState | None = None) -> list[User]:
     if state is None:
         return users
     return [user for user in users if state_of(user) == state]
+
+
+async def check_callsign(callsign: str, *, excluding: str | None = None) -> None:
+    """Fail on a callsign another user holds. The webhook is the authoritative check."""
+    wanted = normalize_callsign(callsign)
+    for user in await list_users():
+        if normalize_callsign(user.spec.callsign) == wanted and user.name != excluding:
+            raise CallsignTaken
+
+
+async def rename(user: User, callsign: str) -> User:
+    """Change the user's callsign."""
+    user.spec.callsign = callsign
+    renamed = await user.async_update()
+    logger.audit("User %s callsign changed to %s", user.name, callsign)
+    return renamed
 
 
 async def approve(user: User) -> User:
