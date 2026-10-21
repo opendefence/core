@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 
-from opendefence_core import __version__
+from opendefence_core import __version__, config
 from opendefence_core.api.config import get_config
 from opendefence_core.api.routes.certificates.views import router as certificates_router
 from opendefence_core.api.routes.enrollment.views import router as enrollment_router
@@ -15,6 +15,7 @@ from opendefence_core.api.routes.health.views import router as health_router
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     """Fail at startup rather than on the first request when configuration is missing."""
+    config.get_config()
     get_config()
     yield
 
