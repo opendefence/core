@@ -58,6 +58,11 @@ async def by_uid[T: Resource](kind: type[T], uid: str) -> T | None:
     return None
 
 
+async def by_name[T: Resource](kind: type[T]) -> dict[str, T]:
+    """Every object of the kind, keyed by name, to resolve the refs specs hold."""
+    return {obj.name: obj async for obj in await kind.async_list() if obj.name}
+
+
 async def ids_by_name[T: Resource](kind: type[T]) -> dict[str, str]:
-    """Ids of every object of the kind, keyed by name, to resolve the refs specs hold."""
-    return {obj.name: id_of(obj) async for obj in await kind.async_list() if obj.name}
+    """Ids of every object of the kind, keyed by name."""
+    return {name: id_of(obj) for name, obj in (await by_name(kind)).items()}

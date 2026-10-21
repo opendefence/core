@@ -9,6 +9,7 @@ from opendefence_core import __version__
 from opendefence_core.api.config import get_api_config
 from opendefence_core.api.routes.certificates.views import router as certificates_router
 from opendefence_core.api.routes.enrollment.views import router as enrollment_router
+from opendefence_core.api.routes.groups.views import router as groups_router
 from opendefence_core.api.routes.health.views import router as health_router
 from opendefence_core.api.routes.invites.views import router as invites_router
 from opendefence_core.api.routes.roles.views import router as roles_router
@@ -36,6 +37,7 @@ app = FastAPI(
 v3 = APIRouter(prefix="/api/v3")
 v3.include_router(certificates_router)
 v3.include_router(enrollment_router)
+v3.include_router(groups_router)
 v3.include_router(health_router)
 v3.include_router(invites_router)
 v3.include_router(roles_router)
