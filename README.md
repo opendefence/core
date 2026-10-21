@@ -98,8 +98,11 @@ under `/api/v3`:
 
 JWTs are ES256, signed with a cert-manager-generated key that the API reloads
 when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
-`CORE_API_DOMAIN` (required, from the `domain` value), `CORE_API_JWT_KEY_PATH`,
-`CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
+`CORE_API_JWT_KEY_PATH`, `CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
+
+The API reads the `core-config` ConfigMap as environment variables.
+`CORE_DOMAIN` is the `domain` value. `CORE_DEPLOYMENT` is the first DNS label
+of `domain`, for example `local-dev`. Both are required.
 
 ### User certificates
 
