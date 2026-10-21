@@ -26,12 +26,17 @@ def cluster(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         return FakeList(state["invites"])
 
     async def async_create(self: User, dry_run: bool = False) -> User:
-        if self.name in state["users"]:
-            raise ResourceConflict(f"users {self.name} already exists", status_code=409)
-        if not dry_run:
-            state["created"].append(self)
-            state["users"][self.name] = self
+        if dry_run:
+            return self
+        if self.metadata is not None and not self.metadata.name:
+            self.metadata.name = f"user-{len(state['users'])}"  # The API server fills generateName
+        state["created"].append(self)
+        state["users"][self.name] = self
         return self
+
+    async def user_list(cls: type[User], **kwargs: object) -> FakeList[User]:
+        _ = cls, kwargs
+        return FakeList(list(state["users"].values()))
 
     async def async_update_status(self: Invite, dry_run: bool = False) -> Invite:
         _ = dry_run
@@ -50,6 +55,7 @@ def cluster(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(User, "async_create", async_create)
     monkeypatch.setattr(Invite, "async_update_status", async_update_status)
     monkeypatch.setattr(User, "async_get", classmethod(async_get))
+    monkeypatch.setattr(User, "async_list", classmethod(user_list))
     return state
 
 
@@ -68,7 +74,8 @@ async def test_redeem_creates_user_and_counts_the_use(cluster: dict[str, Any]) -
     """Redeeming creates the User with the invite's refs and records one use."""
     cluster["invites"] = [make_invite(groups=["team"], use_count=2, resolved=True)]
     user = await invites.redeem("CODE1234", "bravo2")
-    assert user.name == "bravo2"
+    assert user.spec.callsign == "bravo2"
+    assert user.name != "bravo2"  # Named independently of the callsign
     assert [ref.name for ref in user.spec.group_refs] == ["team"]
     assert cluster["created"] == [user]
     assert cluster["status_updates"] == [1]
@@ -84,7 +91,7 @@ async def test_redeem_unknown_code(cluster: dict[str, Any]) -> None:
 async def test_redeem_taken_callsign_keeps_the_use(cluster: dict[str, Any]) -> None:
     """A taken callsign fails before the invite use is counted."""
     cluster["invites"] = [make_invite(resolved=True)]
-    cluster["users"]["bravo2"] = make_user("bravo2")
+    cluster["users"]["user-0"] = make_user("user-0", callsign="bravo2")
     with pytest.raises(invites.CallsignTaken):
         await invites.redeem("CODE1234", "bravo2")
     assert cluster["status_updates"] == []

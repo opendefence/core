@@ -1,4 +1,4 @@
-"""Admission webhooks: Group parent chains and deletes, User deletes."""
+"""Admission webhooks: Group parent chains and deletes, User callsigns and deletes."""
 
 from typing import cast
 
@@ -7,7 +7,7 @@ from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 
 from lib_opendefence_core.models.v1alpha1 import Group, User
 from opendefence_core.k8s_operator.controllers.groups import validate_group
-from opendefence_core.k8s_operator.controllers.users import validate_user_delete
+from opendefence_core.k8s_operator.controllers.users import validate_user_callsign, validate_user_delete
 from tests.factories import make_binding, make_group, make_user
 from tests.fakes import FakeAdmissionRequest
 
@@ -18,6 +18,10 @@ async def _validate_group(request: FakeAdmissionRequest[Group]) -> None:
 
 async def _validate_user_delete(request: FakeAdmissionRequest[User]) -> None:
     await validate_user_delete(cast(AdmissionRequest[User], request))
+
+
+async def _validate_user_callsign(request: FakeAdmissionRequest[User]) -> None:
+    await validate_user_callsign(cast(AdmissionRequest[User], request))
 
 
 async def test_validate_group_allows_acyclic_parent() -> None:
@@ -112,6 +116,63 @@ async def test_validate_group_rejects_missing_ancestor() -> None:
         await _validate_group(request)
     assert raised.value.reason == "MissingReference"
     assert "missing" in str(raised.value)
+
+
+async def test_validate_user_callsign_allows_a_free_callsign() -> None:
+    """A callsign no other user holds is admitted."""
+    request = FakeAdmissionRequest(
+        resource=make_user("user-1", callsign="bob"),
+        objects=[make_user("user-2", callsign="charlie")],
+    )
+    await _validate_user_callsign(request)
+
+
+async def test_validate_user_callsign_allows_keeping_its_own_callsign() -> None:
+    """Updating a user does not collide with the callsign it already holds."""
+    user = make_user("user-1", callsign="bob")
+    await _validate_user_callsign(FakeAdmissionRequest(operation="UPDATE", resource=user, objects=[user]))
+
+
+async def test_validate_user_callsign_skips_updates_that_keep_the_callsign() -> None:
+    """Approve, revoke and role writes do not pay for a scan of every user."""
+    user = make_user("user-1", callsign="bob")
+    request = FakeAdmissionRequest(operation="UPDATE", resource=user, old_resource=user, objects=[user])
+    await _validate_user_callsign(request)
+    assert request.client_calls == 0
+
+
+async def test_validate_user_callsign_ignores_empty_request() -> None:
+    """A request carrying no object is ignored."""
+    request = FakeAdmissionRequest[User]()
+    await _validate_user_callsign(request)
+    assert request.client_calls == 0
+
+
+async def test_validate_user_callsign_rejects_a_taken_callsign() -> None:
+    """Two users cannot hold one callsign, whatever they are named."""
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_user_callsign(
+            FakeAdmissionRequest(
+                resource=make_user("user-2", callsign="bob"),
+                objects=[make_user("user-1", callsign="bob")],
+            )
+        )
+    assert raised.value.reason == "CallsignTaken"
+    assert "user-1" in str(raised.value)
+
+
+async def test_validate_user_callsign_rejects_a_rename_onto_a_taken_callsign() -> None:
+    """A rename is still checked, so the skip cannot let a duplicate through."""
+    renamed = make_user("user-2", callsign="bob")
+    request = FakeAdmissionRequest(
+        operation="UPDATE",
+        resource=renamed,
+        old_resource=make_user("user-2", callsign="charlie"),
+        objects=[make_user("user-1", callsign="bob")],
+    )
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_user_callsign(request)
+    assert raised.value.reason == "CallsignTaken"
 
 
 async def test_validate_user_delete_allows_user_without_bindings() -> None:

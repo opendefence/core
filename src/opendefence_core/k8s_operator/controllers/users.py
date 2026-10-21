@@ -23,6 +23,29 @@ from opendefence_core.k8s_operator.controllers._refs import mark_resolved, refer
 users = Controller(User, name="users", owns=(CertificateRequest,), events=recorder("users"))
 
 
+@users.validate(operations=("CREATE", "UPDATE"))
+async def validate_user_callsign(request: AdmissionRequest[User]) -> None:
+    """Reject a callsign another user already holds.
+
+    Users are named independently of their callsign, so Kubernetes no longer keeps
+    callsigns unique. CALLSIGN_PATTERN is lowercase, so a plain comparison is
+    already case-insensitive.
+    """
+    obj = request.resource
+    if obj is None:
+        return
+    old = request.old_resource
+    if old is not None and old.spec.callsign == obj.spec.callsign:
+        return  # Approve, revoke and role writes leave the callsign alone
+    client = await request.client(User)
+    async for other in await client.list():
+        if other.name != obj.name and other.spec.callsign == obj.spec.callsign:
+            raise AdmissionDenied(
+                f"Callsign {obj.spec.callsign} is taken by user {other.name}",
+                reason="CallsignTaken",
+            )
+
+
 @users.validate(operations=("DELETE",))
 async def validate_user_delete(request: AdmissionRequest[User]) -> None:
     """Reject User deletes while any UserBinding still names this user."""

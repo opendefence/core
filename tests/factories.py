@@ -50,6 +50,7 @@ def condition(condition_type: str, status: bool, reason: str) -> PlatformConditi
 def make_user(
     name: str = "alpha1",
     *,
+    callsign: str = "foxtrot6",
     namespace: str | None = None,
     roles: Iterable[str] = (),
     groups: Iterable[str] = (),
@@ -58,13 +59,16 @@ def make_user(
     certificate_approved_at: datetime | None = None,
     revoked_at: datetime | None = None,
 ) -> User:
-    """User whose callsign is its name, with a stable UUID and resource version."""
+    """User with a stable UUID and resource version.
+
+    The callsign is independent of the name; pass it when it matters.
+    """
     return User(
         api_version=API_VERSION,
         kind="User",
         metadata=ObjectMeta(name=name, namespace=namespace, uid=str(uuid5(NAMESPACE_DNS, name)), resource_version="1"),
         spec=UserSpec(
-            callsign=name,
+            callsign=callsign,
             role_refs=refs(roles),
             group_refs=refs(groups),
             approval_code=approval_code,

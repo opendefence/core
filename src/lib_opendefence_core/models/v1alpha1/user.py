@@ -114,7 +114,11 @@ class UserStatus(PlatformStatus):
     short_names=("oduser",),
 )
 class User(Resource):
-    """Cluster-scoped platform user with an immutable Kubernetes UID."""
+    """Cluster-scoped platform user with an immutable Kubernetes UID.
+
+    The name is generated and never changes; the callsign is a mutable label, like
+    displayName on Group and Role. The operator rejects a callsign another user holds.
+    """
 
     spec: UserSpec = Field(description="Desired configuration of the user.")
     status: UserStatus | None = Field(

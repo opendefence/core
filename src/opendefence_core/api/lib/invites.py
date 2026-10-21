@@ -67,7 +67,7 @@ def _new_user(invite: Invite, callsign: str) -> User:
     return User(
         api_version=API_VERSION,
         kind="User",
-        metadata=ObjectMeta(name=callsign),
+        metadata=ObjectMeta(generate_name="user-"),
         spec=UserSpec(
             callsign=callsign,
             role_refs=invite.spec.role_refs,
@@ -79,11 +79,15 @@ def _new_user(invite: Invite, callsign: str) -> User:
 
 
 async def _check_callsign(user: User) -> None:
-    """Fail on a taken callsign before the invite is used."""
-    try:
-        await user.async_create(dry_run=True)
-    except ResourceConflict as exc:
-        raise CallsignTaken from exc
+    """Fail on a taken callsign before the invite is used.
+
+    The operator's admission webhook is the authoritative check; this one reports
+    the conflict before a use is spent.
+    """
+    # TODO: Lists every User per enrollment; index them with find_invite above
+    async for other in await User.async_list():
+        if other.spec.callsign == user.spec.callsign:
+            raise CallsignTaken
 
 
 async def _use(invite: Invite) -> None:
