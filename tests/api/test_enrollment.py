@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from lib_opendefence_core.models.v1alpha1 import Invite, User
 from opendefence_core.api import dependencies
 from opendefence_core.api.lib import invites
-from tests.factories import make_invite, make_user
+from tests.factories import make_invite, make_user, uid
 from tests.fakes import FakeList
 
 
@@ -158,7 +158,7 @@ async def test_jwt_user_rejects(cluster: dict[str, Any], claims: dict[str, Any],
     if case != "missing-user":
         cluster["users"]["alpha1"] = user
     if case == "recreated-user":
-        claims["uid"] = "uid-of-an-earlier-alpha1"
+        claims["uid"] = uid("an-earlier-alpha1")
     if case == "invalid":
         claims.clear()
     with pytest.raises(HTTPException) as raised:

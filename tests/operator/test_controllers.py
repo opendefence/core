@@ -33,7 +33,7 @@ from opendefence_core.k8s_operator.controllers.roles import reconcile_role
 from opendefence_core.k8s_operator.controllers.users import group_changed as user_group_changed
 from opendefence_core.k8s_operator.controllers.users import reconcile_user, userbinding_changed
 from opendefence_core.k8s_operator.controllers.users import role_changed as user_role_changed
-from tests.factories import make_binding, make_group, make_integration, make_invite, make_role, make_user
+from tests.factories import make_binding, make_group, make_integration, make_invite, make_role, make_user, uid
 from tests.fakes import FakeCache, FakeClient, FakeContext
 
 
@@ -41,8 +41,8 @@ async def test_reconcile_user_resolves_refs() -> None:
     """User status receives UIDs for named roles and groups."""
     ctx = FakeContext({Role: FakeCache([make_role("superadmin")]), Group: FakeCache([make_group("ops")])})
     await reconcile_user(make_user("alice", roles=["superadmin"], groups=["ops"]), cast(Context[User], ctx))
-    assert ctx.status["roles"][0].uid == "uid-superadmin"
-    assert ctx.status["groups"][0].uid == "uid-ops"
+    assert ctx.status["roles"][0].uid == uid("superadmin")
+    assert ctx.status["groups"][0].uid == uid("ops")
     assert ctx.status["bindings"] == []
     assert (REFERENCES_RESOLVED_CONDITION, True, "Resolved", "") in ctx.conditions
     assert (BINDINGS_SYNCED_CONDITION, True, "NoBindings", "") in ctx.conditions
@@ -68,11 +68,11 @@ async def test_reconcile_group_and_invite() -> None:
     )
     group = make_group("ops", parent="root", managers=["alice"], roles=["group-admin"])
     await reconcile_group(group, cast(Context[Group], ctx))
-    assert ctx.status["parent"].uid == "uid-root"
+    assert ctx.status["parent"].uid == uid("root")
     manager = ctx.cached(User).get("alice")
     assert manager is not None and manager.metadata is not None
     assert ctx.status["managers"][0].uid == manager.metadata.uid
-    assert ctx.status["roles"][0].uid == "uid-group-admin"
+    assert ctx.status["roles"][0].uid == uid("group-admin")
 
     invite_ctx = FakeContext({Group: FakeCache([parent]), Role: FakeCache([role])})
     invite = make_invite("onboarding", groups=["root"], roles=["group-admin"])

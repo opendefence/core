@@ -1,6 +1,7 @@
 """REST API building blocks: JWTs and invite redemption rules."""
 
 import os
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -9,12 +10,17 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 
-from lib_opendefence_core.models.v1alpha1 import Invite
+from lib_opendefence_core.models.v1alpha1 import Invite, User
 from opendefence_core.api.config import get_api_config
-from opendefence_core.api.lib import invites
+from opendefence_core.api.lib import invites, uids
 from opendefence_core.api.lib import jwt as api_jwt
 from opendefence_core.api.lib.codes import ALPHABET, generate_code
-from tests.factories import make_invite, make_user
+from tests.factories import make_invite, make_user, uid
+from tests.fakes import FakeList
+
+# The pair the identifier contract gives as its example.
+CANONICAL_UID = "550e8400-e29b-41d4-a716-446655440000"
+COMPACT_UID = "VQ6EAOKbQdSnFkRmVUQAAA"
 
 
 def _write_key(path: Path, key: ec.EllipticCurvePrivateKey) -> None:
@@ -63,6 +69,48 @@ def test_generate_code() -> None:
     code = generate_code(12)
     assert len(code) == 12
     assert set(code) <= set(ALPHABET)
+
+
+def test_compact_matches_the_contract() -> None:
+    """The compact form is the one the identifier contract specifies."""
+    assert uids.compact(CANONICAL_UID) == COMPACT_UID
+    assert uids.canonical(COMPACT_UID) == CANONICAL_UID
+
+
+@pytest.mark.parametrize("sent", [CANONICAL_UID, COMPACT_UID])
+def test_canonical_accepts_either_form(sent: str) -> None:
+    """Both accepted forms name the same uid."""
+    assert uids.canonical(sent) == CANONICAL_UID
+
+
+def test_compact_is_twenty_two_characters() -> None:
+    """Every uid encodes to the same compact width."""
+    encoded = uids.compact(uid("alpha1"))
+    assert len(encoded) == uids.COMPACT_LENGTH
+    assert re.fullmatch(uids.COMPACT_PATTERN, encoded)
+
+
+def test_id_of_requires_a_uid() -> None:
+    """An object the API server has not stored has no id."""
+    user = make_user()
+    assert uids.id_of(user) == uids.compact(uid("alpha1"))
+    assert user.metadata is not None
+    user.metadata.uid = None
+    with pytest.raises(ValueError, match="uid"):
+        uids.id_of(user)
+
+
+async def test_by_uid_scans_the_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Kubernetes cannot get by uid, so by_uid lists and scans."""
+    users = [make_user("user-1"), make_user("user-2")]
+
+    async def async_list(cls: type[User], **kwargs: object) -> FakeList[User]:
+        _ = cls, kwargs
+        return FakeList(users)
+
+    monkeypatch.setattr(User, "async_list", classmethod(async_list))
+    assert await uids.by_uid(User, uid("user-2")) is users[1]
+    assert await uids.by_uid(User, uid("nobody")) is None
 
 
 def test_jwt_round_trip(jwt_key: ec.EllipticCurvePrivateKey) -> None:
