@@ -26,7 +26,7 @@ rules:
     verbs: [list, create, delete]
   - apiGroups: [platform.opendefence.fi]
     resources: [groups]
-    verbs: [list]
+    verbs: [list, create, update, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
