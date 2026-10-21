@@ -5,10 +5,10 @@ from typing import Self
 
 from pydantic import Field
 
-from lib_opendefence_core.models.v1alpha1 import Group, GroupSpec, ObjectRef
+from lib_opendefence_core.models.v1alpha1 import Group, GroupSpec, ObjectRef, Role, User
 from lib_opendefence_core.models.v1alpha1.integration import ROLE_NAME_PATTERN
 from opendefence_core.api.lib.uids import RefId, id_of
-from opendefence_core.api.schema import ApiModel
+from opendefence_core.api.schema import ApiModel, RoleRef, UserSummary
 
 
 class CreateGroupRequest(ApiModel):
@@ -53,18 +53,25 @@ class GroupResponse(ApiModel):
     name: str
     display_name: str
     parent_id: str | None
-    roles: list[str]
-    managers: list[str]
+    roles: list[RoleRef]
+    managers: list[UserSummary]
 
     @classmethod
-    def from_resource(cls, group: Group, groups: Mapping[str, str]) -> Self:
-        """Response for the Group resource, naming its parent by id."""
+    def from_resource(
+        cls,
+        group: Group,
+        groups: Mapping[str, Group],
+        roles: Mapping[str, Role],
+        users: Mapping[str, User],
+    ) -> Self:
+        """Response for the Group resource, naming everything it references by id."""
         parent = group.spec.parent_ref
+        target = groups.get(parent.name) if parent else None
         return cls(
             id=id_of(group),
             name=group.name or "",
             display_name=group.spec.display_name,
-            parent_id=groups.get(parent.name) if parent else None,
-            roles=[ref.name for ref in group.spec.role_refs],
-            managers=[ref.name for ref in group.spec.manager_refs],
+            parent_id=id_of(target) if target else None,
+            roles=RoleRef.resolve(group.spec.role_refs, roles),
+            managers=UserSummary.resolve(group.spec.manager_refs, users),
         )

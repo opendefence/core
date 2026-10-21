@@ -1,17 +1,14 @@
 """Reading and managing platform roles."""
 
-from collections.abc import Sequence
-
 from cloudcoil.apimachinery import ObjectMeta
 
 from lib_opendefence_core.logging import get_logger
-from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, ObjectRef, Role, RoleSpec, User
+from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Role, RoleSpec, User
+from opendefence_core.api.lib.groups import effective_groups
+from opendefence_core.api.lib.refs import names, with_ref, without_ref
+from opendefence_core.api.lib.uids import by_name
 
 logger = get_logger(__name__)
-
-
-def _names(name: str, refs: Sequence[ObjectRef]) -> bool:
-    return any(ref.name == name for ref in refs)
 
 
 def is_managed(role: Role) -> bool:
@@ -46,11 +43,42 @@ async def delete_role(role: Role) -> None:
 
 async def holders(name: str) -> list[User]:
     """Users that name the role directly."""
-    return [user async for user in await User.async_list() if _names(name, user.spec.role_refs)]
+    return [user async for user in await User.async_list() if names(name, user.spec.role_refs)]
 
 
 async def referrers(name: str) -> list[str]:
     """Users and groups that still name the role, as a caller can recognise them."""
     found = [f"User/{user.spec.callsign}" for user in await holders(name)]
-    found += [f"Group/{group.name}" async for group in await Group.async_list() if _names(name, group.spec.role_refs)]
+    found += [f"Group/{group.name}" async for group in await Group.async_list() if names(name, group.spec.role_refs)]
     return sorted(found)
+
+
+async def effective_roles(user: User) -> list[str]:
+    """Roles the user holds directly and roles granted by every group it is effectively in."""
+    groups = await by_name(Group)
+    found = {ref.name for ref in user.spec.role_refs}
+    for name in effective_groups(user, groups):
+        found.update(ref.name for ref in groups[name].spec.role_refs)
+    return sorted(found)
+
+
+async def assign_role(user: User, role: str) -> User:
+    """Give the role to the user directly."""
+    refs = with_ref(user.spec.role_refs, role)
+    if refs is None:
+        return user
+    user.spec.role_refs = refs
+    updated = await user.async_update()
+    logger.audit("User %s given role %s", user.name, role)
+    return updated
+
+
+async def unassign_role(user: User, role: str) -> User:
+    """Take the direct role away. A group may still grant it."""
+    refs = without_ref(user.spec.role_refs, role)
+    if refs is None:
+        return user
+    user.spec.role_refs = refs
+    updated = await user.async_update()
+    logger.audit("User %s no longer holds role %s directly", user.name, role)
+    return updated

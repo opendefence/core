@@ -6,26 +6,37 @@ from datetime import UTC, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from lib_opendefence_core.models.v1alpha1 import User
+from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import jwt_user
 from opendefence_core.api.lib.uids import compact
-from tests.factories import make_user, uid
+from tests.factories import make_group, make_role, make_user, uid
 from tests.fakes import FakeList
 
 client = TestClient(app)
 
 
 def user_id(name: str) -> str:
-    """REST id of the user the factories build under this name."""
+    """REST id of the object the factories build under this name."""
     return compact(uid(name))
+
+
+def role_ref(name: str) -> dict[str, str]:
+    """RoleRef body for the role the factories build under this name."""
+    return {"id": user_id(name), "name": name, "displayName": name}
+
+
+def group_ref(name: str, parent: str | None = None) -> dict[str, str | None]:
+    """GroupRef body for the group the factories build under this name."""
+    return {"id": user_id(name), "name": name, "displayName": name, "parentId": user_id(parent) if parent else None}
 
 
 @pytest.fixture
 def users(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[User]]:
     """One user in each state, authenticated as the active one. Names differ from callsigns."""
     now = datetime.now(UTC)
-    active = make_user("user-1", callsign="alpha1", roles=["superadmin"], approved_at=now)
+    active = make_user("user-1", callsign="alpha1", roles=["superadmin"], groups=["squad"], approved_at=now)
+    hierarchy = [make_group("battalion", roles=["comms"]), make_group("squad", parent="battalion", roles=["medic"])]
     store = [
         make_user("user-2", callsign="bravo2", approval_code="ABCD1234"),
         active,
@@ -40,6 +51,16 @@ def users(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[User]]:
         _ = dry_run
         return self
 
+    async def group_list(cls: type[Group], **kwargs: object) -> FakeList[Group]:
+        _ = cls, kwargs
+        return FakeList(hierarchy)
+
+    async def role_list(cls: type[Role], **kwargs: object) -> FakeList[Role]:
+        _ = cls, kwargs
+        return FakeList([make_role(name) for name in ("medic", "comms", "superadmin")])
+
+    monkeypatch.setattr(Group, "async_list", classmethod(group_list))
+    monkeypatch.setattr(Role, "async_list", classmethod(role_list))
     monkeypatch.setattr(User, "async_list", classmethod(async_list))
     monkeypatch.setattr(User, "async_update", async_update)
     app.dependency_overrides[jwt_user] = lambda: active
@@ -61,7 +82,7 @@ def test_me(users: list[User]) -> None:
         "id": user_id("user-1"),
         "callsign": "alpha1",
         "state": "active",
-        "roles": ["superadmin"],
+        "roles": [role_ref("superadmin")],
         "approvalCode": None,
     }
 
@@ -150,6 +171,43 @@ def test_rename_rejects_bad_callsign(users: list[User]) -> None:
     """Callsigns must match the User callsign pattern."""
     _ = users
     assert client.patch(f"/api/v3/users/{user_id('user-2')}", json={"callsign": "Not Valid!"}).status_code == 422
+
+
+def test_read_user_roles(users: list[User]) -> None:
+    """Direct roles by default, group grants only when asked."""
+    _ = users
+    alpha = user_id("user-1")
+    assert client.get(f"/api/v3/users/{alpha}/roles").json() == [role_ref("superadmin")]
+    effective = client.get(f"/api/v3/users/{alpha}/roles", params={"effective": "true"})
+    assert effective.json() == [role_ref("comms"), role_ref("medic"), role_ref("superadmin")]
+
+
+def test_read_user_groups(users: list[User]) -> None:
+    """Effective groups add the ancestors of the direct ones."""
+    _ = users
+    alpha = user_id("user-1")
+    assert client.get(f"/api/v3/users/{alpha}/groups").json() == [group_ref("squad", "battalion")]
+    effective = client.get(f"/api/v3/users/{alpha}/groups", params={"effective": "true"})
+    assert effective.json() == [group_ref("squad", "battalion"), group_ref("battalion")]
+
+
+def test_give_and_take_user_role(users: list[User]) -> None:
+    """Direct role assignment is idempotent both ways."""
+    _ = users
+    bravo, medic = user_id("user-2"), user_id("medic")
+    given = client.put(f"/api/v3/users/{bravo}/roles/{medic}")
+    assert given.status_code == 200
+    assert given.json()["roles"] == [role_ref("medic")]
+    assert client.put(f"/api/v3/users/{bravo}/roles/{medic}").json()["roles"] == [role_ref("medic")]
+    assert client.delete(f"/api/v3/users/{bravo}/roles/{medic}").status_code == 204
+    assert client.delete(f"/api/v3/users/{bravo}/roles/{medic}").status_code == 204
+    assert client.get(f"/api/v3/users/{bravo}").json()["roles"] == []
+
+
+def test_give_unknown_role(users: list[User]) -> None:
+    """A role that does not exist is 404."""
+    _ = users
+    assert client.put(f"/api/v3/users/{user_id('user-2')}/roles/{user_id('missing')}").status_code == 404
 
 
 def test_approve_and_revoke(users: list[User]) -> None:
