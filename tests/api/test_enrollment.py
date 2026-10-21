@@ -12,6 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from lib_opendefence_core.models.v1alpha1 import Invite, User
 from opendefence_core.api import dependencies
 from opendefence_core.api.lib import invites
+from opendefence_core.api.lib.users import CallsignTaken
 from tests.factories import make_invite, make_user, uid
 from tests.fakes import FakeList
 
@@ -92,7 +93,7 @@ async def test_redeem_taken_callsign_keeps_the_use(cluster: dict[str, Any]) -> N
     """A taken callsign fails before the invite use is counted."""
     cluster["invites"] = [make_invite(resolved=True)]
     cluster["users"]["user-0"] = make_user("user-0", callsign="bravo2")
-    with pytest.raises(invites.CallsignTaken):
+    with pytest.raises(CallsignTaken):
         await invites.redeem("CODE1234", "bravo2")
     assert cluster["status_updates"] == []
 

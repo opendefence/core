@@ -105,6 +105,39 @@ def test_unknown_user(users: list[User]) -> None:
     assert client.get(f"/api/v3/users/{user_id('user-99')}").status_code == 404
 
 
+def test_rename_user(users: list[User]) -> None:
+    """A rename changes the callsign and keeps the id."""
+    _ = users
+    response = client.patch(f"/api/v3/users/{user_id('user-2')}", json={"callsign": "delta4"})
+    assert response.status_code == 200
+    assert response.json()["id"] == user_id("user-2")
+    assert response.json()["callsign"] == "delta4"
+
+
+def test_rename_keeps_its_own_callsign(users: list[User]) -> None:
+    """Renaming to the callsign the user already holds is not a conflict."""
+    _ = users
+    assert client.patch(f"/api/v3/users/{user_id('user-2')}", json={"callsign": "bravo2"}).status_code == 200
+
+
+def test_rename_to_a_taken_callsign(users: list[User]) -> None:
+    """A callsign another user holds is 409."""
+    _ = users
+    assert client.patch(f"/api/v3/users/{user_id('user-2')}", json={"callsign": "alpha1"}).status_code == 409
+
+
+def test_rename_revoked_user(users: list[User]) -> None:
+    """A revoked user keeps its callsign."""
+    _ = users
+    assert client.patch(f"/api/v3/users/{user_id('user-3')}", json={"callsign": "delta4"}).status_code == 409
+
+
+def test_rename_rejects_bad_callsign(users: list[User]) -> None:
+    """Callsigns must match the User callsign pattern."""
+    _ = users
+    assert client.patch(f"/api/v3/users/{user_id('user-2')}", json={"callsign": "Not Valid!"}).status_code == 422
+
+
 def test_approve_and_revoke(users: list[User]) -> None:
     """Approving and revoking move the user between states."""
     _ = users
