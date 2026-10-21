@@ -16,8 +16,8 @@ from lib_opendefence_core.models.v1alpha1 import (
     User,
     UserSpec,
 )
-from lib_opendefence_core.models.v1alpha1.user import normalize_callsign
 from opendefence_core.api.lib.codes import generate_code
+from opendefence_core.api.lib.users import check_callsign
 
 APPROVAL_CODE_LENGTH = 8
 INVITE_CODE_LENGTH = 8
@@ -28,10 +28,6 @@ logger = get_logger(__name__)
 
 class InviteNotRedeemable(Exception):
     """No invite with the code, or it is not ready, expired or used up"""
-
-
-class CallsignTaken(Exception):
-    """A user with the callsign already exists"""
 
 
 async def find_invite(code: str) -> Invite | None:
@@ -86,7 +82,7 @@ async def redeem(code: str, callsign: str) -> User:
     if invite is None:
         raise InviteNotRedeemable
     user = _new_user(invite, callsign)
-    await _check_callsign(user)
+    await check_callsign(callsign)
     await _use(invite)
     created = await user.async_create()
     logger.audit("Invite %s redeemed as user %s", invite.name, created.name)
@@ -121,19 +117,6 @@ def _new_user(invite: Invite, callsign: str) -> User:
             approved_at=datetime.now(UTC) if invite.spec.auto_approve else None,
         ),
     )
-
-
-async def _check_callsign(user: User) -> None:
-    """Fail on a taken callsign before the invite is used.
-
-    The operator's admission webhook is the authoritative check; this one reports
-    the conflict before a use is spent.
-    """
-    callsign = normalize_callsign(user.spec.callsign)
-    # TODO: Lists every User per enrollment; index them with find_invite above
-    async for other in await User.async_list():
-        if normalize_callsign(other.spec.callsign) == callsign:
-            raise CallsignTaken
 
 
 async def _use(invite: Invite) -> None:

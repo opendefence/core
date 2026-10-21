@@ -18,11 +18,13 @@ from fastapi.testclient import TestClient
 from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, Invite, User, UserStatus
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import jwt_user
-from opendefence_core.api.lib.invites import CallsignTaken, InviteNotRedeemable
+from opendefence_core.api.lib.invites import InviteNotRedeemable
 from opendefence_core.api.lib.jwt import Token
+from opendefence_core.api.lib.uids import compact
+from opendefence_core.api.lib.users import CallsignTaken
 from opendefence_core.api.routes.enrollment import views as enrollment_views
 from opendefence_core.certificates import APPROVAL_ANNOTATION, certificate_identity
-from tests.factories import condition, make_invite, make_user
+from tests.factories import condition, make_invite, make_user, uid
 
 client = TestClient(app)
 
@@ -97,6 +99,7 @@ def test_enroll(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.status_code == 201
     body = response.json()
     assert body["status"] == {
+        "id": compact(uid("bravo2")),
         "name": "bravo2",
         "callsign": "bravo2",
         "approvalCode": "ABCD1234",

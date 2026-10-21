@@ -6,6 +6,7 @@ from pydantic import Field
 
 from lib_opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN, User
 from opendefence_core.api.lib.jwt import Token
+from opendefence_core.api.lib.uids import id_of
 from opendefence_core.api.schema import ApiModel
 from opendefence_core.certificates import certificate_identity, wants_certificate
 
@@ -32,6 +33,7 @@ class EnrollRequest(ApiModel):
 class EnrollmentStatus(ApiModel):
     """Enrollment of the user, as shown to themselves."""
 
+    id: str
     name: str | None
     callsign: str
     approval_code: str | None
@@ -44,6 +46,7 @@ class EnrollmentStatus(ApiModel):
         """Enrollment status of the User resource, with the CSR identity once approved."""
         common_name, uri = certificate_identity(user) if wants_certificate(user) else (None, None)
         return cls(
+            id=id_of(user),
             name=user.name,
             callsign=user.spec.callsign,
             approval_code=user.spec.approval_code,
