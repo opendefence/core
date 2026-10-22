@@ -83,8 +83,17 @@ def test_me(users: list[User]) -> None:
         "callsign": "alpha1",
         "state": "active",
         "roles": [role_ref("superadmin")],
+        "effectiveRoles": [role_ref("comms"), role_ref("medic"), role_ref("superadmin")],
         "approvalCode": None,
     }
+
+
+def test_me_separates_granted_roles_from_direct_ones(users: list[User]) -> None:
+    """Roles a group grants reach the caller without ever becoming direct ones."""
+    _ = users
+    body = client.get("/api/v3/users/me").json()
+    granted = {role["name"] for role in body["effectiveRoles"]} - {role["name"] for role in body["roles"]}
+    assert granted == {"medic", "comms"}
 
 
 def test_read_users(users: list[User]) -> None:

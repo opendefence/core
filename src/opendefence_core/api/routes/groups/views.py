@@ -106,7 +106,9 @@ async def add_group_member(group_id: ObjectId, user_id: ObjectId) -> UserRespons
     """Put the user in the group."""
     group = await group_or_404(group_id)
     user = await user_or_404(user_id)
-    return UserResponse.from_resource(await add_member(user, group.name or ""), await by_name(Role))
+    return UserResponse.from_resource(
+        await add_member(user, group.name or ""), await by_name(Role), await by_name(Group)
+    )
 
 
 @router.delete("/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -27,21 +27,22 @@ router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(jwt_us
 @router.get("/me")
 async def read_me(user: JWTUser) -> UserResponse:
     """The calling user."""
-    return UserResponse.from_resource(user, await by_name(Role))
+    return UserResponse.from_resource(user, await by_name(Role), await by_name(Group))
 
 
 @router.get("")
 async def read_users(state: UserState | None = None) -> list[UserResponse]:
     """Users on the platform by state"""
     users = await list_users(state)
-    roles = await by_name(Role)
-    return [UserResponse.from_resource(user, roles) for user in users]
+    roles, groups = await by_name(Role), await by_name(Group)
+    return [UserResponse.from_resource(user, roles, groups) for user in users]
 
 
 @router.get("/{user_id}")
 async def read_user(user_id: ObjectId) -> UserResponse:
     """User by id."""
-    return UserResponse.from_resource(await user_or_404(user_id), await by_name(Role))
+    user = await user_or_404(user_id)
+    return UserResponse.from_resource(user, await by_name(Role), await by_name(Group))
 
 
 @router.patch("/{user_id}")
@@ -55,7 +56,7 @@ async def rename_user(user_id: ObjectId, request: RenameUserRequest) -> UserResp
     except CallsignTaken as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="The callsign is taken.") from exc
     renamed = await rename(user, request.callsign)
-    return UserResponse.from_resource(renamed, await by_name(Role))
+    return UserResponse.from_resource(renamed, await by_name(Role), await by_name(Group))
 
 
 @router.get("/{user_id}/roles")
@@ -65,7 +66,8 @@ async def read_user_roles(user_id: ObjectId, effective: bool = False) -> list[Ro
     roles = await by_name(Role)
     if not effective:
         return RoleRef.resolve(user.spec.role_refs, roles)
-    return [RoleRef.of(roles[name]) for name in await effective_roles(user) if name in roles]
+    held = effective_roles(user, await by_name(Group))
+    return [RoleRef.of(roles[name]) for name in held if name in roles]
 
 
 @router.put("/{user_id}/roles/{role_id}")
@@ -74,7 +76,7 @@ async def give_user_role(user_id: ObjectId, role_id: ObjectId) -> UserResponse:
     user = await user_or_404(user_id)
     role = await role_or_404(role_id)
     assigned = await assign_role(user, role.name or "")
-    return UserResponse.from_resource(assigned, await by_name(Role))
+    return UserResponse.from_resource(assigned, await by_name(Role), await by_name(Group))
 
 
 @router.delete("/{user_id}/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -99,7 +101,7 @@ async def read_user_groups(user_id: ObjectId, effective: bool = False) -> list[G
 async def approve_user(user_id: ObjectId) -> UserResponse:
     """Approve the user"""
     user = await user_or_404(user_id)
-    return UserResponse.from_resource(await approve(user), await by_name(Role))
+    return UserResponse.from_resource(await approve(user), await by_name(Role), await by_name(Group))
 
 
 @router.post("/{user_id}/revoke")
@@ -108,4 +110,4 @@ async def revoke_user(user_id: ObjectId, caller: JWTUser) -> UserResponse:
     user = await user_or_404(user_id)
     if caller.metadata is not None and caller.metadata.uid == user_id:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="You cannot revoke yourself.")
-    return UserResponse.from_resource(await revoke(user), await by_name(Role))
+    return UserResponse.from_resource(await revoke(user), await by_name(Role), await by_name(Group))
