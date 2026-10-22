@@ -5,6 +5,7 @@ from typing import Self
 from lib_opendefence_core.models.v1alpha1 import Integration
 from lib_opendefence_core.models.v1alpha1.integration import ProductDescription as SpecDescription
 from lib_opendefence_core.models.v1alpha1.integration import ProductInfo
+from opendefence_core.api.lib.reconciliation import ReconciliationState, state_of
 from opendefence_core.api.lib.uids import id_of
 from opendefence_core.api.schema import ApiModel
 
@@ -23,6 +24,8 @@ class IntegrationResponse(ApiModel):
 
     id: str
     name: str
+    version: str
+    state: ReconciliationState
     title: str
     description: str
     language: str
@@ -39,6 +42,8 @@ class IntegrationResponse(ApiModel):
         return cls(
             id=id_of(integration),
             name=integration.name or "",
+            version=integration.spec.version,
+            state=state_of(integration.status, integration.metadata.generation if integration.metadata else None),
             title=described.title if described else integration.spec.display_name,
             description=described.description if described else "",
             language=described.language if described else language,
