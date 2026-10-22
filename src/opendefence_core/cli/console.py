@@ -71,7 +71,7 @@ def operator() -> None:
 @operator.command("run")
 def operator_run() -> None:
     """Run the operator against the current cluster."""
-    config.get_config()  # Fail at startup rather than at the first issuance when configuration is missing
+    config.get_config()
     operator_app.main(["run"])
 
 

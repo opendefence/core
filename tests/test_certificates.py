@@ -1,4 +1,4 @@
-"""One-shot issuance, approval consumption, identity, publication, and cleanup."""
+"""One-shot issuance from client CSRs, approval consumption, identity, publication, and cleanup."""
 
 import base64
 import hashlib
@@ -8,10 +8,9 @@ from datetime import UTC, datetime, timedelta
 from typing import cast
 
 import pytest
-from cloudcoil.apimachinery import ObjectMeta, OwnerReference
 from cloudcoil.controller import Context, Wait
 from cloudcoil.errors import ResourceConflict
-from cloudcoil.models.cert_manager.v1 import Certificate, CertificateRequest, CertificateRequestStatus, Condition
+from cloudcoil.models.cert_manager.v1 import CertificateRequest, CertificateRequestStatus, Condition
 from cloudcoil.models.kubernetes.core.v1 import Secret
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -29,10 +28,46 @@ from opendefence_core.k8s_operator.controllers._certificates import (
     public_key_fingerprint,
     reconcile_certificate,
 )
-from opendefence_core.k8s_operator.controllers.users import finalize_user, reconcile_user
-from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name, user_secret_name
+from opendefence_core.k8s_operator.controllers.users import reconcile_user
+from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name
 from tests.factories import make_user
 from tests.fakes import FakeClient, FakeContext
+
+CN = "local-dev#0123abcd"
+URI = "urn:uuid:9a1f0c6e-6f3e-4c55-8a3b-3c8f8b7f0d21"
+
+
+def _csr(
+    key: ec.EllipticCurvePrivateKey | rsa.RSAPrivateKey | None = None,
+    common_name: str = CN,
+    sans: list[x509.GeneralName] | None = None,
+    extra: x509.ExtensionType | None = None,
+) -> bytes:
+    """PEM CSR as a browser would build it, with overridable parts."""
+    builder = x509.CertificateSigningRequestBuilder().subject_name(
+        x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+    )
+    builder = builder.add_extension(
+        x509.SubjectAlternativeName(sans if sans is not None else [x509.UniformResourceIdentifier(URI)]),
+        critical=False,
+    )
+    if extra is not None:
+        builder = builder.add_extension(extra, critical=False)
+    signed = builder.sign(key or ec.generate_private_key(ec.SECP256R1()), hashes.SHA256())
+    return signed.public_bytes(serialization.Encoding.PEM)
+
+
+def _request_for(user: User) -> str:
+    """A valid client CSR for the user's current identity, with a fresh key."""
+    common_name, uri = certificate_identity(user)
+    return _csr(common_name=common_name, sans=[x509.UniformResourceIdentifier(uri)]).decode()
+
+
+def _approved() -> User:
+    """Approved user that has already sent a valid CSR."""
+    user = make_user(approved_at=datetime.now(UTC))
+    user.spec.certificate_signing_request = _request_for(user)
+    return user
 
 
 def _context(user: User) -> FakeContext:
@@ -48,10 +83,20 @@ async def _reconcile(ctx: FakeContext) -> None:
     await reconcile_certificate(await _current(ctx), cast(Context[User], ctx))
 
 
+async def _send(ctx: FakeContext, csr: str | None = None) -> None:
+    """Store a CSR on the User, as the API does."""
+    user = await _current(ctx)
+    user.spec.certificate_signing_request = csr or _request_for(user)
+
+
+async def _request(ctx: FakeContext) -> CertificateRequest:
+    user = await _current(ctx)
+    return await ctx.get(CertificateRequest, user_certificate_name(user), namespace=PUBLIC_CERT_NAMESPACE)
+
+
 async def _issued(ctx: FakeContext, *, expired: bool = False) -> CertificateRequest:
     """Simulate the CA signing the exact CSR and returning its issuer certificate."""
-    user = await _current(ctx)
-    request = await ctx.get(CertificateRequest, user_certificate_name(user), namespace=PUBLIC_CERT_NAMESPACE)
+    request = await _request(ctx)
     assert request.spec is not None
     csr = x509.load_pem_x509_csr(base64.b64decode(request.spec.request))
     ca_key = ec.generate_private_key(ec.SECP256R1())
@@ -86,13 +131,33 @@ async def _issued(ctx: FakeContext, *, expired: bool = False) -> CertificateRequ
     return request
 
 
+async def _issue(ctx: FakeContext) -> CertificateRequest:
+    """Consume the approval, sign the CSR, and publish the credential."""
+    await _reconcile(ctx)
+    request = await _issued(ctx)
+    await _reconcile(ctx)
+    return request
+
+
+def _deployment(monkeypatch: pytest.MonkeyPatch, name: str) -> None:
+    """Use another deployment name in the certificate CN for this test."""
+    config = Config(domain=f"{name}.opendefence.fi", deployment=name)
+    monkeypatch.setattr("opendefence_core.certificates.get_config", lambda: config)
+
+
+def _annotations(user: User) -> dict[str, str]:
+    assert user.metadata is not None
+    return user.metadata.annotations or {}
+
+
 def test_identity_and_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Only immutable UID enters the SAN/tag; settings are snapshotted in the CSR."""
+    """Only immutable UID enters the SAN/tag; the request carries the client CSR unchanged."""
     user = make_user(approved_at=datetime.now(UTC))
-    secret, request = new_request(user)
-    assert secret.name == user_secret_name(user)
+    csr = _request_for(user)
+    request = new_request(user, csr)
     assert request.name == user_certificate_name(user)
     assert request.spec is not None
+    assert base64.b64decode(request.spec.request).decode() == csr
     assert request.spec.duration == "2880h"
     assert request.spec.issuer_ref.name == PUBLIC_ISSUER
     assert request.spec.usages == ["digital signature", "client auth"]
@@ -104,22 +169,17 @@ def test_identity_and_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     assert certificate_identity(user) == (common_name, uri)
     _deployment(monkeypatch, "another-deployment")
     monkeypatch.setenv("USER_CERTIFICATE_DURATION", "1440h")
-    _, changed = new_request(user)
+    changed = new_request(user, csr)
     assert changed.spec is not None and changed.spec.duration == "1440h"
     assert certificate_identity(user)[0].startswith("another-deployment#")
-
-
-def _deployment(monkeypatch: pytest.MonkeyPatch, name: str) -> None:
-    """Use another deployment name in the certificate CN for this test."""
-    config = Config(domain=f"{name}.opendefence.fi", deployment=name)
-    monkeypatch.setattr("opendefence_core.certificates.get_config", lambda: config)
 
 
 @pytest.mark.parametrize("duration", ["0h", "-1h", "4months", "", "1s"])
 def test_invalid_duration(duration: str, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("USER_CERTIFICATE_DURATION", duration)
+    user = make_user(approved_at=datetime.now(UTC))
     with pytest.raises(ValueError, match="whole number of hours"):
-        new_request(make_user())
+        new_request(user, _request_for(user))
 
 
 def test_deployment_name_fits_the_common_name(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -136,30 +196,6 @@ def test_wants_certificate() -> None:
     assert not wants_certificate(make_user())
     assert not wants_certificate(make_user(approved_at=now, revoked_at=now))
     assert not wants_certificate(make_user(certificate_approved_at=now))
-
-
-CN = "local-dev#0123abcd"
-URI = "urn:uuid:9a1f0c6e-6f3e-4c55-8a3b-3c8f8b7f0d21"
-
-
-def _csr(
-    key: ec.EllipticCurvePrivateKey | rsa.RSAPrivateKey | None = None,
-    common_name: str = CN,
-    sans: list[x509.GeneralName] | None = None,
-    extra: x509.ExtensionType | None = None,
-) -> bytes:
-    """PEM CSR as a browser would build it, with overridable parts."""
-    builder = x509.CertificateSigningRequestBuilder().subject_name(
-        x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
-    )
-    builder = builder.add_extension(
-        x509.SubjectAlternativeName(sans if sans is not None else [x509.UniformResourceIdentifier(URI)]),
-        critical=False,
-    )
-    if extra is not None:
-        builder = builder.add_extension(extra, critical=False)
-    signed = builder.sign(key or ec.generate_private_key(ec.SECP256R1()), hashes.SHA256())
-    return signed.public_bytes(serialization.Encoding.PEM)
 
 
 def test_check_csr_accepts_exact_identity() -> None:
@@ -196,19 +232,21 @@ def test_check_csr_rejects(pem: bytes | Callable[[], bytes], message: str) -> No
 
 
 async def test_one_shot_issuance_and_publication(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Publish exact cert metadata, preserve other annotations, and never rotate on rename/config."""
-    user = make_user(approved_at=datetime.now(UTC))
+    """Sign the client CSR once, keep no private key, and never rotate on rename or config change."""
+    user = _approved()
     assert user.metadata is not None
     user.metadata.annotations = {"example.org/keep": "yes"}
     ctx = _context(user)
     await _reconcile(ctx)
     assert ctx.conditions[-1] == (CERTIFICATE_READY_CONDITION, False, "Issuing", "")
-    assert not any(isinstance(item, Certificate) for item in ctx.ensured)
+    current = await _current(ctx)
+    assert current.spec.certificate_signing_request is None
+    assert APPROVAL_ANNOTATION in _annotations(current)
+    assert [type(item) for item in ctx.ensured] == [CertificateRequest]
     request = await _issued(ctx)
     await _reconcile(ctx)
     current = await _current(ctx)
-    assert current.metadata is not None
-    annotations = current.metadata.annotations or {}
+    annotations = _annotations(current)
     assert annotations["example.org/keep"] == "yes"
     record = json.loads(annotations[ACCEPTED_CREDENTIALS_ANNOTATION])
     assert record["version"] == 1 and len(record["accepted"]) == 1
@@ -218,11 +256,10 @@ async def test_one_shot_issuance_and_publication(monkeypatch: pytest.MonkeyPatch
     assert credential["fingerprintSha256"] == leaf.fingerprint(hashes.SHA256()).hex()
     assert credential["serial"] == format(leaf.serial_number, "x")
     assert credential["issuerId"].startswith("sha256:")
-    secret = await ctx.get(Secret, user_secret_name(user), namespace=PUBLIC_CERT_NAMESPACE)
-    assert ctx.status["public_key"] == public_key_fingerprint(secret)
+    assert ctx.status["public_key"] == public_key_fingerprint(request.status.certificate)
     assert ctx.status["public_key"] != credential["fingerprintSha256"]
-    assert secret.type == "kubernetes.io/tls" and secret.data is not None and "ca.crt" in secret.data
     assert ctx.conditions[-1] == (CERTIFICATE_READY_CONDITION, True, "Issued", "")
+    assert Secret not in ctx.clients
     current.spec.callsign = "renamed"
     _deployment(monkeypatch, "another-deployment")
     monkeypatch.setenv("USER_CERTIFICATE_DURATION", "24h")
@@ -230,36 +267,101 @@ async def test_one_shot_issuance_and_publication(monkeypatch: pytest.MonkeyPatch
     ctx.ensured.clear()
     await _reconcile(ctx)
     assert len(ctx.clients[User].patches) == patches
-    assert not any(isinstance(item, CertificateRequest) for item in ctx.ensured)
-    assert (await ctx.get(Secret, secret.name or "", namespace=PUBLIC_CERT_NAMESPACE)).data == secret.data
+    assert ctx.ensured == []
+    assert ctx.conditions[-1][2] == "Issued"
 
 
-@pytest.mark.parametrize("missing", [Secret, CertificateRequest])
-async def test_missing_material_requires_fresh_approval(missing: type[Secret] | type[CertificateRequest]) -> None:
+async def test_approval_waits_for_a_request() -> None:
+    """Approval alone creates nothing and is not consumed until the client sends a CSR."""
     ctx = _context(make_user(approved_at=datetime.now(UTC)))
     await _reconcile(ctx)
-    await _issued(ctx)
+    assert ctx.ensured == []
+    assert ctx.conditions[-1][2] == "AwaitingRequest"
+    assert APPROVAL_ANNOTATION not in _annotations(await _current(ctx))
+    await _send(ctx)
     await _reconcile(ctx)
+    assert [type(item) for item in ctx.ensured] == [CertificateRequest]
+
+
+@pytest.mark.parametrize("problem", ["wrong-cn", "wrong-uri", "rsa", "garbage"])
+async def test_invalid_request_keeps_the_approval(problem: str) -> None:
+    ctx = _context(make_user(approved_at=datetime.now(UTC)))
     user = await _current(ctx)
-    client = await ctx.client(missing)
-    await client.delete(user_secret_name(user), namespace=PUBLIC_CERT_NAMESPACE)
+    common_name, uri = certificate_identity(user)
+    bad = {
+        "wrong-cn": lambda: _csr(common_name="local-dev#ffffffff", sans=[x509.UniformResourceIdentifier(uri)]),
+        "wrong-uri": lambda: _csr(common_name=common_name, sans=[x509.UniformResourceIdentifier(URI)]),
+        "rsa": lambda: _csr(
+            key=rsa.generate_private_key(public_exponent=65537, key_size=2048),
+            common_name=common_name,
+            sans=[x509.UniformResourceIdentifier(uri)],
+        ),
+        "garbage": lambda: b"not a csr",
+    }[problem]().decode()
+    await _send(ctx, bad)
+    await _reconcile(ctx)
+    assert ctx.ensured == []
+    name, status, reason, message = ctx.conditions[-1]
+    assert (name, status, reason) == (CERTIFICATE_READY_CONDITION, False, "InvalidRequest")
+    assert message
+    current = await _current(ctx)
+    assert APPROVAL_ANNOTATION not in _annotations(current)
+    assert current.spec.certificate_signing_request == bad
+    await _send(ctx)
+    await _reconcile(ctx)
+    assert [type(item) for item in ctx.ensured] == [CertificateRequest]
+
+
+async def test_request_after_consumption_is_never_signed() -> None:
+    """A CSR sent after its approval was used is cleared, and a later replacement approval waits for a new one."""
+    ctx = _context(_approved())
+    await _issue(ctx)
+    await _send(ctx)
+    ctx.ensured.clear()
+    await _reconcile(ctx)
+    current = await _current(ctx)
+    assert current.spec.certificate_signing_request is None
+    assert ctx.ensured == []
+    assert ctx.conditions[-1][2] == "Issued"
+    assert current.spec.approved_at is not None
+    current.spec.certificate_approved_at = current.spec.approved_at + timedelta(seconds=1)
+    await _reconcile(ctx)
+    assert ctx.ensured == []
+    assert ctx.conditions[-1][2] == "AwaitingRequest"
+
+
+async def test_unapproved_pending_request_is_cleared() -> None:
+    """A CSR stored before approval is dropped, so approval never signs an old request."""
+    user = make_user()
+    user.spec.certificate_signing_request = _request_for(user)
+    ctx = _context(user)
+    await _reconcile(ctx)
+    assert (await _current(ctx)).spec.certificate_signing_request is None
+    assert ctx.conditions[-1][2] == "PendingApproval"
+
+
+async def test_missing_request_requires_fresh_approval() -> None:
+    ctx = _context(_approved())
+    await _issue(ctx)
+    user = await _current(ctx)
+    await ctx.clients[CertificateRequest].delete(user_certificate_name(user), namespace=PUBLIC_CERT_NAMESPACE)
     ctx.ensured.clear()
     await _reconcile(ctx)
     assert ctx.ensured == []
     assert ctx.status["public_key"] is None
     assert ctx.conditions[-1][2] == "FreshApprovalRequired"
     current = await _current(ctx)
-    assert current.metadata is not None
-    assert (current.metadata.annotations or {})[ACCEPTED_CREDENTIALS_ANNOTATION] == EMPTY_CREDENTIALS
+    assert _annotations(current)[ACCEPTED_CREDENTIALS_ANNOTATION] == EMPTY_CREDENTIALS
     assert current.spec.approved_at is not None
     current.spec.certificate_approved_at = current.spec.approved_at + timedelta(seconds=1)
+    await _send(ctx)
     await _reconcile(ctx)
     assert any(isinstance(item, CertificateRequest) for item in ctx.ensured)
     assert (await _current(ctx)).spec.approved_at == user.spec.approved_at
 
 
 async def test_expiry_does_not_renew() -> None:
-    ctx = _context(make_user(approved_at=datetime.now(UTC)))
+    ctx = _context(_approved())
     await _reconcile(ctx)
     await _issued(ctx, expired=True)
     ctx.ensured.clear()
@@ -270,49 +372,43 @@ async def test_expiry_does_not_renew() -> None:
 
 
 async def test_same_key_different_certificates_have_distinct_accepted_fingerprints() -> None:
-    ctx = _context(make_user(approved_at=datetime.now(UTC)))
+    ctx = _context(_approved())
     await _reconcile(ctx)
     user = await _current(ctx)
-    secret = await ctx.get(Secret, user_secret_name(user), namespace=PUBLIC_CERT_NAMESPACE)
-    first = accepted_credential(user, await _issued(ctx), secret)
-    second = accepted_credential(user, await _issued(ctx), secret)
+    first = accepted_credential(user, await _issued(ctx))
+    second = accepted_credential(user, await _issued(ctx))
     assert first["fingerprintSha256"] != second["fingerprintSha256"]
     assert first["issuerId"] != second["issuerId"]
 
 
 @pytest.mark.parametrize("tamper", ["identity", "key", "ca", "owner"])
 async def test_invalid_issuance_is_not_accepted(tamper: str) -> None:
-    ctx = _context(make_user(approved_at=datetime.now(UTC)))
+    ctx = _context(_approved())
     await _reconcile(ctx)
     request = await _issued(ctx)
     user = await _current(ctx)
-    secret = await ctx.get(Secret, user_secret_name(user), namespace=PUBLIC_CERT_NAMESPACE)
     if tamper == "identity":
         assert user.metadata is not None
         user.metadata.uid = "00000000-0000-0000-0000-000000000001"
     elif tamper == "key":
-        secret.data = new_request(user)[0].data
+        assert request.spec is not None
+        request.spec.request = base64.b64encode(_request_for(user).encode()).decode()
     elif tamper == "ca":
         assert request.status is not None
         request.status.ca = None
     else:
-        assert secret.metadata is not None
-        secret.metadata.owner_references = []
+        assert request.metadata is not None
+        request.metadata.owner_references = []
     with pytest.raises(ValueError):
         await _reconcile(ctx)
-    assert user.metadata is not None
-    assert not json.loads((user.metadata.annotations or {}).get(ACCEPTED_CREDENTIALS_ANNOTATION, EMPTY_CREDENTIALS))[
-        "accepted"
-    ]
+    assert not json.loads(_annotations(user).get(ACCEPTED_CREDENTIALS_ANNOTATION, EMPTY_CREDENTIALS))["accepted"]
 
 
 @pytest.mark.parametrize("revoke", [False, True])
 async def test_cleanup_precedes_missing_references(revoke: bool) -> None:
-    user = make_user(approved_at=datetime.now(UTC))
+    user = _approved()
     ctx = _context(user)
-    await _reconcile(ctx)
-    await _issued(ctx)
-    await _reconcile(ctx)
+    await _issue(ctx)
     current = await _current(ctx)
     current.spec.role_refs = make_user(roles=["missing"]).spec.role_refs
     if revoke:
@@ -321,24 +417,22 @@ async def test_cleanup_precedes_missing_references(revoke: bool) -> None:
         current.spec.approved_at = None
     with pytest.raises(Wait):
         await reconcile_user(current, cast(Context[User], ctx))
-    assert ctx.clients[Secret].deleted[-1] == (PUBLIC_CERT_NAMESPACE, user_secret_name(user))
     assert ctx.clients[CertificateRequest].deleted[-1] == (PUBLIC_CERT_NAMESPACE, user_certificate_name(user))
     assert ctx.status["public_key"] is None
     current = await _current(ctx)
-    assert current.metadata is not None
-    assert (current.metadata.annotations or {})[ACCEPTED_CREDENTIALS_ANNOTATION] == EMPTY_CREDENTIALS
-    assert APPROVAL_ANNOTATION in (current.metadata.annotations or {})
-    await finalize_user(current, cast(Context[User], ctx))
+    assert _annotations(current)[ACCEPTED_CREDENTIALS_ANNOTATION] == EMPTY_CREDENTIALS
+    assert APPROVAL_ANNOTATION in _annotations(current)
 
 
 async def test_reusing_consumed_approval_does_not_issue_again() -> None:
-    ctx = _context(make_user(approved_at=datetime.now(UTC)))
+    ctx = _context(_approved())
     await _reconcile(ctx)
     user = await _current(ctx)
     user.spec.revoked_at = datetime.now(UTC)
     await _reconcile(ctx)
     user = await _current(ctx)
     user.spec.revoked_at = None
+    await _send(ctx)
     ctx.ensured.clear()
     await _reconcile(ctx)
     assert ctx.ensured == []
@@ -346,7 +440,7 @@ async def test_reusing_consumed_approval_does_not_issue_again() -> None:
 
 
 async def test_stale_approval_cannot_create_resources() -> None:
-    user = make_user(approved_at=datetime.now(UTC))
+    user = _approved()
     ctx = _context(user)
     stale = user.model_copy(deep=True)
     assert user.metadata is not None
@@ -357,39 +451,9 @@ async def test_stale_approval_cannot_create_resources() -> None:
     assert ctx.ensured == []
 
 
-async def test_legacy_certificate_is_removed_without_replacement() -> None:
-    user = make_user(approved_at=datetime.now(UTC))
-    ctx = _context(user)
-    legacy = Certificate(
-        metadata=ObjectMeta(name=user_certificate_name(user), namespace=PUBLIC_CERT_NAMESPACE, uid="old")
-    )
-    assert legacy.metadata is not None and user.metadata is not None and user.metadata.uid is not None
-    legacy.metadata.owner_references = [
-        OwnerReference(
-            api_version=user.gvk().api_version,
-            kind="User",
-            name=user.name or "",
-            uid=user.metadata.uid,
-            controller=True,
-        )
-    ]
-    ctx.clients[Certificate] = FakeClient([legacy])
-    await _reconcile(ctx)
-    assert ctx.clients[Certificate].deleted == [(PUBLIC_CERT_NAMESPACE, user_certificate_name(user))]
-    assert ctx.ensured == []
-    assert ctx.conditions[-1][2] == "FreshApprovalRequired"
-    await _reconcile(ctx)
-    assert ctx.ensured == []
-
-
-def test_public_key_fingerprint_requires_certificate() -> None:
-    with pytest.raises(ValueError, match=r"tls\.crt"):
-        public_key_fingerprint(Secret())
-
-
 async def test_old_material_cannot_be_accepted_under_a_new_approval() -> None:
     """A failed replacement cannot publish the previous request as the newly approved credential."""
-    ctx = _context(make_user(approved_at=datetime.now(UTC)))
+    ctx = _context(_approved())
     await _reconcile(ctx)
     await _issued(ctx)
     user = await _current(ctx)
@@ -402,19 +466,18 @@ async def test_old_material_cannot_be_accepted_under_a_new_approval() -> None:
 
 
 async def test_partial_creation_does_not_retry_issuance(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Approval stays consumed if creation fails after reservation."""
-    ctx = _context(make_user(approved_at=datetime.now(UTC)))
+    """Approval stays consumed, and the CSR stays taken, if creation fails after reservation."""
+    ctx = _context(_approved())
+
+    async def fail_request(_: CertificateRequest) -> CertificateRequest:
+        raise RuntimeError("creation interrupted")
+
     original = ctx.ensure
-
-    async def fail_request(resource: Secret | CertificateRequest) -> Secret | CertificateRequest:
-        if isinstance(resource, CertificateRequest):
-            raise RuntimeError("creation interrupted")
-        return await original(resource)
-
     monkeypatch.setattr(ctx, "ensure", fail_request)
     with pytest.raises(RuntimeError, match="interrupted"):
         await _reconcile(ctx)
     monkeypatch.setattr(ctx, "ensure", original)
+    assert (await _current(ctx)).spec.certificate_signing_request is None
     ctx.ensured.clear()
     await _reconcile(ctx)
     assert ctx.ensured == []
@@ -422,36 +485,27 @@ async def test_partial_creation_does_not_retry_issuance(monkeypatch: pytest.Monk
 
 
 @pytest.mark.parametrize("explicit_initial", [False, True])
-async def test_rotation_preserves_original_approval(explicit_initial: bool) -> None:
-    """A fresh certificate approval changes the key once and preserves enrollment history."""
+async def test_replacement_preserves_original_approval(explicit_initial: bool) -> None:
+    """A fresh certificate approval and a new CSR give one new certificate and keep enrollment history."""
     original = datetime.now(UTC)
     first_approval = original + timedelta(seconds=1) if explicit_initial else original
-    ctx = _context(
-        make_user(
-            approved_at=original,
-            certificate_approved_at=first_approval if explicit_initial else None,
-        )
-    )
-    await _reconcile(ctx)
-    await _issued(ctx)
-    await _reconcile(ctx)
-    user = await _current(ctx)
-    old_secret = await ctx.get(Secret, user_secret_name(user), namespace=PUBLIC_CERT_NAMESPACE)
-    user.spec.certificate_approved_at = first_approval + timedelta(seconds=1)
-    await _reconcile(ctx)
-    await _issued(ctx)
-    await _reconcile(ctx)
+    user = make_user(approved_at=original, certificate_approved_at=first_approval if explicit_initial else None)
+    user.spec.certificate_signing_request = _request_for(user)
+    ctx = _context(user)
+    old = await _issue(ctx)
     current = await _current(ctx)
-    assert current.spec.approved_at == original
-    assert current.metadata is not None
-    assert (current.metadata.annotations or {})[APPROVAL_ANNOTATION] == user.spec.certificate_approved_at.isoformat()
-    new_secret = await ctx.get(Secret, user_secret_name(current), namespace=PUBLIC_CERT_NAMESPACE)
-    assert new_secret.data is not None and old_secret.data is not None
-    assert new_secret.data["tls.key"] != old_secret.data["tls.key"]
-    assert new_secret.data["tls.crt"] != old_secret.data["tls.crt"]
+    current.spec.certificate_approved_at = first_approval + timedelta(seconds=1)
+    await _send(ctx)
+    new = await _issue(ctx)
+    current = await _current(ctx)
+    assert current.spec.approved_at == original and current.spec.certificate_approved_at is not None
+    assert _annotations(current)[APPROVAL_ANNOTATION] == current.spec.certificate_approved_at.isoformat()
+    assert old.spec is not None and new.spec is not None and old.status is not None and new.status is not None
+    assert new.spec.request != old.spec.request
+    assert new.status.certificate != old.status.certificate
     ctx.ensured.clear()
     await _reconcile(ctx)
-    assert not any(isinstance(item, CertificateRequest) for item in ctx.ensured)
+    assert ctx.ensured == []
 
 
 @pytest.mark.parametrize("change", ["enrollment", "clear", "older", "same"])
@@ -459,10 +513,10 @@ async def test_only_fresh_certificate_approval_can_replace(change: str) -> None:
     """Enrollment edits and old certificate approvals preserve the current certificate."""
     original = datetime.now(UTC)
     approved = original + timedelta(seconds=1)
-    ctx = _context(make_user(approved_at=original, certificate_approved_at=approved))
-    await _reconcile(ctx)
-    await _issued(ctx)
-    await _reconcile(ctx)
+    user = make_user(approved_at=original, certificate_approved_at=approved)
+    user.spec.certificate_signing_request = _request_for(user)
+    ctx = _context(user)
+    await _issue(ctx)
     current = await _current(ctx)
     if change == "enrollment":
         current.spec.approved_at = approved + timedelta(seconds=1)
@@ -470,13 +524,14 @@ async def test_only_fresh_certificate_approval_can_replace(change: str) -> None:
         current.spec.certificate_approved_at = None
     elif change == "older":
         current.spec.certificate_approved_at = original
+    await _send(ctx)
     ctx.ensured.clear()
     fingerprint = ctx.status["public_key"]
     await _reconcile(ctx)
-    assert not any(isinstance(item, CertificateRequest) for item in ctx.ensured)
+    assert ctx.ensured == []
     assert ctx.status["public_key"] == fingerprint
     assert ctx.conditions[-1][2] == "Issued"
-    await ctx.clients[Secret].delete(user_secret_name(current), namespace=PUBLIC_CERT_NAMESPACE)
+    await ctx.clients[CertificateRequest].delete(user_certificate_name(current), namespace=PUBLIC_CERT_NAMESPACE)
     ctx.ensured.clear()
     await _reconcile(ctx)
     assert ctx.ensured == []

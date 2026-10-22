@@ -16,11 +16,9 @@ from lib_opendefence_core.models.v1alpha1 import (
     is_synced,
 )
 from opendefence_core.certificates import wants_certificate
-from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate, remove_certificate
+from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
-
-USER_CERTIFICATE_FINALIZER = "platform.opendefence.fi/user-certificate"
 
 users = Controller(User, name="users", owns=(CertificateRequest,), events=recorder("users"))
 
@@ -63,16 +61,6 @@ async def reconcile_user(user: User, ctx: Context[User]) -> None:
     ctx.set_status(roles=roles, groups=groups)
     if wants_certificate(user):
         await reconcile_certificate(user, ctx)
-
-
-@users.finalize(USER_CERTIFICATE_FINALIZER)
-async def finalize_user(user: User, ctx: Context[User]) -> None:
-    """Delete the user's certificate and key pair before the User goes away.
-
-    Garbage collection would remove the owned Certificate, but not the Secret
-    holding the private key.
-    """
-    await remove_certificate(user, ctx)
 
 
 def observe_bindings(user: User, bindings: Sequence[UserBinding]) -> tuple[list[BindingObservation], list[str]]:

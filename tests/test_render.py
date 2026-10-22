@@ -102,7 +102,6 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
     assert overridden["data"]["USER_CERTIFICATE_DURATION"] == "1440h"
     assert overridden["metadata"]["name"] != config["metadata"]["name"]
     container = _one(overlay, "Deployment")["spec"]["template"]["spec"]["containers"][0]
-    # The shared core-config ConfigMap supplies the deployment name in the certificate CN
     assert [source["configMapRef"]["name"] for source in container["envFrom"]] == [
         overridden["metadata"]["name"],
         "core-config",
@@ -110,7 +109,7 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
 
 
 def test_operator_rbac() -> None:
-    """Leases for leader election, read-only UserBindings, and the user certificate key pairs."""
+    """Leases for leader election, read-only UserBindings, and no access to private keys."""
     documents = _documents(OPERATOR_PATH)
     cluster_role = _one(documents, "ClusterRole")
     assert cluster_role["metadata"]["name"] == f"{OPERATOR_NAME}.{SYSTEM_NAMESPACE}"
@@ -118,11 +117,12 @@ def test_operator_rbac() -> None:
     assert rules[("userbindings",)] == ["get", "list", "watch"]
     assert ("userbindings/status",) not in rules
     assert ("certificates",) not in rules
+    assert ("secrets",) not in rules
     assert "delete" in rules[("certificaterequests",)]
-    secrets = _one(documents, "Role", PUBLIC_CERT_NAMESPACE)
-    namespaced_rules = {tuple(rule["resources"]): rule["verbs"] for rule in secrets["rules"]}
-    assert namespaced_rules[("secrets",)] == ["create", "delete", "get", "patch"]
-    assert namespaced_rules[("certificates",)] == ["delete", "get"]
+    assert not any(
+        document["kind"] == "Role" and document["metadata"].get("namespace") == PUBLIC_CERT_NAMESPACE
+        for document in documents
+    )
     leases = _one(documents, "Role", SYSTEM_NAMESPACE)
     assert any(rule["resources"] == ["leases"] for rule in leases["rules"])
 
