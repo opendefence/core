@@ -1076,6 +1076,14 @@ spec:
                   Must be later than the consumed approval.
                 title: Certificateapprovedat
                 nullable: true
+              certificateSigningRequest:
+                maxLength: 8192
+                type: string
+                default: null
+                description: Pending PEM PKCS#10 request from the user's client. The
+                  operator consumes it once per approval and clears it.
+                title: Certificatesigningrequest
+                nullable: true
             required:
             - callsign
             title: UserSpec

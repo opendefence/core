@@ -7,7 +7,6 @@ configMapGenerator:
     namespace: opendefence-system
     literals:
       - USER_CERTIFICATE_DURATION=2880h
-      - DEPLOYMENT_DISPLAY_NAME=OpenDefence
 resources:
   - certificate.yaml
   - operator.yaml

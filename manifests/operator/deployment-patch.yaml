@@ -27,6 +27,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: core-operator-config
+            - configMapRef:
+                name: core-config # manifests/config.yaml
           ports:
             - name: health
               containerPort: 8080 # HEALTH_PORT in k8s_operator/app.py

@@ -74,6 +74,15 @@ class UserSpec(BaseModel):
         alias="certificateApprovedAt",
         description="RFC 3339 timestamp authorizing certificate replacement. Must be later than the consumed approval.",
     )
+    certificate_signing_request: str | None = Field(
+        default=None,
+        alias="certificateSigningRequest",
+        max_length=8192,
+        description=(
+            "Pending PEM PKCS#10 request from the user's client. "
+            "The operator consumes it once per approval and clears it."
+        ),
+    )
 
 
 class UserStatus(PlatformStatus):
