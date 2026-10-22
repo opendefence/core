@@ -1,5 +1,7 @@
 """Rendered operator manifests: in sync with the code, hardened, and consistent with the package."""
 
+import json
+import re
 import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
@@ -135,3 +137,13 @@ def test_webhooks_have_ca_injected() -> None:
     assert set(policies) == {"groups", "users"}
     assert set(policies["groups"]["operations"]) == {"CREATE", "UPDATE", "DELETE"}
     assert policies["users"]["operations"] == ["DELETE"]
+
+
+def test_domain_value_fits_the_certificate_common_name() -> None:
+    """Zarf rejects a domain whose first label is too long for CORE_DEPLOYMENT, before any pod starts."""
+    schema = json.loads((ROOT / "values" / "values.schema.json").read_text())
+    pattern = re.compile(schema["properties"]["domain"]["pattern"])
+    for domain in ("opendefence.invalid", "local-dev.opendefence.fi", f"{'x' * 55}.example.org"):
+        assert pattern.fullmatch(domain), domain
+    for domain in (f"{'x' * 56}.example.org", "localhost", "-bad.example.org"):
+        assert not pattern.fullmatch(domain), domain

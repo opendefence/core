@@ -102,11 +102,11 @@ def test_identity_and_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     assert uri == f"urn:uuid:{user.metadata.uid}"
     user.spec.callsign = "renamed"
     assert certificate_identity(user) == (common_name, uri)
-    _deployment(monkeypatch, "training-north")
+    _deployment(monkeypatch, "another-deployment")
     monkeypatch.setenv("USER_CERTIFICATE_DURATION", "1440h")
     _, changed = new_request(user)
     assert changed.spec is not None and changed.spec.duration == "1440h"
-    assert certificate_identity(user)[0].startswith("training-north#")
+    assert certificate_identity(user)[0].startswith("another-deployment#")
 
 
 def _deployment(monkeypatch: pytest.MonkeyPatch, name: str) -> None:
@@ -138,7 +138,7 @@ def test_wants_certificate() -> None:
     assert not wants_certificate(make_user(certificate_approved_at=now))
 
 
-CN = "training-north#0123abcd"
+CN = "local-dev#0123abcd"
 URI = "urn:uuid:9a1f0c6e-6f3e-4c55-8a3b-3c8f8b7f0d21"
 
 
