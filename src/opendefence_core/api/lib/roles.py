@@ -1,12 +1,13 @@
 """Reading and managing platform roles."""
 
+from collections.abc import Mapping
+
 from cloudcoil.apimachinery import ObjectMeta
 
 from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Role, RoleSpec, User
 from opendefence_core.api.lib.groups import effective_groups
 from opendefence_core.api.lib.refs import names, with_ref, without_ref
-from opendefence_core.api.lib.uids import by_name
 
 logger = get_logger(__name__)
 
@@ -53,9 +54,8 @@ async def referrers(name: str) -> list[str]:
     return sorted(found)
 
 
-async def effective_roles(user: User) -> list[str]:
+def effective_roles(user: User, groups: Mapping[str, Group]) -> list[str]:
     """Roles the user holds directly and roles granted by every group it is effectively in."""
-    groups = await by_name(Group)
     found = {ref.name for ref in user.spec.role_refs}
     for name in effective_groups(user, groups):
         found.update(ref.name for ref in groups[name].spec.role_refs)
