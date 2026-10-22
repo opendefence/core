@@ -102,7 +102,7 @@ when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
 
 The API and the operator read the `core-config` ConfigMap as environment variables.
 `CORE_DOMAIN` is the `domain` value. `CORE_DEPLOYMENT` is the first DNS label
-of `domain`, for example `training-north`. Both are required.
+of `domain`, for example `local-dev`. Both are required.
 `CORE_DEPLOYMENT` must have at most 55 characters.
 
 ### User certificates
@@ -127,7 +127,7 @@ Their replacement requires fresh approval.
 This transition removes their key pair Secrets.
 
 The certificate URI SAN is `urn:uuid:<canonical Kubernetes User UID>`.
-The CN is `<CORE_DEPLOYMENT>#<identity tag>`, for example `training-north#1a2b3c4d`.
+The CN is `<CORE_DEPLOYMENT>#<identity tag>`, for example `local-dev#1a2b3c4d`.
 The CN is a label for people. Integrations must not use it for identity.
 The tag is the first eight lowercase hexadecimal digits of SHA-256 over the canonical UUID text.
 Callsign changes preserve the User UID and certificate.
@@ -270,6 +270,10 @@ build tasks:
 The default `domain` is a placeholder that every deployment must override:
 its certificate can't be issued, so a deployment that forgets it fails the
 `core-tls` health check instead of serving the wrong name.
+
+Set `domain` once per deployment and do not change it.
+Its first DNS label becomes `CORE_DEPLOYMENT` and part of every user certificate CN.
+The schema limits that label to 55 characters.
 
 ```sh
 task build:lint
