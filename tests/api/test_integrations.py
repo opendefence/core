@@ -23,7 +23,7 @@ def integration_id(name: str) -> str:
 
 def _described() -> Integration:
     """An integration carrying full product info in two languages."""
-    integration = make_integration("example", roles=["example-admin"])
+    integration = make_integration("example", roles=["example-admin"], resolved=True)
     integration.spec.product_info = ProductInfo(
         icon="/ui/example/logo.svg",
         docs="https://docs.example.com/",
@@ -84,6 +84,8 @@ def test_read_integration(integrations: list[Integration]) -> None:
     assert body == {
         "id": integration_id("example"),
         "name": "example",
+        "version": "1.0.0",
+        "state": "ready",
         "title": "Example",
         "description": "An example product",
         "language": "en",
@@ -112,6 +114,20 @@ def test_read_integration_without_product_info(integrations: list[Integration]) 
     _ = integrations
     body = client.get(f"/api/v3/integrations/{integration_id('example-three')}").json()
     assert (body["title"], body["description"], body["icon"], body["component"]) == ("example-three", "", None, None)
+
+
+def test_version_comes_from_the_package(integrations: list[Integration]) -> None:
+    """The declared version travels even when the integration describes no product."""
+    _ = integrations
+    body = client.get(f"/api/v3/integrations/{integration_id('example-three')}").json()
+    assert body["version"] == "1.0.0"
+
+
+def test_state_reports_what_the_operator_did(integrations: list[Integration]) -> None:
+    """An integration the operator has not reported on is pending, not ready."""
+    _ = integrations
+    cards = {card["name"]: card["state"] for card in client.get("/api/v3/integrations").json()}
+    assert cards == {"example": "ready", "example-two": "pending", "example-three": "pending"}
 
 
 def test_unknown_integration(integrations: list[Integration]) -> None:
