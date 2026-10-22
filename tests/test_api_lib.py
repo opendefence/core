@@ -1,4 +1,4 @@
-"""REST API building blocks: JWTs, .pfx bundles, invite redemption rules."""
+"""REST API building blocks: JWTs and invite redemption rules."""
 
 import os
 from datetime import UTC, datetime, timedelta
@@ -6,18 +6,14 @@ from pathlib import Path
 
 import jwt as pyjwt
 import pytest
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
-from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.x509.oid import NameOID
 
 from lib_opendefence_core.models.v1alpha1 import Invite
 from opendefence_core.api.config import get_config
 from opendefence_core.api.lib import invites
 from opendefence_core.api.lib import jwt as api_jwt
 from opendefence_core.api.lib.codes import ALPHABET, generate_code
-from opendefence_core.api.lib.pfx import build_pfx
 from tests.factories import make_invite, make_user
 
 
@@ -134,30 +130,6 @@ def test_jwt_rejects_non_ecdsa_key(jwt_key: ec.EllipticCurvePrivateKey) -> None:
     )
     with pytest.raises(ValueError, match="not an ECDSA private key"):
         api_jwt.issue(make_user())
-
-
-def test_build_pfx_round_trip() -> None:
-    """The .pfx opens with the callsign and holds the key and certificate."""
-    key = ec.generate_private_key(ec.SECP256R1())
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "alpha1")])
-    now = datetime.now(UTC)
-    certificate = (
-        x509.CertificateBuilder()
-        .subject_name(name)
-        .issuer_name(name)
-        .public_key(key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(now)
-        .not_valid_after(now + timedelta(days=1))
-        .sign(key, hashes.SHA256())
-    )
-    key_pem = key.private_bytes(
-        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
-    )
-    chain_pem = certificate.public_bytes(serialization.Encoding.PEM)
-    loaded_key, loaded_cert, _ = pkcs12.load_key_and_certificates(build_pfx("alpha1", key_pem, chain_pem), b"alpha1")
-    assert loaded_cert == certificate
-    assert loaded_key is not None
 
 
 @pytest.mark.parametrize(

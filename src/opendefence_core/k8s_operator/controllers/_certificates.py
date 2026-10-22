@@ -21,6 +21,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, CERTIFICATE_READY_CONDITION, User
 from opendefence_core.certificates import (
     APPROVAL_ANNOTATION,
+    approval_used,
     certificate_approval,
     certificate_identity,
     check_csr,
@@ -134,13 +135,9 @@ async def reconcile_certificate(user: User, ctx: Context[User]) -> None:
         await _unavailable(user, ctx, reason, clear_request=True)
         await remove_certificate(user, ctx)
         return
-    if user.metadata is None:
-        raise ValueError(f"User {user.name} has no metadata")
-    approved_at = certificate_approval(user)
-    approval = approved_at.astimezone(UTC).isoformat()
-    consumed = (user.metadata.annotations or {}).get(APPROVAL_ANNOTATION)
+    approval = certificate_approval(user).astimezone(UTC).isoformat()
     pending = user.spec.certificate_signing_request
-    if consumed is None or approved_at > datetime.fromisoformat(consumed):
+    if not approval_used(user):
         if pending is None:
             await _unavailable(user, ctx, AWAITING_REQUEST_REASON)
             return

@@ -5,7 +5,8 @@ metadata:
   namespace: opendefence-system
 ---
 # Enrollment redeems Invites into Users: it looks an invite up by code, counts
-# the use in its status, creates the User, and reads it back for each token
+# the use in its status, creates the User, and reads it back for each token.
+# Users store their own CSR on their User
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -19,7 +20,7 @@ rules:
     verbs: [update]
   - apiGroups: [platform.opendefence.fi]
     resources: [users]
-    verbs: [get, create]
+    verbs: [get, create, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -34,15 +35,15 @@ subjects:
     name: core-api
     namespace: opendefence-system
 ---
-# Users download their own certificate as .pfx
+# Users download their own issued certificate chain
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: core-api
   namespace: opendefence-public-certs
 rules:
-  - apiGroups: [""]
-    resources: [secrets]
+  - apiGroups: [cert-manager.io]
+    resources: [certificaterequests]
     verbs: [get]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
