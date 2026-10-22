@@ -36,11 +36,11 @@ spec:
               containerPort: 8000
           readinessProbe:
             httpGet:
-              path: /api/v3/health
+              path: /readyz
               port: http
           livenessProbe:
             httpGet:
-              path: /api/v3/health
+              path: /healthz
               port: http
           resources:
             requests:
