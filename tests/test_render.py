@@ -77,8 +77,7 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
     assert operator["manifests"] == [{"name": "operator", "kustomizations": ["manifests/operator"]}]
     base = _kustomized()
     config = _one(base, "ConfigMap")
-    assert config["data"]["USER_CERTIFICATE_DURATION"] == "2880h"
-    assert config["data"]["DEPLOYMENT_DISPLAY_NAME"] == "OpenDefence"
+    assert config["data"] == {"USER_CERTIFICATE_DURATION": "2880h"}
     (tmp_path / "kustomization.yaml").write_text(
         yaml.safe_dump(
             {
@@ -90,7 +89,7 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
                         "name": "core-operator-config",
                         "namespace": SYSTEM_NAMESPACE,
                         "behavior": "merge",
-                        "literals": ["USER_CERTIFICATE_DURATION=1440h", "DEPLOYMENT_DISPLAY_NAME=Training North"],
+                        "literals": ["USER_CERTIFICATE_DURATION=1440h"],
                     }
                 ],
             }
@@ -99,10 +98,13 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
     overlay = _kustomized(tmp_path)
     overridden = _one(overlay, "ConfigMap")
     assert overridden["data"]["USER_CERTIFICATE_DURATION"] == "1440h"
-    assert overridden["data"]["DEPLOYMENT_DISPLAY_NAME"] == "Training North"
     assert overridden["metadata"]["name"] != config["metadata"]["name"]
     container = _one(overlay, "Deployment")["spec"]["template"]["spec"]["containers"][0]
-    assert container["envFrom"][0]["configMapRef"]["name"] == overridden["metadata"]["name"]
+    # The shared core-config ConfigMap supplies the deployment name in the certificate CN
+    assert [source["configMapRef"]["name"] for source in container["envFrom"]] == [
+        overridden["metadata"]["name"],
+        "core-config",
+    ]
 
 
 def test_operator_rbac() -> None:

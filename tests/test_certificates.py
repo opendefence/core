@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import cast
 
@@ -14,19 +15,19 @@ from cloudcoil.models.cert_manager.v1 import Certificate, CertificateRequest, Ce
 from cloudcoil.models.kubernetes.core.v1 import Secret
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.x509.oid import NameOID
+from pydantic import ValidationError
 
 from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, CERTIFICATE_READY_CONDITION, User
+from opendefence_core.certificates import APPROVAL_ANNOTATION, certificate_identity, check_csr, wants_certificate
+from opendefence_core.config import Config
 from opendefence_core.k8s_operator.controllers._certificates import (
-    APPROVAL_ANNOTATION,
     EMPTY_CREDENTIALS,
     accepted_credential,
-    certificate_identity,
     new_request,
     public_key_fingerprint,
     reconcile_certificate,
-    wants_certificate,
 )
 from opendefence_core.k8s_operator.controllers.users import finalize_user, reconcile_user
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name, user_secret_name
@@ -97,15 +98,21 @@ def test_identity_and_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     assert request.spec.usages == ["digital signature", "client auth"]
     common_name, uri = certificate_identity(user)
     assert user.metadata is not None and user.metadata.uid is not None
-    assert common_name == f"OpenDefence · {hashlib.sha256(user.metadata.uid.encode()).hexdigest()[:8]}"
+    assert common_name == f"local-dev#{hashlib.sha256(user.metadata.uid.encode()).hexdigest()[:8]}"
     assert uri == f"urn:uuid:{user.metadata.uid}"
     user.spec.callsign = "renamed"
     assert certificate_identity(user) == (common_name, uri)
-    monkeypatch.setenv("DEPLOYMENT_DISPLAY_NAME", "Training North")
+    _deployment(monkeypatch, "training-north")
     monkeypatch.setenv("USER_CERTIFICATE_DURATION", "1440h")
     _, changed = new_request(user)
     assert changed.spec is not None and changed.spec.duration == "1440h"
-    assert certificate_identity(user)[0].startswith("Training North · ")
+    assert certificate_identity(user)[0].startswith("training-north#")
+
+
+def _deployment(monkeypatch: pytest.MonkeyPatch, name: str) -> None:
+    """Use another deployment name in the certificate CN for this test."""
+    config = Config(domain=f"{name}.opendefence.fi", deployment=name)
+    monkeypatch.setattr("opendefence_core.certificates.get_config", lambda: config)
 
 
 @pytest.mark.parametrize("duration", ["0h", "-1h", "4months", "", "1s"])
@@ -115,10 +122,12 @@ def test_invalid_duration(duration: str, monkeypatch: pytest.MonkeyPatch) -> Non
         new_request(make_user())
 
 
-def test_invalid_identity_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("DEPLOYMENT_DISPLAY_NAME", "x" * 65)
-    with pytest.raises(ValueError, match="CN"):
-        new_request(make_user())
+def test_deployment_name_fits_the_common_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The longest accepted deployment name still gives a CN of at most 64 characters."""
+    with pytest.raises(ValidationError, match="at most 55"):
+        Config(domain="example.org", deployment="x" * 56)
+    _deployment(monkeypatch, "x" * 55)
+    assert len(certificate_identity(make_user())[0]) == 64
 
 
 def test_wants_certificate() -> None:
@@ -127,6 +136,63 @@ def test_wants_certificate() -> None:
     assert not wants_certificate(make_user())
     assert not wants_certificate(make_user(approved_at=now, revoked_at=now))
     assert not wants_certificate(make_user(certificate_approved_at=now))
+
+
+CN = "training-north#0123abcd"
+URI = "urn:uuid:9a1f0c6e-6f3e-4c55-8a3b-3c8f8b7f0d21"
+
+
+def _csr(
+    key: ec.EllipticCurvePrivateKey | rsa.RSAPrivateKey | None = None,
+    common_name: str = CN,
+    sans: list[x509.GeneralName] | None = None,
+    extra: x509.ExtensionType | None = None,
+) -> bytes:
+    """PEM CSR as a browser would build it, with overridable parts."""
+    builder = x509.CertificateSigningRequestBuilder().subject_name(
+        x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+    )
+    builder = builder.add_extension(
+        x509.SubjectAlternativeName(sans if sans is not None else [x509.UniformResourceIdentifier(URI)]),
+        critical=False,
+    )
+    if extra is not None:
+        builder = builder.add_extension(extra, critical=False)
+    signed = builder.sign(key or ec.generate_private_key(ec.SECP256R1()), hashes.SHA256())
+    return signed.public_bytes(serialization.Encoding.PEM)
+
+
+def test_check_csr_accepts_exact_identity() -> None:
+    csr = check_csr(_csr(), CN, URI)
+    assert isinstance(csr.public_key(), ec.EllipticCurvePublicKey)
+
+
+def _bad_signature() -> bytes:
+    der = bytearray(x509.load_pem_x509_csr(_csr()).public_bytes(serialization.Encoding.DER))
+    der[-1] ^= 1
+    return x509.load_der_x509_csr(bytes(der)).public_bytes(serialization.Encoding.PEM)
+
+
+@pytest.mark.parametrize(
+    ("pem", "message"),
+    [
+        (b"not a csr", "not a valid PEM"),
+        (lambda: _csr(key=rsa.generate_private_key(public_exponent=65537, key_size=2048)), "P-256"),
+        (lambda: _csr(key=ec.generate_private_key(ec.SECP384R1())), "P-256"),
+        (_bad_signature, "signature"),
+        (lambda: _csr(common_name="alpha"), "subject"),
+        (lambda: _csr(sans=[x509.UniformResourceIdentifier("urn:uuid:other")]), "subjectAltName"),
+        (
+            lambda: _csr(sans=[x509.UniformResourceIdentifier(URI), x509.DNSName("example.org")]),
+            "subjectAltName",
+        ),
+        (lambda: _csr(extra=x509.BasicConstraints(ca=True, path_length=None)), "subjectAltName"),
+    ],
+    ids=["garbage", "rsa", "p384", "bad-signature", "wrong-cn", "wrong-uri", "extra-san", "extra-extension"],
+)
+def test_check_csr_rejects(pem: bytes | Callable[[], bytes], message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        check_csr(pem if isinstance(pem, bytes) else pem(), CN, URI)
 
 
 async def test_one_shot_issuance_and_publication(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -158,7 +224,7 @@ async def test_one_shot_issuance_and_publication(monkeypatch: pytest.MonkeyPatch
     assert secret.type == "kubernetes.io/tls" and secret.data is not None and "ca.crt" in secret.data
     assert ctx.conditions[-1] == (CERTIFICATE_READY_CONDITION, True, "Issued", "")
     current.spec.callsign = "renamed"
-    monkeypatch.setenv("DEPLOYMENT_DISPLAY_NAME", "Another deployment")
+    _deployment(monkeypatch, "another-deployment")
     monkeypatch.setenv("USER_CERTIFICATE_DURATION", "24h")
     patches = len(ctx.clients[User].patches)
     ctx.ensured.clear()

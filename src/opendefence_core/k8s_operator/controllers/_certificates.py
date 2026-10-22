@@ -23,38 +23,19 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, CERTIFICATE_READY_CONDITION, User
+from opendefence_core.certificates import (
+    APPROVAL_ANNOTATION,
+    certificate_approval,
+    certificate_identity,
+    wants_certificate,
+)
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name, user_secret_name
 
 REVOKED_REASON = "Revoked"
 PENDING_REASON = "PendingApproval"
 ISSUING_REASON = "Issuing"
 ISSUED_REASON = "Issued"
-APPROVAL_ANNOTATION = "platform.opendefence.fi/certificate-approval"
 EMPTY_CREDENTIALS = '{"version":1,"accepted":[]}'
-
-
-def wants_certificate(user: User) -> bool:
-    """Whether this user is approved and not revoked."""
-    return user.spec.approved_at is not None and user.spec.revoked_at is None
-
-
-def certificate_approval(user: User) -> datetime:
-    """Use enrollment once; only a fresh certificate approval can advance issuance."""
-    assert user.spec.approved_at is not None
-    consumed = (user.metadata.annotations or {}).get(APPROVAL_ANNOTATION) if user.metadata else None
-    previous = datetime.fromisoformat(consumed) if consumed else user.spec.approved_at
-    return max(previous, user.spec.certificate_approved_at or previous)
-
-
-def certificate_identity(user: User) -> tuple[str, str]:
-    """Use the canonical Kubernetes UID; callsign changes do not change identity."""
-    uid = str(UUID(user.metadata.uid if user.metadata and user.metadata.uid else ""))
-    tag = hashlib.sha256(uid.encode()).hexdigest()[:8]
-    label = os.environ.get("DEPLOYMENT_DISPLAY_NAME", "OpenDefence").strip()
-    common_name = f"{label} · {tag}"
-    if not label or len(common_name) > 64:
-        raise ValueError("DEPLOYMENT_DISPLAY_NAME must produce a nonempty CN of at most 64 characters")
-    return common_name, f"urn:uuid:{uid}"
 
 
 def new_request(user: User) -> tuple[Secret, CertificateRequest]:

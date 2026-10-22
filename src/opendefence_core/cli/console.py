@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 import uvicorn
 
-from opendefence_core import __version__
+from opendefence_core import __version__, config
 from opendefence_core.k8s_operator import render
 from opendefence_core.k8s_operator.app import app as operator_app
 
@@ -71,6 +71,7 @@ def operator() -> None:
 @operator.command("run")
 def operator_run() -> None:
     """Run the operator against the current cluster."""
+    config.get_config()  # Fail at startup rather than at the first issuance when configuration is missing
     operator_app.main(["run"])
 
 

@@ -15,11 +15,8 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
-from opendefence_core.k8s_operator.controllers._certificates import (
-    reconcile_certificate,
-    remove_certificate,
-    wants_certificate,
-)
+from opendefence_core.certificates import wants_certificate
+from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate, remove_certificate
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
 

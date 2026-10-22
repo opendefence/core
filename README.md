@@ -100,9 +100,10 @@ JWTs are ES256, signed with a cert-manager-generated key that the API reloads
 when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
 `CORE_API_JWT_KEY_PATH`, `CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
 
-The API reads the `core-config` ConfigMap as environment variables.
+The API and the operator read the `core-config` ConfigMap as environment variables.
 `CORE_DOMAIN` is the `domain` value. `CORE_DEPLOYMENT` is the first DNS label
-of `domain`, for example `local-dev`. Both are required.
+of `domain`, for example `training-north`. Both are required.
+`CORE_DEPLOYMENT` must have at most 55 characters.
 
 ### User certificates
 
@@ -126,10 +127,11 @@ Their replacement requires fresh approval.
 This transition removes their key pair Secrets.
 
 The certificate URI SAN is `urn:uuid:<canonical Kubernetes User UID>`.
-The CN is `<deployment display name> · <identity tag>`.
+The CN is `<CORE_DEPLOYMENT>#<identity tag>`, for example `training-north#1a2b3c4d`.
+The CN is a label for people. Integrations must not use it for identity.
 The tag is the first eight lowercase hexadecimal digits of SHA-256 over the canonical UUID text.
 Callsign changes preserve the User UID and certificate.
-Deployment label and duration changes apply to the next approved issuance.
+Deployment name and duration changes apply to the next approved issuance.
 Restoring a User under a new Kubernetes UID requires a new certificate.
 
 The operator owns two User annotations:
@@ -159,10 +161,9 @@ The no-renewal policy applies to user identity certificates.
 The default user certificate duration is `2880h` (120 days, or four 30-day months).
 Use a positive whole number of hours.
 The issuer must honor the requested duration.
-Set the deployment display name to a short label.
-The complete CN must have at most 64 characters.
+The CN takes the deployment name from `CORE_DEPLOYMENT`, not from this configuration.
 
-Override the defaults in a Kustomize overlay:
+Override the default in a Kustomize overlay:
 
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -175,10 +176,9 @@ configMapGenerator:
     behavior: merge
     literals:
       - USER_CERTIFICATE_DURATION=2880h
-      - DEPLOYMENT_DISPLAY_NAME=Training North
 ```
 
-Kustomize updates the Deployment's ConfigMap reference when these values change.
+Kustomize updates the Deployment's ConfigMap reference when this value changes.
 The cert-manager request approver must approve requests for `public-issuer`.
 User approval remains the Core issuance gate.
 
