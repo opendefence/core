@@ -23,6 +23,7 @@ from opendefence_core.api.lib.jwt import Token
 from opendefence_core.api.lib.uids import compact
 from opendefence_core.api.lib.users import CallsignTaken
 from opendefence_core.api.routes.enrollment import views as enrollment_views
+from opendefence_core.api.routes.health import views as health_views
 from opendefence_core.certificates import APPROVAL_ANNOTATION, certificate_identity
 from tests.factories import condition, make_invite, make_user, uid
 
@@ -48,18 +49,30 @@ def as_user() -> Iterator[None]:
 
 
 def test_health() -> None:
-    """The probe endpoint answers ok."""
+    """The public summary names the deployment."""
     response = client.get("/api/v3/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "deployment": "local-dev", "domain": "local-dev.opendefence.fi"}
 
 
-def test_healthcheck() -> None:
-    """The UI healthcheck reports the deployment from the domain."""
-    response = client.get("/api/v3/healthcheck")
-    assert response.status_code == 200
-    assert response.json()["dns"] == "local-dev.opendefence.fi"
-    assert response.json()["deployment"] == "local-dev"
+def test_probes_are_not_versioned() -> None:
+    """Probes answer at the root, not under the versioned API."""
+    assert client.get("/healthz").status_code == 200
+    assert client.get("/api/v3/healthz").status_code == 404
+    assert client.get("/api/v3/readyz").status_code == 404
+
+
+def test_readiness_follows_the_signing_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Readiness tracks the mounted key. Liveness ignores it."""
+
+    def missing() -> None:
+        raise OSError("no such file")
+
+    monkeypatch.setattr(health_views, "load_key", lambda: None)
+    assert client.get("/readyz").status_code == 200
+    monkeypatch.setattr(health_views, "load_key", missing)
+    assert client.get("/readyz").status_code == 503
+    assert client.get("/healthz").status_code == 200
 
 
 def test_docs_under_api() -> None:
