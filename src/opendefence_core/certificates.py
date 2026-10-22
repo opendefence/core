@@ -28,6 +28,12 @@ def certificate_approval(user: User) -> datetime:
     return max(baseline, user.spec.certificate_approved_at or baseline)
 
 
+def approval_used(user: User) -> bool:
+    """Whether the current approval has already authorized an issuance."""
+    consumed = (user.metadata.annotations or {}).get(APPROVAL_ANNOTATION) if user.metadata else None
+    return consumed is not None and certificate_approval(user) <= datetime.fromisoformat(consumed)
+
+
 def certificate_identity(user: User) -> tuple[str, str]:
     """Use the canonical Kubernetes UID; callsign changes do not change identity."""
     if user.metadata is None or user.metadata.uid is None:
