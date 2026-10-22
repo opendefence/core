@@ -22,7 +22,7 @@ OPERATOR_TLS_SECRET = "core-operator-tls"  # nosec B105  # pragma: allowlist sec
 
 
 def user_certificate_name(user: User) -> str:
-    """Name of the user's cert-manager Certificate in PUBLIC_CERT_NAMESPACE."""
+    """Name of the user's one-shot cert-manager CertificateRequest in PUBLIC_CERT_NAMESPACE."""
     return f"user-{user.name}"
 
 

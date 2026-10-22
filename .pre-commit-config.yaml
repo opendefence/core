@@ -93,6 +93,8 @@ repos:
     rev: 1.9.2
     hooks:
       - id: bandit
+        # Older interpreters skip files with Python 3.14 syntax
+        language_version: "3.14"
         stages: [pre-commit]
         args: ["--exclude", ".tox,.eggs,tests"]
   - repo: https://github.com/facebook/pyrefly-pre-commit
