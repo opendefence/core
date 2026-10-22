@@ -15,6 +15,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     Integration,
     IntegrationRole,
     IntegrationSpec,
+    IntegrationStatus,
     Invite,
     InviteSpec,
     InviteStatus,
@@ -105,17 +106,23 @@ def make_role(name: str, *, owner: str | None = None) -> Role:
     )
 
 
-def make_integration(name: str, *, roles: Iterable[str] = ()) -> Integration:
-    """Integration displayed by its name."""
+def make_integration(name: str, *, roles: Iterable[str] = (), resolved: bool | None = None) -> Integration:
+    """Integration displayed by its name, with a ReferencesResolved condition unless resolved is None."""
+    status = (
+        None
+        if resolved is None
+        else IntegrationStatus(conditions=[_resolved_condition(resolved)], observed_generation=1)
+    )
     return Integration(
         api_version=API_VERSION,
         kind="Integration",
-        metadata=ObjectMeta(name=name, uid=uid(name)),
+        metadata=ObjectMeta(name=name, uid=uid(name), generation=1),
         spec=IntegrationSpec(
             display_name=name,
             version="1.0.0",
             extra_roles=[IntegrationRole(name=role, display_name=role) for role in roles],
         ),
+        status=status,
     )
 
 
