@@ -1,19 +1,29 @@
 """Request and response schemas for the certificates routes."""
 
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import Path
+from pydantic import Field
 
-from lib_opendefence_core.models.v1alpha1.user import CALLSIGN_PATTERN
-from opendefence_core.api.schema import ErrorResponse
+from opendefence_core.api.schema import ApiModel, ErrorResponse
 
-PFX_MEDIA_TYPE = "application/x-pkcs12"
+PEM_MEDIA_TYPE = "application/x-pem-file"
 
-Callsign = Annotated[str, Path(pattern=CALLSIGN_PATTERN, description="Callsign of the user.")]
 
-PFX_RESPONSES: dict[int | str, dict[str, Any]] = {
-    200: {"content": {PFX_MEDIA_TYPE: {}}, "description": "PKCS#12 bundle."},
+class CsrRequest(ApiModel):
+    """PEM PKCS#10 request for the identity in the caller's enrollment status."""
+
+    csr: str = Field(max_length=8192)
+
+
+CSR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    400: {"model": ErrorResponse, "description": "Request does not match the certificate identity."},
     401: {"model": ErrorResponse, "description": "Not authenticated."},
-    403: {"model": ErrorResponse, "description": "Certificate of another user."},
+    403: {"model": ErrorResponse, "description": "User not approved."},
+    409: {"model": ErrorResponse, "description": "Approval already used; a fresh approval is required."},
+}
+
+PEM_RESPONSES: dict[int | str, dict[str, Any]] = {
+    200: {"content": {PEM_MEDIA_TYPE: {}}, "description": "Certificate chain, leaf first."},
+    401: {"model": ErrorResponse, "description": "Not authenticated."},
     409: {"model": ErrorResponse, "description": "Certificate not issued yet."},
 }
