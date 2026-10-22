@@ -13,8 +13,7 @@ class Config(BaseSettings):
 
     # Public hostname, from the package's domain value
     domain: str = Field(min_length=1)
-    # First DNS label of the domain, e.g. local-dev; the ConfigMap template derives it.
-    # At most 55 characters, so "<deployment>#<8-hex tag>" fits the 64-character certificate CN.
+    # First DNS label of the domain, e.g. local-dev; 55 + "#<8-hex tag>" is the 64-character CN limit
     deployment: str = Field(min_length=1, max_length=55)
 
 
