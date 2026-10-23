@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 
 from cloudcoil.apimachinery import ObjectMeta
+from cloudcoil.errors import ResourceNotFound
 
 from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Role, RoleSpec, User
@@ -34,6 +35,14 @@ async def create_role(name: str, display_name: str) -> Role:
     created = await role.async_create()
     logger.audit("Role %s created", created.name)
     return created
+
+
+async def ensure_role(name: str, display_name: str) -> None:
+    """Create the role unless it exists. A reference to a missing role never resolves."""
+    try:
+        await Role.async_get(name)
+    except ResourceNotFound:
+        await create_role(name, display_name)
 
 
 async def delete_role(role: Role) -> None:
