@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { CERT_STEPS } from "./certSteps";
 
 interface CertProgressProps {

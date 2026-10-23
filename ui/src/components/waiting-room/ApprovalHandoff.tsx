@@ -2,7 +2,7 @@
 
 import QRCode from "react-qr-code";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { ApprovalLinkSteps } from "@/components/waiting-room/ApprovalLinkSteps";
 
 interface ApprovalHandoffProps {
