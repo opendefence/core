@@ -12,7 +12,7 @@ export default defineConfig([
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs["recommended-latest"],
+      reactHooks.configs.flat["recommended-latest"],
       reactRefresh.configs.vite,
     ],
     languageOptions: {
@@ -21,8 +21,19 @@ export default defineConfig([
     },
   },
   {
-    // Registry output exports variants and hooks beside the components
-    files: ["src/components/ui/**"],
+    // Registry output exports variants and hooks beside the components,
+    // and a file-based route exports its Route beside its component
+    files: ["src/components/ui/**", "src/routes/**"],
     rules: { "react-refresh/only-export-components": "off" },
+  },
+  {
+    // Compiler rules on code still waiting to be rewritten against /api/v3
+    files: ["**/*.{ts,tsx}"],
+    plugins: { "react-hooks": reactHooks },
+    rules: {
+      "react-hooks/purity": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/static-components": "warn",
+    },
   },
 ]);
