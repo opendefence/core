@@ -268,7 +268,7 @@ export default defineConfig(({ mode }) => {
       ].filter(Boolean),
       proxy: {
         "/api": {
-          target: "http://rmapi:8000",
+          target: env.CORE_API || "http://127.0.0.1:8000",
           secure: false,
         },
       },

@@ -27,6 +27,9 @@ includes:
   build:
     taskfile: ./taskfiles/build.yaml
     dir: "{{.ROOT_DIR}}"
+  ui:
+    taskfile: ./taskfiles/ui.yaml
+    dir: "{{.ROOT_DIR}}"
 
 tasks:
   default:
