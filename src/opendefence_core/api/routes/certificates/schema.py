@@ -16,6 +16,7 @@ class CsrRequest(ApiModel):
 
 
 CSR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    202: {"description": "CSR stored, not yet signed."},
     400: {"model": ErrorResponse, "description": "Request does not match the certificate identity."},
     401: {"model": ErrorResponse, "description": "Not authenticated."},
     403: {"model": ErrorResponse, "description": "User not approved."},

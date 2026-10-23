@@ -18,7 +18,7 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 
 - Never edit the generated manifests by hand. After changing models, controllers, webhooks, or `RBACRule`s, run `task build:manifests`; `tests/test_render.py` and `task build:manifests:check` fail while the files are stale.
 - Every CRD field needs a description (a test checks this). Refer to other platform objects by name with `ObjectRef` and resolve them with the `_refs.py` helpers. Condition types are constants in the models.
-- The API speaks camelCase JSON through `ApiModel`. Routes live under `/api/v3` and get their configuration from `get_config()`, never from a module-level instance.
+- The API speaks camelCase JSON through `ApiModel`. Routes live under `/api/v3` and get their configuration from `get_core_config()` or `get_api_config()`, never from a module-level instance.
 - The operator only gains permissions through `RBACRule` in `k8s_operator/app.py`; the API's RBAC is hand-written in `manifests/api/rbac.yaml`. Keep both least-privilege.
 - The image is `ghcr.io/opendefence/core` and the Zarf package `core` is published under `oci://ghcr.io/opendefence/packages`. They share version tags, so they must stay in separate repositories.
 - Deployments pass only `args`, keeping the image entrypoint `tini -- opendefence_core`.

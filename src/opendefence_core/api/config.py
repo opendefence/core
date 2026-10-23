@@ -18,6 +18,6 @@ class Config(BaseSettings):
 
 
 @cache
-def get_config() -> Config:
+def get_api_config() -> Config:
     """Configuration, read from the environment on first use."""
     return Config()

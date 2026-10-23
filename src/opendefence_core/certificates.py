@@ -5,11 +5,12 @@ from datetime import datetime
 from uuid import UUID
 
 from cryptography import x509
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from lib_opendefence_core.models.v1alpha1 import User
-from opendefence_core.config import get_config
+from opendefence_core.config import get_core_config
 
 APPROVAL_ANNOTATION = "platform.opendefence.fi/certificate-approval"
 
@@ -40,7 +41,7 @@ def certificate_identity(user: User) -> tuple[str, str]:
         raise ValueError(f"User {user.name} has no UID; only stored Users get certificates")
     uid = str(UUID(user.metadata.uid))
     tag = hashlib.sha256(uid.encode()).hexdigest()[:8]
-    return f"{get_config().deployment}#{tag}", f"urn:uuid:{uid}"
+    return f"{get_core_config().deployment}#{tag}", f"urn:uuid:{uid}"
 
 
 def check_csr(pem: bytes, common_name: str, uri: str) -> x509.CertificateSigningRequest:
@@ -50,7 +51,10 @@ def check_csr(pem: bytes, common_name: str, uri: str) -> x509.CertificateSigning
         extensions = list(csr.extensions)
     except (ValueError, x509.DuplicateExtension) as exc:
         raise ValueError("Certificate request is not a valid PEM PKCS#10 request") from exc
-    key = csr.public_key()
+    try:
+        key = csr.public_key()
+    except (ValueError, UnsupportedAlgorithm) as exc:
+        raise ValueError("Certificate request key must be ECDSA P-256") from exc
     if not isinstance(key, ec.EllipticCurvePublicKey) or not isinstance(key.curve, ec.SECP256R1):
         raise ValueError("Certificate request key must be ECDSA P-256")
     if not csr.is_signature_valid:

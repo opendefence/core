@@ -87,5 +87,5 @@ configMapGenerator:
     namespace: opendefence-system
     behavior: merge
     literals:
-      - USER_CERTIFICATE_DURATION=2880h
+      - CORE_OPERATOR_USER_CERTIFICATE_DURATION=2880h
 ```

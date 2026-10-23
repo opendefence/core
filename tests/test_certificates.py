@@ -21,6 +21,7 @@ from pydantic import ValidationError
 from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, CERTIFICATE_READY_CONDITION, User
 from opendefence_core.certificates import APPROVAL_ANNOTATION, certificate_identity, check_csr, wants_certificate
 from opendefence_core.config import Config
+from opendefence_core.k8s_operator import config as operator_config
 from opendefence_core.k8s_operator.controllers._certificates import (
     EMPTY_CREDENTIALS,
     accepted_credential,
@@ -142,7 +143,13 @@ async def _issue(ctx: FakeContext) -> CertificateRequest:
 def _deployment(monkeypatch: pytest.MonkeyPatch, name: str) -> None:
     """Use another deployment name in the certificate CN for this test."""
     config = Config(domain=f"{name}.opendefence.fi", deployment=name)
-    monkeypatch.setattr("opendefence_core.certificates.get_config", lambda: config)
+    monkeypatch.setattr("opendefence_core.certificates.get_core_config", lambda: config)
+
+
+def _duration(monkeypatch: pytest.MonkeyPatch, duration: str) -> None:
+    """Use another certificate duration for this test."""
+    config = operator_config.Config(user_certificate_duration=duration)
+    monkeypatch.setattr("opendefence_core.k8s_operator.controllers._certificates.get_operator_config", lambda: config)
 
 
 def _annotations(user: User) -> dict[str, str]:
@@ -168,7 +175,7 @@ def test_identity_and_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     user.spec.callsign = "renamed"
     assert certificate_identity(user) == (common_name, uri)
     _deployment(monkeypatch, "another-deployment")
-    monkeypatch.setenv("USER_CERTIFICATE_DURATION", "1440h")
+    _duration(monkeypatch, "1440h")
     changed = new_request(user, csr)
     assert changed.spec is not None and changed.spec.duration == "1440h"
     assert certificate_identity(user)[0].startswith("another-deployment#")
@@ -176,10 +183,9 @@ def test_identity_and_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.parametrize("duration", ["0h", "-1h", "4months", "", "1s"])
 def test_invalid_duration(duration: str, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("USER_CERTIFICATE_DURATION", duration)
-    user = make_user(approved_at=datetime.now(UTC))
-    with pytest.raises(ValueError, match="whole number of hours"):
-        new_request(user, _request_for(user))
+    monkeypatch.setenv("CORE_OPERATOR_USER_CERTIFICATE_DURATION", duration)
+    with pytest.raises(ValidationError, match="user_certificate_duration"):
+        operator_config.Config()
 
 
 def test_deployment_name_fits_the_common_name(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -209,12 +215,27 @@ def _bad_signature() -> bytes:
     return x509.load_der_x509_csr(bytes(der)).public_bytes(serialization.Encoding.PEM)
 
 
+def _unknown_oid(oid: str) -> Callable[[], bytes]:
+    """A P-256 CSR whose key algorithm or curve OID is changed to one the library does not know."""
+
+    def build() -> bytes:
+        known = bytes.fromhex(oid)
+        der = x509.load_pem_x509_csr(_csr()).public_bytes(serialization.Encoding.DER)
+        return x509.load_der_x509_csr(der.replace(known, known[:-1] + b"\x7f", 1)).public_bytes(
+            serialization.Encoding.PEM
+        )
+
+    return build
+
+
 @pytest.mark.parametrize(
     ("pem", "message"),
     [
         (b"not a csr", "not a valid PEM"),
         (lambda: _csr(key=rsa.generate_private_key(public_exponent=65537, key_size=2048)), "P-256"),
         (lambda: _csr(key=ec.generate_private_key(ec.SECP384R1())), "P-256"),
+        (_unknown_oid("06072a8648ce3d0201"), "P-256"),  # id-ecPublicKey  # pragma: allowlist secret
+        (_unknown_oid("06082a8648ce3d030107"), "P-256"),  # secp256r1  # pragma: allowlist secret
         (_bad_signature, "signature"),
         (lambda: _csr(common_name="alpha"), "subject"),
         (lambda: _csr(sans=[x509.UniformResourceIdentifier("urn:uuid:other")]), "subjectAltName"),
@@ -224,7 +245,18 @@ def _bad_signature() -> bytes:
         ),
         (lambda: _csr(extra=x509.BasicConstraints(ca=True, path_length=None)), "subjectAltName"),
     ],
-    ids=["garbage", "rsa", "p384", "bad-signature", "wrong-cn", "wrong-uri", "extra-san", "extra-extension"],
+    ids=[
+        "garbage",
+        "rsa",
+        "p384",
+        "unknown-key",
+        "unknown-curve",
+        "bad-signature",
+        "wrong-cn",
+        "wrong-uri",
+        "extra-san",
+        "extra-extension",
+    ],
 )
 def test_check_csr_rejects(pem: bytes | Callable[[], bytes], message: str) -> None:
     with pytest.raises(ValueError, match=message):
@@ -262,7 +294,7 @@ async def test_one_shot_issuance_and_publication(monkeypatch: pytest.MonkeyPatch
     assert Secret not in ctx.clients
     current.spec.callsign = "renamed"
     _deployment(monkeypatch, "another-deployment")
-    monkeypatch.setenv("USER_CERTIFICATE_DURATION", "24h")
+    _duration(monkeypatch, "24h")
     patches = len(ctx.clients[User].patches)
     ctx.ensured.clear()
     await _reconcile(ctx)
