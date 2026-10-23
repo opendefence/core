@@ -1,6 +1,6 @@
 import type React from "react";
 import { MoreVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 

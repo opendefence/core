@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import QRCode from "react-qr-code";
 import { useCopyToClipboard } from "@/hooks/helpers/useCopyToClipboard";
 import { useTranslation } from "react-i18next";

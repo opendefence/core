@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { ChevronDown, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";

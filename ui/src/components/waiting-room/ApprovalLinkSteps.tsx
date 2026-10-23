@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useCopyToClipboard } from "@/hooks/helpers/useCopyToClipboard";
 import { useIsMobile } from "@/hooks/use-mobile";
 
