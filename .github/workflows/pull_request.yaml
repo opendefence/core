@@ -45,6 +45,8 @@ jobs:
         run: task ui:install
       - name: Lint
         run: task ui:lint
+      - name: Typecheck
+        run: task ui:typecheck
       - name: Build
         run: task ui:build
 
