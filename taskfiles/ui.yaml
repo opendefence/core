@@ -4,6 +4,7 @@ version: "3"
 
 vars:
   UI_DIR: '{{.UI_DIR | default "ui"}}'
+  SCHEMA: '{{.SCHEMA | default "src/api/schema.d.ts"}}'
 
 tasks:
   install:
@@ -28,6 +29,14 @@ tasks:
     preconditions: *pnpm
     cmds:
       - pnpm vite build
+
+  api:
+    desc: Regenerate the API types from the Python API schema
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - uv run --locked --project .. opendefence_core api schema | pnpm openapi-typescript -o {{.SCHEMA | shellQuote}}
+      - pnpm prettier --write {{.SCHEMA | shellQuote}}
 
   typecheck:
     desc: Check the UI types without emitting
