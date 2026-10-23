@@ -36,19 +36,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # The package's manifests pin this tag, so it must exist before the package is published.
-      # The package itself goes to packages/core, because it shares version tags with the image.
-      - name: Build and push the image
+      # The package's manifests pin these tags, so they must exist before the package is published.
+      # The package itself goes to packages/core, because it shares version tags with the images.
+      - name: Build and push the images
         env:
           IMAGE: ghcr.io/opendefence/core:${{ steps.version.outputs.tag }}
+          UI_IMAGE: ghcr.io/opendefence/core-ui:${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
           docker build --target production -t "$IMAGE" .
           docker run --rm "$IMAGE" --version
           docker push "$IMAGE"
+          docker build --target production -t "$UI_IMAGE" ui
+          docker push "$UI_IMAGE"
           {
-            printf '## Published image\n\n'
-            printf -- "- \`%s\`\n" "$IMAGE"
+            printf '## Published images\n\n'
+            printf -- "- \`%s\`\n" "$IMAGE" "$UI_IMAGE"
           } >> "$GITHUB_STEP_SUMMARY"
 
   package:

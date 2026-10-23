@@ -1,17 +1,11 @@
 {
-  "name": "react-rasenmaeher-ui-v2",
+  "name": "core-ui",
   "private": true,
-  "version": "2.7.7+261028",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "preview": "vite preview"
   },
   "dependencies": {
     "@module-federation/enhanced": "^2.9.2",

@@ -49,6 +49,8 @@ jobs:
         run: task ui:typecheck
       - name: Build
         run: task ui:build
+      - name: Build the production image
+        run: docker build --target production -t core-ui-check ui
 
   bumpversion-check:
     runs-on: ubuntu-latest
