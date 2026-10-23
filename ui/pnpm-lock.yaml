@@ -13,6 +13,9 @@ importers:
       "@tailwindcss/vite":
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.5(@types/node@26.6.5)(jiti@2.7.0))
+      "@tanstack/react-query":
+        specifier: ^5.104.5
+        version: 5.105.0(@types/react@19.3.0)(react@19.3.1)
       "@tanstack/react-router":
         specifier: ^1.170.46
         version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -43,6 +46,9 @@ importers:
       lucide-react:
         specifier: ^1.61.0
         version: 1.63.0(@types/react@19.3.0)(react@19.3.1)
+      openapi-fetch:
+        specifier: ^0.17.0
+        version: 0.17.0
       pdfmake:
         specifier: ^0.3.12
         version: 0.3.13
@@ -2186,6 +2192,24 @@ packages:
       }
     engines: { node: ">=20.19" }
 
+  "@tanstack/query-core@5.105.0":
+    resolution:
+      {
+        integrity: sha512-7p56vRmT/z4UJ6sctGIdl5WRUQyUv53IUpUwEKi2g97zMbO7zh8ZsCLffGAvCPBR4xD72e3VXsDyLwXHhoNTMQ==,
+      }
+
+  "@tanstack/react-query@5.105.0":
+    resolution:
+      {
+        integrity: sha512-y+hMuDERvgg6ay1da0V1a6ZC0ZONt7dELxSFkqRZuwm7p1TTZs0MoXrPlBRflIpRoYjvzQVYxycnLImpFLhWrw==,
+      }
+    peerDependencies:
+      "@types/react": ^18 || ^19
+      react: ^18 || ^19
+    peerDependenciesMeta:
+      "@types/react":
+        optional: true
+
   "@tanstack/react-router@1.170.46":
     resolution:
       {
@@ -4105,6 +4129,18 @@ packages:
     resolution:
       {
         integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==,
+      }
+
+  openapi-fetch@0.17.0:
+    resolution:
+      {
+        integrity: sha512-PsbZR1wAPcG91eEthKhN+Zn92FMHxv+/faECIwjXdxfTODGSGegYv0sc1Olz+HYPvKOuoXfp+0pA2XVt2cI0Ig==,
+      }
+
+  openapi-typescript-helpers@0.1.0:
+    resolution:
+      {
+        integrity: sha512-OKTGPthhivLw/fHz6c3OPtg72vi86qaMlqbJuVJ23qOvQ+53uw1n7HdmkJFibloF7QEjDrDkzJiOJuockM/ljw==,
       }
 
   openapi-typescript@7.13.0:
@@ -6513,6 +6549,15 @@ snapshots:
 
   "@tanstack/history@1.162.5": {}
 
+  "@tanstack/query-core@5.105.0": {}
+
+  "@tanstack/react-query@5.105.0(@types/react@19.3.0)(react@19.3.1)":
+    dependencies:
+      "@tanstack/query-core": 5.105.0
+      react: 19.3.1
+    optionalDependencies:
+      "@types/react": 19.3.0
+
   "@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)":
     dependencies:
       "@tanstack/history": 1.162.5
@@ -7796,6 +7841,12 @@ snapshots:
   once@1.4.0:
     dependencies:
       wrappy: 1.0.2
+
+  openapi-fetch@0.17.0:
+    dependencies:
+      openapi-typescript-helpers: 0.1.0
+
+  openapi-typescript-helpers@0.1.0: {}
 
   openapi-typescript@7.13.0(typescript@6.0.3):
     dependencies:
