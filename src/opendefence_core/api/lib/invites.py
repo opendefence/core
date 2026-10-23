@@ -13,14 +13,17 @@ from lib_opendefence_core.models.v1alpha1 import (
     Invite,
     InviteSpec,
     InviteStatus,
+    ObjectRef,
     User,
     UserSpec,
 )
 from opendefence_core.api.lib.codes import generate_code
+from opendefence_core.api.lib.roles import ensure_role
 from opendefence_core.api.lib.users import check_callsign
 
 APPROVAL_CODE_LENGTH = 8
 INVITE_CODE_LENGTH = 8
+ADMIN_CODE_LENGTH = 16
 UNLIMITED = -1
 
 logger = get_logger(__name__)
@@ -62,6 +65,14 @@ async def create_invite(spec: InviteSpec) -> Invite:
     created = await invite.async_create()
     logger.audit("Invite %s created", created.name)
     return created
+
+
+async def create_admin_invite(role: str, display_name: str) -> str:
+    """Create a single-use auto-approving invite for the role and return its code."""
+    await ensure_role(role, display_name)
+    code = generate_code(ADMIN_CODE_LENGTH)
+    await create_invite(InviteSpec(code=code, role_refs=[ObjectRef(name=role)], use_count=1, auto_approve=True))
+    return code
 
 
 async def update_invite(invite: Invite, spec: InviteSpec) -> Invite:

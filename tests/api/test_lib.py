@@ -7,15 +7,16 @@ from pathlib import Path
 
 import jwt as pyjwt
 import pytest
+from cloudcoil.errors import ResourceNotFound
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 
-from lib_opendefence_core.models.v1alpha1 import Invite, User
+from lib_opendefence_core.models.v1alpha1 import Invite, InviteSpec, Role, User
 from opendefence_core.api.config import get_api_config
-from opendefence_core.api.lib import invites, uids
+from opendefence_core.api.lib import invites, roles, uids
 from opendefence_core.api.lib import jwt as api_jwt
 from opendefence_core.api.lib.codes import ALPHABET, generate_code
-from tests.factories import make_invite, make_user, uid
+from tests.factories import make_invite, make_role, make_user, uid
 from tests.fakes import FakeList
 
 # The pair the identifier contract gives as its example.
@@ -212,3 +213,65 @@ def test_new_user_auto_approved() -> None:
     """Auto-approving invites approve the user right away."""
     user = invites._new_user(_invite(auto_approve=True), "bravo2")
     assert user.spec.approved_at is not None
+
+
+@pytest.fixture
+def made_roles(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    """Record the roles ensure_role would create."""
+    created: list[tuple[str, str]] = []
+
+    async def create_role(name: str, display_name: str) -> Role:
+        created.append((name, display_name))
+        return make_role(name)
+
+    monkeypatch.setattr(roles, "create_role", create_role)
+    return created
+
+
+async def test_ensure_role_keeps_an_existing_role(
+    monkeypatch: pytest.MonkeyPatch, made_roles: list[tuple[str, str]]
+) -> None:
+    """A role that is already there is left as it is."""
+
+    async def async_get(name: str) -> Role:
+        return make_role(name)
+
+    monkeypatch.setattr(Role, "async_get", async_get)
+    await roles.ensure_role("superadmin", "Superadmin")
+    assert made_roles == []
+
+
+async def test_ensure_role_creates_a_missing_role(
+    monkeypatch: pytest.MonkeyPatch, made_roles: list[tuple[str, str]]
+) -> None:
+    """A reference to a missing role never resolves, so create it first."""
+
+    async def async_get(name: str) -> Role:
+        raise ResourceNotFound(name)
+
+    monkeypatch.setattr(Role, "async_get", async_get)
+    await roles.ensure_role("group-admin", "Group admin")
+    assert made_roles == [("group-admin", "Group admin")]
+
+
+async def test_admin_invite_is_single_use_and_approves(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The first administrator's invite grants the role once and needs no approver."""
+    specs: list[InviteSpec] = []
+
+    async def ensure_role(name: str, display_name: str) -> None:
+        _ = name, display_name
+
+    async def create_invite(spec: InviteSpec) -> Invite:
+        specs.append(spec)
+        return make_invite()
+
+    monkeypatch.setattr(invites, "ensure_role", ensure_role)
+    monkeypatch.setattr(invites, "create_invite", create_invite)
+
+    code = await invites.create_admin_invite("superadmin", "Superadmin")
+    [spec] = specs
+    assert spec.code == code
+    assert len(code) == invites.ADMIN_CODE_LENGTH
+    assert [ref.name for ref in spec.role_refs] == ["superadmin"]
+    assert spec.use_count == 1
+    assert spec.auto_approve is True
