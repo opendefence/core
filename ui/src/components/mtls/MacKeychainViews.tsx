@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { ChevronDown, ChevronRight, KeyRound, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { CertIcon, KeyIcon, MacButton, PANEL, RING } from "./MacDialogs";
 
 const s =

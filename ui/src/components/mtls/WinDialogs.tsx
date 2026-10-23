@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, Check, ChevronDown, Info, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const FONT = "[font-family:'Segoe_UI',system-ui,sans-serif] tracking-normal";
 const RING = "outline outline-[3px] outline-offset-2 outline-[#c41010]";

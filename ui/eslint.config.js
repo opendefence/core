@@ -20,4 +20,9 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Registry output exports variants and hooks beside the components
+    files: ["src/components/ui/**"],
+    rules: { "react-refresh/only-export-components": "off" },
+  },
 ]);

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGuidePreferences } from "@/hooks/useGuidePreferences";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 interface DisableGuidesButtonProps {
   /**
