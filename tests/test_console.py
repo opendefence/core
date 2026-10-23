@@ -8,8 +8,9 @@ from typing import Any
 import pytest
 import uvicorn
 from click.testing import CliRunner
+from cloudcoil.errors import APIError
 
-from opendefence_core import __version__
+from opendefence_core import __version__, naming
 from opendefence_core.cli import console
 from opendefence_core.cli.console import opendefence_core_cli
 from opendefence_core.k8s_operator import render
@@ -55,6 +56,58 @@ def test_api_schema_prints_the_openapi_document() -> None:
     document = json.loads(result.output)
     assert document["openapi"].startswith("3.")
     assert "/api/v3/certificates/csr" in document["paths"]
+
+
+def test_api_invite_prints_the_code_it_created(monkeypatch: pytest.MonkeyPatch) -> None:
+    """api invite creates the invite and prints nothing but its code."""
+    created: list[tuple[str, str]] = []
+
+    async def create_admin_invite(role: str, display_name: str) -> str:
+        created.append((role, display_name))
+        return "CODE"
+
+    monkeypatch.setattr(console, "create_admin_invite", create_admin_invite)
+    result = runner.invoke(opendefence_core_cli, ["api", "invite"])
+    assert result.exit_code == 0, result.output
+    assert result.output == "CODE\n"
+    assert created == [(naming.SUPERADMIN_ROLE, naming.SUPERADMIN_ROLE)]
+
+
+def test_api_invite_names_the_role_as_typed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Neither name is derived from the other, so two spellings stay two roles."""
+    created: list[tuple[str, str]] = []
+
+    async def create_admin_invite(role: str, display_name: str) -> str:
+        created.append((role, display_name))
+        return "CODE"
+
+    monkeypatch.setattr(console, "create_admin_invite", create_admin_invite)
+    result = runner.invoke(
+        opendefence_core_cli, ["api", "invite", "--role", "group-admin", "--display-name", "Group admin"]
+    )
+    assert result.exit_code == 0, result.output
+    assert created == [("group-admin", "Group admin")]
+
+
+@pytest.mark.parametrize("name", ["Superadmin", "super admin", "-admin", "a" * 64])
+def test_api_invite_rejects_an_impossible_role_name(name: str) -> None:
+    """A name Kubernetes would refuse fails before the command reaches the cluster."""
+    result = runner.invoke(opendefence_core_cli, ["api", "invite", "--role", name])
+    assert result.exit_code == 2
+    assert "lowercase letters" in result.output
+
+
+def test_api_invite_reports_a_rejected_invite(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Kubernetes error becomes a message rather than a traceback."""
+
+    async def create_admin_invite(role: str, display_name: str) -> str:
+        _ = role, display_name
+        raise APIError("denied")
+
+    monkeypatch.setattr(console, "create_admin_invite", create_admin_invite)
+    result = runner.invoke(opendefence_core_cli, ["api", "invite"])
+    assert result.exit_code == 1
+    assert "Creating the invite failed" in result.output
 
 
 def test_operator_run_starts_application(monkeypatch: pytest.MonkeyPatch) -> None:

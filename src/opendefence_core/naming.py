@@ -20,6 +20,9 @@ OPERATOR_NAME = "core-operator"
 OPERATOR_TLS_SECRET = "core-operator-tls"  # nosec B105  # pragma: allowlist secret
 """Serving certificate of the operator's admission webhook."""
 
+SUPERADMIN_ROLE = "superadmin"
+"""Role that grants full administration of the platform."""
+
 
 def user_certificate_name(user: User) -> str:
     """Name of the user's one-shot cert-manager CertificateRequest in PUBLIC_CERT_NAMESPACE."""

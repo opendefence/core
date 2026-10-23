@@ -1,14 +1,19 @@
 """Command line entrypoint for the core operator and REST API."""
 
+import asyncio
 import json
 import logging
+import re
 from pathlib import Path
 
 import click
 import uvicorn
+from cloudcoil.errors import APIError
 
 from lib_opendefence_core.logging import init_logging
-from opendefence_core import __version__, config
+from lib_opendefence_core.models.v1alpha1.integration import ROLE_NAME_PATTERN
+from opendefence_core import __version__, config, naming
+from opendefence_core.api.lib.invites import create_admin_invite
 from opendefence_core.k8s_operator import render
 from opendefence_core.k8s_operator.app import app as operator_app
 
@@ -71,6 +76,32 @@ def api_schema() -> None:
     from opendefence_core.api.app import app as api_app  # noqa: PLC0415
 
     click.echo(json.dumps(api_app.openapi(), indent=2, ensure_ascii=False))
+
+
+def _role_name(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """Reject a name Kubernetes would, before the command reaches the cluster."""
+    _ = ctx, param
+    if len(value) > 63 or not re.match(ROLE_NAME_PATTERN, value):
+        raise click.BadParameter("Use lowercase letters, digits and dashes, at most 63 characters.")
+    return value
+
+
+@api.command("invite")
+@click.option(
+    "--role",
+    default=naming.SUPERADMIN_ROLE,
+    show_default=True,
+    callback=_role_name,
+    help="Name of the role the invite grants.",
+)
+@click.option("--display-name", default=None, help="Human-readable name, if the role has to be created.")
+def api_invite(role: str, display_name: str | None) -> None:
+    """Create a single-use invite for the first administrator and print its code."""
+    try:
+        code = asyncio.run(create_admin_invite(role, display_name or role))
+    except APIError as exc:
+        raise click.ClickException(f"Creating the invite failed: {exc}") from exc
+    click.echo(code)
 
 
 @opendefence_core_cli.group()
