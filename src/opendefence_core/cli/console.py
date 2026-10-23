@@ -1,5 +1,6 @@
 """Command line entrypoint for the core operator and REST API."""
 
+import json
 import logging
 from pathlib import Path
 
@@ -62,6 +63,14 @@ def api_run(host: str, port: int, reload: bool, reload_dirs: tuple[str, ...]) ->
         reload=reload,
         reload_dirs=list(reload_dirs) or None,
     )
+
+
+@api.command("schema")
+def api_schema() -> None:
+    """Print the OpenAPI document."""
+    from opendefence_core.api.app import app as api_app  # noqa: PLC0415
+
+    click.echo(json.dumps(api_app.openapi(), indent=2, ensure_ascii=False))
 
 
 @opendefence_core_cli.group()

@@ -1,5 +1,6 @@
 """Command line interface."""
 
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -45,6 +46,15 @@ def test_api_run_serves_app_with_uvicorn(monkeypatch: pytest.MonkeyPatch) -> Non
     assert calls == [
         ("opendefence_core.api.app:app", {"host": "0.0.0.0", "port": 9000, "reload": True, "reload_dirs": ["src"]})
     ]
+
+
+def test_api_schema_prints_the_openapi_document() -> None:
+    """api schema prints the document that the UI's client is generated from."""
+    result = runner.invoke(opendefence_core_cli, ["api", "schema"])
+    assert result.exit_code == 0, result.output
+    document = json.loads(result.output)
+    assert document["openapi"].startswith("3.")
+    assert "/api/v3/certificates/csr" in document["paths"]
 
 
 def test_operator_run_starts_application(monkeypatch: pytest.MonkeyPatch) -> None:
