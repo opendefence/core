@@ -7,10 +7,12 @@ from typing import Any
 import pytest
 import uvicorn
 from click.testing import CliRunner
+from pydantic import ValidationError
 
 from opendefence_core import __version__
 from opendefence_core.cli import console
 from opendefence_core.cli.console import opendefence_core_cli
+from opendefence_core.k8s_operator import config as operator_config
 from opendefence_core.k8s_operator import render
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +56,17 @@ def test_operator_run_starts_application(monkeypatch: pytest.MonkeyPatch) -> Non
     result = runner.invoke(opendefence_core_cli, ["operator", "run"])
     assert result.exit_code == 0, result.output
     assert calls == [["run"]]
+
+
+def test_operator_run_rejects_bad_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A bad operator setting stops operator run before the Application starts."""
+    calls: list[list[str]] = []
+    monkeypatch.setattr(console.operator_app, "main", calls.append)
+    monkeypatch.setattr(console, "get_operator_config", operator_config.Config)  # uncached, reads the patched env
+    monkeypatch.setenv("CORE_OPERATOR_USER_CERTIFICATE_DURATION", "5d")
+    result = runner.invoke(opendefence_core_cli, ["operator", "run"])
+    assert isinstance(result.exception, ValidationError)
+    assert calls == []
 
 
 def test_operator_render_check_accepts_committed_manifests() -> None:

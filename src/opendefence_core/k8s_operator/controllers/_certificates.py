@@ -3,8 +3,6 @@
 import base64
 import hashlib
 import json
-import os
-import re
 from contextlib import suppress
 from datetime import UTC, datetime
 
@@ -27,6 +25,7 @@ from opendefence_core.certificates import (
     check_csr,
     wants_certificate,
 )
+from opendefence_core.k8s_operator.config import get_operator_config
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name
 
 REVOKED_REASON = "Revoked"
@@ -40,15 +39,12 @@ EMPTY_CREDENTIALS = '{"version":1,"accepted":[]}'
 
 def new_request(user: User, csr: str) -> CertificateRequest:
     """One immutable signing request for the user's PEM CSR under the current approval."""
-    duration = os.environ.get("USER_CERTIFICATE_DURATION", "2880h")
-    if not re.fullmatch(r"[1-9][0-9]*h", duration):
-        raise ValueError("USER_CERTIFICATE_DURATION must be a positive whole number of hours")
     approval = {APPROVAL_ANNOTATION: certificate_approval(user).astimezone(UTC).isoformat()}
     return CertificateRequest(
         metadata=ObjectMeta(name=user_certificate_name(user), namespace=PUBLIC_CERT_NAMESPACE, annotations=approval),
         spec=CertificateRequestSpec(
             request=base64.b64encode(csr.encode()).decode(),
-            duration=duration,
+            duration=get_operator_config().user_certificate_duration,
             usages=["digital signature", "client auth"],
             issuer_ref=IssuerRef(name=PUBLIC_ISSUER, kind="ClusterIssuer", group="cert-manager.io"),
         ),
@@ -62,6 +58,7 @@ def public_key_fingerprint(certificate: str) -> str:
 
 
 def _spki(item: x509.Certificate | x509.CertificateSigningRequest) -> bytes:
+    """DER SubjectPublicKeyInfo of a certificate or CSR, for comparing keys."""
     return item.public_key().public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
 
 
@@ -196,12 +193,14 @@ async def _publish(user: User, ctx: Context[User], request: CertificateRequest) 
 async def _unavailable(
     user: User, ctx: Context[User], reason: str, *, message: str = "", clear_request: bool = False
 ) -> None:
+    """Withdraw the accepted credential and set CertificateReady to False with this reason."""
     await _patch_user(user, ctx, {ACCEPTED_CREDENTIALS_ANNOTATION: EMPTY_CREDENTIALS}, clear_request=clear_request)
     ctx.set_status(public_key=None)
     ctx.condition(CERTIFICATE_READY_CONDITION, False, reason=reason, message=message)
 
 
 def _check_owner(user: User, resource: Resource) -> None:
+    """Raise unless this User is the resource's controller owner."""
     if (
         not resource.metadata
         or not user.metadata
@@ -214,6 +213,7 @@ def _check_owner(user: User, resource: Resource) -> None:
 
 
 async def _get[R: Resource](ctx: Context[User], resource: type[R], name: str) -> R | None:
+    """The named resource in the public certificate namespace, or None when it does not exist."""
     try:
         return await ctx.get(resource, name, namespace=PUBLIC_CERT_NAMESPACE)
     except ResourceNotFound:

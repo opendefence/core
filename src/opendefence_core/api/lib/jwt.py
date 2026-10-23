@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, load_pem_private_key
 
 from lib_opendefence_core.models.v1alpha1 import User
-from opendefence_core.api.config import get_config
+from opendefence_core.api.config import get_api_config
 from opendefence_core.api.schema import ApiModel
 
 ALGORITHM = "ES256"
@@ -39,7 +39,7 @@ class SigningKey:
 
     def current(self) -> EllipticCurvePrivateKey:
         """Signing key, reloaded if the file changed since it was last read."""
-        path = get_config().jwt_key_path
+        path = get_api_config().jwt_key_path
         stamp = (path, path.stat().st_mtime_ns)
         key = self._key
         if key is None or stamp != self._loaded:
@@ -69,7 +69,7 @@ def issue(user: User) -> Token:
     """Issue a token for the user."""
     if user.metadata is None or user.metadata.uid is None:
         raise ValueError("User has no uid!")
-    config = get_config()
+    config = get_api_config()
     now = datetime.now(UTC)
     expires_at = now + timedelta(seconds=config.jwt_lifetime)
     claims = {
@@ -101,6 +101,6 @@ def _decode(token: str, key: EllipticCurvePublicKey) -> dict[str, Any]:
         key,
         algorithms=[ALGORITHM],
         audience=AUDIENCE,
-        issuer=get_config().jwt_issuer,
+        issuer=get_api_config().jwt_issuer,
         options={"require": ["sub", "uid", "exp"]},
     )

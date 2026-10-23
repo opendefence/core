@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from cloudcoil.apimachinery import ObjectMeta
-from cloudcoil.errors import ResourceConflict, ResourceNotFound
+from cloudcoil.errors import APIError, ResourceNotFound
 from cloudcoil.models.cert_manager.v1 import CertificateRequest, CertificateRequestStatus
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -185,8 +185,8 @@ def test_csr_rejected(as_user: None, problem: str, status: int) -> None:
     assert response.status_code == status
 
 
-@pytest.mark.parametrize("conflict", [False, True])
-def test_csr_stored_on_the_callers_user(monkeypatch: pytest.MonkeyPatch, as_user: None, conflict: bool) -> None:
+@pytest.mark.parametrize("conflict", [None, 409, 422])
+def test_csr_stored_on_the_callers_user(monkeypatch: pytest.MonkeyPatch, as_user: None, conflict: int | None) -> None:
     """A valid CSR is patched onto the token's User, also after a callsign change; races are 409."""
     _ = as_user
     user = _user(approved=True)
@@ -197,7 +197,7 @@ def test_csr_stored_on_the_callers_user(monkeypatch: pytest.MonkeyPatch, as_user
 
     async def async_patch(self: User, operations: list[dict[str, Any]]) -> User:
         if conflict:
-            raise ResourceConflict("changed")
+            raise APIError("changed", status_code=conflict)
         patched.append((self.name, operations))
         return self
 

@@ -3,7 +3,7 @@
 import base64
 
 from cloudcoil.controller import get_condition
-from cloudcoil.errors import ResourceConflict, ResourceNotFound
+from cloudcoil.errors import APIError, ResourceNotFound
 from cloudcoil.models.cert_manager.v1 import CertificateRequest
 from cloudcoil.patches import diff
 from fastapi import APIRouter, HTTPException, status
@@ -35,7 +35,9 @@ async def submit_csr(request: CsrRequest, user: JWTUser) -> None:
     desired.spec.certificate_signing_request = request.csr
     try:
         await user.async_patch(diff(user, desired))
-    except ResourceConflict as exc:
+    except APIError as exc:
+        if exc.status_code not in (409, 422):
+            raise
         raise HTTPException(status.HTTP_409_CONFLICT, detail="User changed; retry.") from exc
 
 

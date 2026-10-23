@@ -107,6 +107,8 @@ The API and the operator read the `core-config` ConfigMap as environment variabl
 `CORE_DOMAIN` is the `domain` value. `CORE_DEPLOYMENT` is the first DNS label
 of `domain`, for example `local-dev`. Both are required.
 `CORE_DEPLOYMENT` must have at most 55 characters.
+The operator also reads `CORE_OPERATOR_*` environment variables from the `core-operator-config` ConfigMap:
+`CORE_OPERATOR_USER_CERTIFICATE_DURATION`.
 
 ### Integrations
 
