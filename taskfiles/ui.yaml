@@ -29,6 +29,13 @@ tasks:
     cmds:
       - pnpm vite build
 
+  typecheck:
+    desc: Check the UI types without emitting
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - pnpm tsc -b
+
   lint:
     desc: Run ESLint and check the UI formatting
     dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
