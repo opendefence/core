@@ -5,7 +5,7 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 ## Structure
 
 - `src/lib_opendefence_core/models/v1alpha1/` defines the custom resources in the separate `lib-opendefence-core` package. The library must not import `opendefence_core`. The operator, the API, and the generated CRDs all use them.
-- `naming.py` holds the names shared across components: namespaces, issuers, the operator name, and the user certificate and Secret names. YAML under `manifests/` and the `Tiltfile` repeat them because they can't import Python, so keep them in sync.
+- `naming.py` holds the names shared across components: namespaces, issuers, the operator name, and the user CertificateRequest name. YAML under `manifests/` and the `Tiltfile` repeat them because they can't import Python, so keep them in sync.
 - `k8s_operator/` holds the Application (`app.py`), its controllers, and `render.py`, which generates `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`; `manifests/operator/kustomization.yaml` patches the latter.
 - `api/` holds the FastAPI app: `routes/<area>/{views,schema}.py`, the shared `ApiModel` base in `schema.py`, the JWT dependency in `dependencies.py`, and helpers in `lib/`.
 - `cli/console.py` is the only entrypoint: `api run`, `operator run`, and `operator render [--check]`.
@@ -28,6 +28,7 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 - Ensure pre-commit checks are enabled the local clone. `uv run --locked prek install` will do it, this installs the basic pre-commit checks.
 - Run `uv run --locked prek run --all-files` regularly. Run it before pushing or creating a PR when those actions are authorized.
 - Run `ponytail-audit` before every commit. Fix findings caused by the staged change before committing.
+- Never modify `*.drawio.svg` files. People edit these diagrams in draw.io. When a change makes a diagram incorrect, tell the user which boxes, arrows, and labels to change.
 - Write all documentation in Simplified Technical English (STE). Use short, active sentences and consistent terms. Give one instruction per sentence. Preserve exact commands and identifiers.
 
 ## Validation
