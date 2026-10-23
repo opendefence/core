@@ -36,3 +36,21 @@ replace = "ghcr.io/opendefence/core:{new_major}.{new_minor}.{new_patch}-{new_bui
 filename = "manifests/operator/operator.yaml"
 search = "ghcr.io/opendefence/core:{current_major}.{current_minor}.{current_patch}-{current_build}"
 replace = "ghcr.io/opendefence/core:{new_major}.{new_minor}.{new_patch}-{new_build}"
+
+[[tool.bumpversion.files]]
+filename = "uv.lock"
+search = '''
+name = "lib-opendefence-core"
+version = "{current_version}"'''
+replace = '''
+name = "lib-opendefence-core"
+version = "{new_version}"'''
+
+[[tool.bumpversion.files]]
+filename = "uv.lock"
+search = '''
+name = "opendefence-core"
+version = "{current_version}"'''
+replace = '''
+name = "opendefence-core"
+version = "{new_version}"'''
