@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/auth/LanguageSwitcher";
-import useHealthCheck from "@/hooks/helpers/useHealthcheck";
+import { useDeployment } from "@/api/health";
 import { LoginHeader } from "@/components/auth/LoginHeader";
 import { CallsignForm } from "@/components/callsign-setup";
 import { useCallsignSetup } from "@/hooks/auth/useCallsignSetup";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/callsign-setup")({
 function CallsignSetupPage() {
   const navigate = useNavigate();
   const { code, codeType } = useLoginCodeStore();
-  const { deployment } = useHealthCheck();
+  const { deployment } = useDeployment();
   const { t } = useTranslation();
 
   const { errorMessage, isLoading, submitCallsign, clearError } =

@@ -16,6 +16,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDeployment } from "@/api/health";
+import { appUrl, isAppOrigin } from "@/lib/origins";
 import { useIsTablet } from "@/hooks/use-tablet";
 
 export const Route = createRootRoute({
@@ -40,6 +42,7 @@ function RootLayout() {
   const isTablet = useIsTablet();
 
   const { userType, isLoading: userTypeLoading, isValidUser } = useUserType();
+  const { domain } = useDeployment();
 
   const toggleSidebar = (open: boolean) => {
     setSidebarOpen(open);
@@ -49,13 +52,11 @@ function RootLayout() {
   };
 
   useEffect(() => {
-    const host = window.location.host;
-    const isMtlsDomain = host.startsWith("mtls.");
-
     if (
       !userTypeLoading &&
       isValidUser &&
-      !isMtlsDomain &&
+      !isAppOrigin() &&
+      domain &&
       location.pathname === "/"
     ) {
       const certDownloaded = localStorage.getItem("cert_downloaded") === "true";
@@ -65,15 +66,12 @@ function RootLayout() {
         return;
       }
 
-      const mtlsHost = `mtls.${host}`;
-      // mtls.* is a separate origin with its own localStorage, so carry the
+      // app.* is a separate origin with its own localStorage, so carry the
       // guide choice across rather than losing it on the hop.
-      window.location.href = withGuidePreference(
-        `${window.location.protocol}//${mtlsHost}/`,
-      );
+      window.location.href = withGuidePreference(appUrl(domain));
       return;
     }
-  }, [userTypeLoading, isValidUser, location.pathname, navigate]);
+  }, [userTypeLoading, isValidUser, domain, location.pathname, navigate]);
 
   useEffect(() => {
     if (isMobile || isTablet) {

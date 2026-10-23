@@ -5,7 +5,8 @@ import { useEffect } from "react";
 import { LoginHeader } from "@/components/auth/LoginHeader";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { LanguageSwitcher } from "@/components/auth/LanguageSwitcher";
-import useHealthCheck from "@/hooks/helpers/useHealthcheck";
+import { useDeployment } from "@/api/health";
+import { baseUrl, appUrl, isAppOrigin } from "@/lib/origins";
 
 interface LoginSearch {
   code?: string;
@@ -24,20 +25,17 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { deployment } = useHealthCheck();
+  const { deployment, domain } = useDeployment();
   const { code: urlCode } = Route.useSearch();
 
+  // Reaching login on the mTLS origin means the certificate did not work
   useEffect(() => {
-    const host = window.location.host;
-    if (host.startsWith("mtls.")) {
-      const nonMtlsHost = host.replace("mtls.", "");
-      window.location.href = `${window.location.protocol}//${nonMtlsHost}/error?code=mtls_fail`;
+    if (isAppOrigin() && domain) {
+      window.location.href = `${baseUrl(domain)}error?code=mtls_fail`;
     }
-  }, []);
+  }, [domain]);
 
-  const protocol = window.location.protocol;
-  const host = window.location.host;
-  const mtlsUrl = `${protocol}//mtls.${host}/`;
+  const mtlsUrl = appUrl(domain);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
