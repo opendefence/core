@@ -26,10 +26,10 @@ import { CompactHeader } from "@/components/CompactHeader";
 import { readStore, writeStore } from "@/lib/safeStorage";
 import {
   getOperatingSystem,
-  getMtlsUrl,
   PLATFORM_INSTRUCTIONS,
 } from "@/components/mtls/platformUtils";
-import useHealthCheck from "@/hooks/helpers/useHealthcheck";
+import { useDeployment } from "@/api/health";
+import { appUrl } from "@/lib/origins";
 import { LanguageSwitcher } from "@/components/auth/LanguageSwitcher";
 import { HelpCircle } from "lucide-react";
 import { MtlsGuide } from "@/components/guides";
@@ -61,7 +61,7 @@ function MtlsInstallPage() {
   // Counts completed downloads rather than tracking a flag: re-downloading has
   // to move the Android flow on again, and the flag is already true by then.
   const [downloadCount, setDownloadCount] = useState(0);
-  const { deployment } = useHealthCheck();
+  const { deployment, domain } = useDeployment();
 
   useEffect(() => {
     setUserOS(getOperatingSystem());
@@ -86,7 +86,7 @@ function MtlsInstallPage() {
     if (autoOpen && !isGuidedOS(userOS)) setShowGuide(true);
   }, [autoOpen, userOS]);
 
-  const mtlsUrl = withGuidePreference(getMtlsUrl());
+  const mtlsUrl = withGuidePreference(appUrl(domain));
 
   const getCertificateMutation = useGetCertificate({
     onSuccess: () => {

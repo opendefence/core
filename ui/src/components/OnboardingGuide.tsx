@@ -21,7 +21,7 @@ import { DisableGuidesButton } from "@/components/guides/DisableGuidesButton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import useHealthCheck from "@/hooks/helpers/useHealthcheck";
+import { useDeployment } from "@/api/health";
 import { cn } from "cn";
 import { getActiveThemeName } from "@/config/asset-loader";
 
@@ -152,7 +152,7 @@ export function OnboardingGuide() {
   const { userType, callsign } = useUserType();
   const { autoOpen } = useGuidePreferences();
   const { t } = useTranslation();
-  const { deployment } = useHealthCheck();
+  const { deployment } = useDeployment();
 
   const relevantSteps = ONBOARDING_STEPS.filter((step) =>
     step.roles.includes(userType as "user" | "admin"),
