@@ -10,7 +10,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Camera, Scan } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import jsQR from "jsqr";

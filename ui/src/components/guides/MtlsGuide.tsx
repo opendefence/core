@@ -17,7 +17,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "react-i18next";
 import { DisableGuidesButton } from "@/components/guides/DisableGuidesButton";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { getOperatingSystem } from "@/components/mtls/platformUtils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

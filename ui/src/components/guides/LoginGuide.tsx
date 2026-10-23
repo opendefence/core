@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, ImageOff } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 interface LoginGuideStep {
   id: string;

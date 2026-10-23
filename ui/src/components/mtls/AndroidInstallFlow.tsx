@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Download, FolderDown, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useWizardStep } from "@/hooks/mtls/useWizardStep";
 import { usePageFocus } from "@/hooks/mtls/usePageFocus";
 import { CertProgress } from "./CertProgress";
