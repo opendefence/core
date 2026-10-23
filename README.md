@@ -46,9 +46,9 @@ base's local registry, and port-forwards the API to `localhost:8000`. Changes
 under `src/` are synced into the API container, which reloads; the operator is
 rebuilt and restarted. Changes to `pyproject.toml` or `uv.lock` rebuild both.
 
-The API is also served through Traefik at
-`https://local-dev.opendefence.fi/api/` (the name resolves to 127.0.0.1), with
-interactive docs at `/api/docs`. The certificate comes from base's local CA;
+The UI and the API are also served through Traefik at
+`https://local-dev.opendefence.fi/` and `/api/` (the name resolves to
+127.0.0.1), with interactive docs at `/api/docs`. The certificate comes from base's local CA;
 trust it in your browser or OS once:
 
 ```sh
@@ -172,8 +172,9 @@ Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
    serving certificate comes from base's `internal-root-issuer`; cert-manager
    injects its CA.
 5. `api`: the REST API, its RBAC, and its JWT signing key.
-6. `ingress`: the `domain` certificate from `public-issuer`, Traefik's default
-   `TLSStore`, and the `IngressRoute` serving `/api`.
+6. `ui`: the web UI.
+7. `ingress`: the `domain` certificate from `public-issuer`, Traefik's default
+   `TLSStore`, and the `IngressRoute`s serving `/api` and the UI.
 
 Resources are raw YAML in `manifests/`; the middlewares, API, and ingress use
 Go templates. `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`
@@ -215,7 +216,7 @@ The package targets connected deployment and has no offline image inventory
 yet. `build:deploy` deploys the image tag pinned in the manifests, so it needs
 that version to be published; use Tilt for unpublished code.
 
-## Container image
+## Container images
 
 The `Dockerfile` builds a distroless image with a standalone Python.
 `production` is the default target (`task build:image`); `dev` adds busybox for
@@ -223,11 +224,14 @@ Tilt's live updates and runs the synced source from `/app/src`. The entrypoint
 is `tini -- opendefence_core`, and the Deployments pass `api run` or
 `operator run` as arguments.
 
+`ui/Dockerfile` builds the UI image (`task build:ui-image`). `production`
+serves the built files with nginx; `dev` runs Vite for Tilt.
+
 ## Publishing and versioning
 
 A successful `main` release publishes `lib-opendefence-core` to Nexus, the
-image `ghcr.io/opendefence/core:<tag>`, and the Zarf package
-`oci://ghcr.io/opendefence/packages/core:<tag>`. The workflow then creates
+images `ghcr.io/opendefence/core:<tag>` and `ghcr.io/opendefence/core-ui:<tag>`,
+and the Zarf package `oci://ghcr.io/opendefence/packages/core:<tag>`. The workflow then creates
 the Git tag. The application is delivered in the image; CI does not publish
 an application wheel. The OCI tag uses `-` in place of `+`: version `0.2.1+261010`
 uses tag `0.2.1-261010`.
