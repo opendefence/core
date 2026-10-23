@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useOwnEnrollmentStatus } from "@/hooks/api/useOwnEnrollmentStatus";
-import useHealthCheck from "@/hooks/helpers/useHealthcheck";
+import { useDeployment } from "@/api/health";
+import { appUrl } from "@/lib/origins";
 import { CompactHeader } from "@/components/CompactHeader";
 import { ApprovalHandoff } from "@/components/waiting-room/ApprovalHandoff";
 import { ApprovalStatus } from "@/components/waiting-room/ApprovalStatus";
@@ -17,21 +18,12 @@ export const Route = createFileRoute("/waiting-room")({
 function WaitingRoomPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { deployment } = useHealthCheck();
+  const { deployment, domain } = useDeployment();
 
   const callsign = localStorage.getItem("callsign") ?? undefined;
   const approveCode = localStorage.getItem("approveCode") ?? undefined;
 
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-
-  let mtlsHostname = hostname;
-  if (!hostname.startsWith("mtls.")) {
-    mtlsHostname = `mtls.${hostname}`;
-  }
-
-  const approvalUrl = `${protocol}//${mtlsHostname}${port ? `:${port}` : ""}/approve-user?callsign=${callsign ?? ""}&approvalcode=${approveCode ?? ""}`;
+  const approvalUrl = `${appUrl(domain)}approve-user?callsign=${callsign ?? ""}&approvalcode=${approveCode ?? ""}`;
 
   useEffect(() => {
     if (!approveCode || !callsign) {
