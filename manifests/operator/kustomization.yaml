@@ -6,8 +6,7 @@ configMapGenerator:
   - name: core-operator-config
     namespace: opendefence-system
     literals:
-      - USER_CERTIFICATE_DURATION=2880h
-      - DEPLOYMENT_DISPLAY_NAME=OpenDefence
+      - CORE_OPERATOR_USER_CERTIFICATE_DURATION=2880h
 resources:
   - certificate.yaml
   - operator.yaml

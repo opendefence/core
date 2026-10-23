@@ -18,6 +18,7 @@ pytest*.xml
 # Local settings and secrets
 .env
 .idea/
+.vscode
 
 # Build output, Task state, and exported CAs
 .build/

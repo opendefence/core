@@ -1,0 +1,23 @@
+"""Configuration shared by the operator and the REST API, from CORE_* environment variables."""
+
+from functools import cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Config(BaseSettings):
+    """Deployment-wide configuration; both Deployments read it from the core-config ConfigMap."""
+
+    model_config = SettingsConfigDict(env_prefix="CORE_")
+
+    # Public hostname, from the package's domain value
+    domain: str = Field(min_length=1)
+    # First DNS label of the domain, e.g. local-dev; 55 + "#<8-hex tag>" is the 64-character CN limit
+    deployment: str = Field(min_length=1, max_length=55)
+
+
+@cache
+def get_core_config() -> Config:
+    """Configuration, read from the environment on first use."""
+    return Config()

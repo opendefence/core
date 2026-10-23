@@ -1,5 +1,7 @@
 """Rendered operator manifests: in sync with the code, hardened, and consistent with the package."""
 
+import json
+import re
 import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
@@ -77,8 +79,7 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
     assert operator["manifests"] == [{"name": "operator", "kustomizations": ["manifests/operator"]}]
     base = _kustomized()
     config = _one(base, "ConfigMap")
-    assert config["data"]["USER_CERTIFICATE_DURATION"] == "2880h"
-    assert config["data"]["DEPLOYMENT_DISPLAY_NAME"] == "OpenDefence"
+    assert config["data"] == {"CORE_OPERATOR_USER_CERTIFICATE_DURATION": "2880h"}
     (tmp_path / "kustomization.yaml").write_text(
         yaml.safe_dump(
             {
@@ -90,7 +91,7 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
                         "name": "core-operator-config",
                         "namespace": SYSTEM_NAMESPACE,
                         "behavior": "merge",
-                        "literals": ["USER_CERTIFICATE_DURATION=1440h", "DEPLOYMENT_DISPLAY_NAME=Training North"],
+                        "literals": ["CORE_OPERATOR_USER_CERTIFICATE_DURATION=1440h"],
                     }
                 ],
             }
@@ -98,15 +99,17 @@ def test_certificate_settings_are_overridable(tmp_path: Path) -> None:
     )
     overlay = _kustomized(tmp_path)
     overridden = _one(overlay, "ConfigMap")
-    assert overridden["data"]["USER_CERTIFICATE_DURATION"] == "1440h"
-    assert overridden["data"]["DEPLOYMENT_DISPLAY_NAME"] == "Training North"
+    assert overridden["data"]["CORE_OPERATOR_USER_CERTIFICATE_DURATION"] == "1440h"
     assert overridden["metadata"]["name"] != config["metadata"]["name"]
     container = _one(overlay, "Deployment")["spec"]["template"]["spec"]["containers"][0]
-    assert container["envFrom"][0]["configMapRef"]["name"] == overridden["metadata"]["name"]
+    assert [source["configMapRef"]["name"] for source in container["envFrom"]] == [
+        overridden["metadata"]["name"],
+        "core-config",
+    ]
 
 
 def test_operator_rbac() -> None:
-    """Leases for leader election, read-only UserBindings, and the user certificate key pairs."""
+    """Leases for leader election, read-only UserBindings, and no access to private keys."""
     documents = _documents(OPERATOR_PATH)
     cluster_role = _one(documents, "ClusterRole")
     assert cluster_role["metadata"]["name"] == f"{OPERATOR_NAME}.{SYSTEM_NAMESPACE}"
@@ -114,11 +117,12 @@ def test_operator_rbac() -> None:
     assert rules[("userbindings",)] == ["get", "list", "watch"]
     assert ("userbindings/status",) not in rules
     assert ("certificates",) not in rules
+    assert ("secrets",) not in rules
     assert "delete" in rules[("certificaterequests",)]
-    secrets = _one(documents, "Role", PUBLIC_CERT_NAMESPACE)
-    namespaced_rules = {tuple(rule["resources"]): rule["verbs"] for rule in secrets["rules"]}
-    assert namespaced_rules[("secrets",)] == ["create", "delete", "get", "patch"]
-    assert namespaced_rules[("certificates",)] == ["delete", "get"]
+    assert not any(
+        document["kind"] == "Role" and document["metadata"].get("namespace") == PUBLIC_CERT_NAMESPACE
+        for document in documents
+    )
     leases = _one(documents, "Role", SYSTEM_NAMESPACE)
     assert any(rule["resources"] == ["leases"] for rule in leases["rules"])
 
@@ -133,3 +137,13 @@ def test_webhooks_have_ca_injected() -> None:
     assert set(policies) == {"groups", "users"}
     assert set(policies["groups"]["operations"]) == {"CREATE", "UPDATE", "DELETE"}
     assert policies["users"]["operations"] == ["DELETE"]
+
+
+def test_domain_value_fits_the_certificate_common_name() -> None:
+    """Zarf rejects a domain whose first label is too long for CORE_DEPLOYMENT, before any pod starts."""
+    schema = json.loads((ROOT / "values" / "values.schema.json").read_text())
+    pattern = re.compile(schema["properties"]["domain"]["pattern"])
+    for domain in ("opendefence.invalid", "local-dev.opendefence.fi", f"{'x' * 55}.example.org"):
+        assert pattern.fullmatch(domain), domain
+    for domain in (f"{'x' * 56}.example.org", "localhost", "-bad.example.org"):
+        assert not pattern.fullmatch(domain), domain

@@ -1,4 +1,4 @@
-"""REST API building blocks: JWTs, .pfx bundles, invite redemption rules."""
+"""REST API building blocks: JWTs and invite redemption rules."""
 
 import os
 from datetime import UTC, datetime, timedelta
@@ -6,18 +6,14 @@ from pathlib import Path
 
 import jwt as pyjwt
 import pytest
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
-from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.x509.oid import NameOID
 
 from lib_opendefence_core.models.v1alpha1 import Invite
-from opendefence_core.api.config import get_config
+from opendefence_core.api.config import get_api_config
 from opendefence_core.api.lib import invites
 from opendefence_core.api.lib import jwt as api_jwt
 from opendefence_core.api.lib.codes import ALPHABET, generate_code
-from opendefence_core.api.lib.pfx import build_pfx
 from tests.factories import make_invite, make_user
 
 
@@ -37,7 +33,7 @@ def jwt_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ec.EllipticCurve
     key = ec.generate_private_key(ec.SECP256R1())
     path = tmp_path / "tls.key"
     _write_key(path, key)
-    monkeypatch.setattr(get_config(), "jwt_key_path", path)
+    monkeypatch.setattr(get_api_config(), "jwt_key_path", path)
     monkeypatch.setattr(api_jwt, "_signing_key", api_jwt.SigningKey())
     return key
 
@@ -78,7 +74,7 @@ def test_jwt_round_trip(jwt_key: ec.EllipticCurvePrivateKey) -> None:
     assert claims["sub"] == "alpha1"
     assert user.metadata is not None
     assert claims["uid"] == user.metadata.uid
-    assert claims["iss"] == get_config().jwt_issuer
+    assert claims["iss"] == get_api_config().jwt_issuer
     assert token.expires_at > datetime.now(UTC)
 
 
@@ -108,7 +104,7 @@ def test_jwt_key_reloads_after_rotation(jwt_key: ec.EllipticCurvePrivateKey) -> 
     _ = jwt_key
     earlier = api_jwt.issue(make_user()).access_token
     rotated = ec.generate_private_key(ec.SECP256R1())
-    _write_key(get_config().jwt_key_path, rotated)
+    _write_key(get_api_config().jwt_key_path, rotated)
 
     later = api_jwt.issue(make_user()).access_token
 
@@ -120,7 +116,7 @@ def test_jwt_key_reloads_after_rotation(jwt_key: ec.EllipticCurvePrivateKey) -> 
 def test_jwt_key_rewritten_unchanged_keeps_no_previous(jwt_key: ec.EllipticCurvePrivateKey) -> None:
     """Rewriting the same key, as on a renewal without rotation, leaves nothing to fall back to."""
     api_jwt.issue(make_user())
-    _write_key(get_config().jwt_key_path, jwt_key)
+    _write_key(get_api_config().jwt_key_path, jwt_key)
     api_jwt.issue(make_user())
     assert api_jwt._signing_key.previous is None
 
@@ -129,35 +125,11 @@ def test_jwt_rejects_non_ecdsa_key(jwt_key: ec.EllipticCurvePrivateKey) -> None:
     """The mounted key must be ECDSA."""
     _ = jwt_key
     other = ed25519.Ed25519PrivateKey.generate()
-    get_config().jwt_key_path.write_bytes(
+    get_api_config().jwt_key_path.write_bytes(
         other.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
     )
     with pytest.raises(ValueError, match="not an ECDSA private key"):
         api_jwt.issue(make_user())
-
-
-def test_build_pfx_round_trip() -> None:
-    """The .pfx opens with the callsign and holds the key and certificate."""
-    key = ec.generate_private_key(ec.SECP256R1())
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "alpha1")])
-    now = datetime.now(UTC)
-    certificate = (
-        x509.CertificateBuilder()
-        .subject_name(name)
-        .issuer_name(name)
-        .public_key(key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(now)
-        .not_valid_after(now + timedelta(days=1))
-        .sign(key, hashes.SHA256())
-    )
-    key_pem = key.private_bytes(
-        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
-    )
-    chain_pem = certificate.public_bytes(serialization.Encoding.PEM)
-    loaded_key, loaded_cert, _ = pkcs12.load_key_and_certificates(build_pfx("alpha1", key_pem, chain_pem), b"alpha1")
-    assert loaded_cert == certificate
-    assert loaded_key is not None
 
 
 @pytest.mark.parametrize(

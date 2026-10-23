@@ -3,21 +3,26 @@
 import base64
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from cloudcoil.apimachinery import ObjectMeta
-from cloudcoil.errors import ResourceNotFound
-from cloudcoil.models.kubernetes.core.v1 import Secret
+from cloudcoil.errors import APIError, ResourceNotFound
+from cloudcoil.models.cert_manager.v1 import CertificateRequest, CertificateRequestStatus
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.x509.oid import NameOID
 from fastapi.testclient import TestClient
 
-from lib_opendefence_core.models.v1alpha1 import Invite, User
+from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION, Invite, User, UserStatus
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import jwt_user
 from opendefence_core.api.lib.invites import CallsignTaken, InviteNotRedeemable
 from opendefence_core.api.lib.jwt import Token
-from opendefence_core.api.routes.certificates import views as certificate_views
 from opendefence_core.api.routes.enrollment import views as enrollment_views
-from tests.factories import make_invite, make_user
+from opendefence_core.certificates import APPROVAL_ANNOTATION, certificate_identity
+from tests.factories import condition, make_invite, make_user
 
 client = TestClient(app)
 
@@ -89,7 +94,14 @@ def test_enroll(monkeypatch: pytest.MonkeyPatch) -> None:
     response = client.post("/api/v3/enrollment", json={"code": "CODE1234", "callsign": "bravo2"})
     assert response.status_code == 201
     body = response.json()
-    assert body["status"] == {"callsign": "bravo2", "approvalCode": "ABCD1234", "approved": False}
+    assert body["status"] == {
+        "name": "bravo2",
+        "callsign": "bravo2",
+        "approvalCode": "ABCD1234",
+        "approved": False,
+        "certificateCommonName": None,
+        "certificateUri": None,
+    }
     assert body["token"]["accessToken"] == "token"
     assert body["token"]["tokenType"] == "Bearer"
 
@@ -122,67 +134,120 @@ def test_enrollment_status(as_user: None) -> None:
     _ = as_user
     response = client.get("/api/v3/enrollment")
     assert response.status_code == 200
-    assert response.json()["approved"] is True
+    body = response.json()
+    common_name, uri = certificate_identity(_user())
+    assert (body["name"], body["approved"]) == ("alpha1", True)
+    assert (body["certificateCommonName"], body["certificateUri"]) == (common_name, uri)
+    assert common_name.startswith("local-dev#")
 
 
-def test_pfx_requires_token() -> None:
-    """Certificates need a bearer token."""
-    assert client.get("/api/v3/certificates/alpha1.pfx").status_code == 401
+def _csr(user: User) -> str:
+    """Valid CSR for the user's certificate identity, as a browser would build it."""
+    common_name, uri = certificate_identity(user)
+    request = (
+        x509.CertificateSigningRequestBuilder()
+        .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)]))
+        .add_extension(x509.SubjectAlternativeName([x509.UniformResourceIdentifier(uri)]), critical=False)
+        .sign(ec.generate_private_key(ec.SECP256R1()), hashes.SHA256())
+    )
+    return request.public_bytes(serialization.Encoding.PEM).decode()
 
 
-def test_pfx_only_own_certificate(as_user: None) -> None:
-    """Users can't download another user's certificate."""
+def _as(user: User) -> None:
+    app.dependency_overrides[jwt_user] = lambda: user
+
+
+def _ready(user: User, ready: bool = True) -> User:
+    user.status = UserStatus(conditions=[condition(CERTIFICATE_READY_CONDITION, ready, "Issued")])
+    return user
+
+
+def test_csr_requires_token() -> None:
+    """Sending a CSR needs a bearer token."""
+    assert client.post("/api/v3/certificates/csr", json={"csr": "x"}).status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("problem", "status"), [("unapproved", 403), ("used", 409), ("identity", 400), ("garbage", 400)]
+)
+def test_csr_rejected(as_user: None, problem: str, status: int) -> None:
+    """Unapproved users, used approvals, and CSRs for another identity are refused."""
     _ = as_user
-    assert client.get("/api/v3/certificates/bravo2.pfx").status_code == 403
+    user = _user(approved=problem != "unapproved")
+    csr = _csr(user)
+    if problem == "used":
+        assert user.metadata is not None and user.spec.approved_at is not None
+        user.metadata.annotations = {APPROVAL_ANNOTATION: user.spec.approved_at.isoformat()}
+    if problem == "identity":
+        csr = _csr(_user("bravo2", approved=True))
+    _as(user)
+    response = client.post("/api/v3/certificates/csr", json={"csr": "not a csr" if problem == "garbage" else csr})
+    assert response.status_code == status
 
 
-@pytest.mark.parametrize("data", [None, {"tls.crt": "Y3J0"}], ids=["missing", "incomplete"])
-def test_pfx_not_issued(monkeypatch: pytest.MonkeyPatch, as_user: None, data: dict[str, str] | None) -> None:
-    """Missing or incomplete certificate Secrets are 409."""
-    _ = as_user
-
-    async def async_get(name: str, namespace: str) -> Secret:
-        if data is None:
-            raise ResourceNotFound(f"{namespace}/{name}")
-        return Secret(metadata=ObjectMeta(name=name, namespace=namespace), data=data)
-
-    monkeypatch.setattr(Secret, "async_get", async_get)
-    assert client.get("/api/v3/certificates/alpha1.pfx").status_code == 409
-
-
-@pytest.mark.parametrize("callsign", ["alpha1", "renamed"])
-def test_pfx_download(monkeypatch: pytest.MonkeyPatch, as_user: None, callsign: str) -> None:
-    """Issued certificates download as a .pfx named after the callsign and deployment."""
+@pytest.mark.parametrize("conflict", [None, 409, 422])
+def test_csr_stored_on_the_callers_user(monkeypatch: pytest.MonkeyPatch, as_user: None, conflict: int | None) -> None:
+    """A valid CSR is patched onto the token's User, also after a callsign change; races are 409."""
     _ = as_user
     user = _user(approved=True)
-    user.spec.callsign = callsign
-    app.dependency_overrides[jwt_user] = lambda: user
+    user.spec.callsign = "renamed"
+    _as(user)
+    csr = _csr(user)
+    patched: list[tuple[str | None, list[dict[str, Any]]]] = []
+
+    async def async_patch(self: User, operations: list[dict[str, Any]]) -> User:
+        if conflict:
+            raise APIError("changed", status_code=conflict)
+        patched.append((self.name, operations))
+        return self
+
+    monkeypatch.setattr(User, "async_patch", async_patch)
+    response = client.post("/api/v3/certificates/csr", json={"csr": csr})
+    if conflict:
+        assert response.status_code == 409
+        return
+    assert response.status_code == 202
+    [(name, operations)] = patched
+    assert name == "alpha1"
+    assert {"op": "add", "path": "/spec/certificateSigningRequest", "value": csr} in operations
+
+
+@pytest.mark.parametrize("state", ["unready", "not-ready", "revoked", "missing", "pending"])
+def test_pem_not_issued(monkeypatch: pytest.MonkeyPatch, as_user: None, state: str) -> None:
+    """Only a certificate the operator accepted is served."""
+    _ = as_user
+    user = _user(approved=True)
+    if state != "unready":
+        _ready(user, state != "not-ready")
+    if state == "revoked":
+        user.spec.revoked_at = datetime.now(UTC)
+    _as(user)
+
+    async def async_get(name: str, namespace: str) -> CertificateRequest:
+        if state == "missing":
+            raise ResourceNotFound(f"{namespace}/{name}")
+        return CertificateRequest(metadata=ObjectMeta(name=name, namespace=namespace))
+
+    monkeypatch.setattr(CertificateRequest, "async_get", async_get)
+    assert client.get("/api/v3/certificates/chain.pem").status_code == 409
+
+
+def test_pem_download(monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
+    """The accepted chain is served leaf first, from the token user's CertificateRequest."""
+    _ = as_user
+    _as(_ready(_user(approved=True)))
     seen: list[tuple[str, str]] = []
 
-    async def async_get(name: str, namespace: str) -> Secret:
+    async def async_get(name: str, namespace: str) -> CertificateRequest:
         seen.append((namespace, name))
-        data = {"tls.key": base64.b64encode(b"key").decode(), "tls.crt": base64.b64encode(b"crt").decode()}
-        return Secret(metadata=ObjectMeta(name=name, namespace=namespace), data=data)
+        status = CertificateRequestStatus(
+            certificate=base64.b64encode(b"leaf\n").decode(), ca=base64.b64encode(b"ca\n").decode()
+        )
+        return CertificateRequest(metadata=ObjectMeta(name=name, namespace=namespace), status=status)
 
-    def build_pfx(callsign: str, key: bytes, chain: bytes) -> bytes:
-        _ = callsign
-        return b"pfx:" + key + chain
-
-    monkeypatch.setattr(Secret, "async_get", async_get)
-    monkeypatch.setattr(certificate_views, "build_pfx", build_pfx)
-    response = client.get(f"/api/v3/certificates/{callsign}.pfx")
+    monkeypatch.setattr(CertificateRequest, "async_get", async_get)
+    response = client.get("/api/v3/certificates/chain.pem")
     assert response.status_code == 200
-    assert response.content == b"pfx:keycrt"
+    assert response.content == b"leaf\nca\n"
+    assert response.headers["content-type"] == "application/x-pem-file"
     assert seen == [("opendefence-public-certs", "user-alpha1")]
-    assert f'filename="{callsign}_local-dev.pfx"' in response.headers["content-disposition"]
-
-
-@pytest.mark.parametrize("revoked", [False, True])
-def test_pfx_rejects_removed_approval(as_user: None, revoked: bool) -> None:
-    """Deny delivery before the operator cleans up a disabled user's Secret."""
-    _ = as_user
-    user = _user(approved=revoked)
-    if revoked:
-        user.spec.revoked_at = datetime.now(UTC)
-    app.dependency_overrides[jwt_user] = lambda: user
-    assert client.get("/api/v3/certificates/alpha1.pfx").status_code == 403

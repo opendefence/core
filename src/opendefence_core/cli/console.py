@@ -6,9 +6,10 @@ from pathlib import Path
 import click
 import uvicorn
 
-from opendefence_core import __version__
+from opendefence_core import __version__, config
 from opendefence_core.k8s_operator import render
 from opendefence_core.k8s_operator.app import app as operator_app
+from opendefence_core.k8s_operator.config import get_operator_config
 
 
 def _configure_logging(loglevel: int, verbose: int) -> None:
@@ -71,6 +72,8 @@ def operator() -> None:
 @operator.command("run")
 def operator_run() -> None:
     """Run the operator against the current cluster."""
+    config.get_core_config()
+    get_operator_config()
     operator_app.main(["run"])
 
 

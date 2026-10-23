@@ -77,9 +77,11 @@ reconciles them:
 
 - An approved, unrevoked User gets a one-shot cert-manager `CertificateRequest`
   named `user-<resource-name>` in `opendefence-public-certs`.
-  It uses base's `public-issuer`. The operator stores the key pair in a Secret.
+  cert-manager signs the CSR from the user's browser with base's `public-issuer`.
+  The server never holds the user's private key.
   `CertificateReady` reports progress. `status.publicKey` contains the SHA-256
-  fingerprint of the public key SPKI. See the certificate contract below.
+  fingerprint of the public key SPKI. See [User certificates](docs/certificates/README.md)
+  for the certificate contract and settings.
 - The admission webhook rejects Group cycles, missing parent groups, deleting
   a group that still has children, and deleting a User that still has
   UserBindings. With `failurePolicy: Fail`, those writes are rejected while
@@ -88,96 +90,25 @@ reconciles them:
 The **REST API** (`opendefence_core api run`, Deployment `core-api`) serves
 under `/api/v3`:
 
-| Endpoint                           | Purpose                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------ |
-| `GET /health`                      | Liveness and readiness probe                                             |
-| `POST /enrollment/check`           | Whether an invite code can be redeemed                                   |
-| `POST /enrollment`                 | Redeem an invite code into a pending User; returns its status and a JWT  |
-| `GET /enrollment`                  | The caller's enrollment status and approval code (JWT)                   |
-| `GET /certificates/{callsign}.pfx` | The caller's certificate and key as PKCS#12, password the callsign (JWT) |
+| Endpoint                      | Purpose                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| `GET /health`                 | Liveness and readiness probe                                                  |
+| `POST /enrollment/check`      | Whether an invite code can be redeemed                                        |
+| `POST /enrollment`            | Redeem an invite code into a pending User; returns its status and a JWT       |
+| `GET /enrollment`             | The caller's enrollment status, approval code, and certificate identity (JWT) |
+| `POST /certificates/csr`      | Store the caller's CSR for signing (JWT)                                      |
+| `GET /certificates/chain.pem` | The caller's issued certificate chain (JWT)                                   |
 
 JWTs are ES256, signed with a cert-manager-generated key that the API reloads
 when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
-`CORE_API_DOMAIN` (required, from the `domain` value), `CORE_API_JWT_KEY_PATH`,
-`CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
+`CORE_API_JWT_KEY_PATH`, `CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
 
-### User certificates
-
-cert-manager does not renew user identity certificates.
-The operator does not replace expired certificates or missing private material.
-
-`approvedAt` records the original user approval and authorizes the first issuance.
-Keep this timestamp unchanged during certificate replacement.
-An administrator sets `certificateApprovedAt` to authorize another issuance.
-The new timestamp must be later than the consumed approval.
-Each approval authorizes one issuance.
-Changing `approvedAt` after issuance does not authorize replacement.
-Clearing or restoring an older `certificateApprovedAt` leaves the current certificate unchanged.
-The operator records consumption before it creates private material.
-If creation stops partway through, missing resources require fresh approval.
-Removing approval or revoking the User clears accepted credentials before cleanup.
-The operator then deletes the signing request and the key pair Secret.
-It also deletes these resources when the User is deleted.
-Legacy managed Certificates are removed to stop renewal.
-Their replacement requires fresh approval.
-This transition removes their key pair Secrets.
-
-The certificate URI SAN is `urn:uuid:<canonical Kubernetes User UID>`.
-The CN is `<deployment display name> · <identity tag>`.
-The tag is the first eight lowercase hexadecimal digits of SHA-256 over the canonical UUID text.
-Callsign changes preserve the User UID and certificate.
-Deployment label and duration changes apply to the next approved issuance.
-Restoring a User under a new Kubernetes UID requires a new certificate.
-
-The operator owns two User annotations:
-
-- `platform.opendefence.fi/certificate-approval` records the consumed approval timestamp.
-- `platform.opendefence.fi/accepted-credentials` contains `{"version":1,"accepted":[...]}`.
-
-Each accepted record contains `fingerprintSha256`, `serial`, `issuerId`, `notBefore`, and `notAfter`.
-The fingerprint is SHA-256 of the complete leaf certificate DER.
-The serial is lowercase hexadecimal without separators.
-The issuer ID is `sha256:` followed by SHA-256 of the signing CA's public key SPKI.
-The validity timestamps use RFC 3339 with a UTC offset.
-The operator verifies the leaf against the approved CSR, key, User UID, and signing CA before publication.
-Integrations must check the accepted fingerprint and validity window.
-Missing, empty, malformed, or unsupported records grant no access.
-Integrations must remove access when the accepted record is removed.
-Deleting a Secret alone does not revoke an exported certificate.
-The current flow accepts one certificate per User.
-Overlapping replacement and first-use retirement are not implemented.
-
-The webhook serving certificate keeps automatic renewal.
-The no-renewal policy applies to user identity certificates.
-
-### Certificate settings
-
-`manifests/operator/kustomization.yaml` generates the operator configuration.
-The default user certificate duration is `2880h` (120 days, or four 30-day months).
-Use a positive whole number of hours.
-The issuer must honor the requested duration.
-Set the deployment display name to a short label.
-The complete CN must have at most 64 characters.
-
-Override the defaults in a Kustomize overlay:
-
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - ../../manifests/operator
-configMapGenerator:
-  - name: core-operator-config
-    namespace: opendefence-system
-    behavior: merge
-    literals:
-      - USER_CERTIFICATE_DURATION=2880h
-      - DEPLOYMENT_DISPLAY_NAME=Training North
-```
-
-Kustomize updates the Deployment's ConfigMap reference when these values change.
-The cert-manager request approver must approve requests for `public-issuer`.
-User approval remains the Core issuance gate.
+The API and the operator read the `core-config` ConfigMap as environment variables.
+`CORE_DOMAIN` is the `domain` value. `CORE_DEPLOYMENT` is the first DNS label
+of `domain`, for example `local-dev`. Both are required.
+`CORE_DEPLOYMENT` must have at most 55 characters.
+The operator also reads `CORE_OPERATOR_*` environment variables from the `core-operator-config` ConfigMap:
+`CORE_OPERATOR_USER_CERTIFICATE_DURATION`.
 
 ### Integrations
 
@@ -267,6 +198,10 @@ build tasks:
 The default `domain` is a placeholder that every deployment must override:
 its certificate can't be issued, so a deployment that forgets it fails the
 `core-tls` health check instead of serving the wrong name.
+
+Set `domain` once per deployment and do not change it.
+Its first DNS label becomes `CORE_DEPLOYMENT` and part of every user certificate CN.
+The schema limits that label to 55 characters.
 
 ```sh
 task build:lint

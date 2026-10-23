@@ -9,7 +9,7 @@ SYSTEM_NAMESPACE = "opendefence-system"
 """Namespace of the operator and the REST API."""
 
 PUBLIC_CERT_NAMESPACE = "opendefence-public-certs"
-"""Namespace of the users' mTLS certificates and key pairs."""
+"""Namespace of the users' certificate signing requests."""
 
 PUBLIC_ISSUER = "public-issuer"
 """Base's ClusterIssuer for public certificates, including the users' mTLS certificates."""
@@ -22,10 +22,5 @@ OPERATOR_TLS_SECRET = "core-operator-tls"  # nosec B105  # pragma: allowlist sec
 
 
 def user_certificate_name(user: User) -> str:
-    """Name of the user's cert-manager Certificate in PUBLIC_CERT_NAMESPACE."""
-    return f"user-{user.name}"
-
-
-def user_secret_name(user: User) -> str:
-    """Name of the Secret cert-manager writes the user's key pair to in PUBLIC_CERT_NAMESPACE."""
+    """Name of the user's one-shot cert-manager CertificateRequest in PUBLIC_CERT_NAMESPACE."""
     return f"user-{user.name}"
