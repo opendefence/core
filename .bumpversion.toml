@@ -54,3 +54,8 @@ version = "{current_version}"'''
 replace = '''
 name = "opendefence-core"
 version = "{new_version}"'''
+
+[[tool.bumpversion.files]]
+filename = "manifests/ui/deployment.yaml"
+search = "ghcr.io/opendefence/core-ui:{current_major}.{current_minor}.{current_patch}-{current_build}"
+replace = "ghcr.io/opendefence/core-ui:{new_major}.{new_minor}.{new_patch}-{new_build}"

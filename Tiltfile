@@ -25,6 +25,19 @@ for obj in objects:
         # The operator can't reload in place; give it its own image so Tilt
         # rebuilds and restarts it on change instead of syncing files
         container['image'] = 'ghcr.io/opendefence/core-operator'
+    elif obj['metadata']['name'] == 'core-ui':
+        # Vite serves and hot-reloads the synced source instead of nginx, as
+        # the node user, and writes its cache and the generated route tree
+        container['image'] = 'ghcr.io/opendefence/core-ui-dev'
+        container['securityContext']['readOnlyRootFilesystem'] = False
+        # Vite needs far more memory than the nginx image the limits are for
+        container['resources'] = {
+            'requests': {'cpu': '100m', 'memory': '256Mi'},
+            'limits': {'memory': '2Gi'},
+        }
+        pod = obj['spec']['template']['spec']['securityContext']
+        pod['runAsUser'] = 1000
+        pod['runAsGroup'] = 1000
 k8s_yaml(encode_yaml_stream(objects))
 
 dev_build = dict(
@@ -47,5 +60,19 @@ docker_build(
 )
 docker_build('ghcr.io/opendefence/core-operator', **dev_build)
 
+docker_build(
+    'ghcr.io/opendefence/core-ui-dev',
+    context='ui',
+    target='dev',
+    live_update=[
+        fall_back_on(['ui/package.json', 'ui/pnpm-lock.yaml', 'ui/pnpm-workspace.yaml']),
+        sync('ui/src', '/app/src'),
+        sync('ui/public', '/app/public'),
+        sync('ui/index.html', '/app/index.html'),
+        sync('ui/vite.config.ts', '/app/vite.config.ts'),
+    ],
+)
+
 k8s_resource('core-api', port_forwards='8000')
 k8s_resource('core-operator', labels=['operator'])
+k8s_resource('core-ui', labels=['ui'])

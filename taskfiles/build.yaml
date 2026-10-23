@@ -9,6 +9,7 @@ vars:
   BUILD_DIR: '{{.BUILD_DIR | default ".build"}}'
   ARCH: '{{.ARCH | default "amd64"}}'
   IMAGE: '{{.IMAGE | default "ghcr.io/opendefence/core"}}'
+  UI_IMAGE: '{{.UI_IMAGE | default "ghcr.io/opendefence/core-ui"}}'
   IMAGE_TAG: '{{.IMAGE_TAG | default "dev"}}'
   # Same detection as base's cluster taskfile: real Docker, then Podman
   CONTAINER_RUNTIME:
@@ -68,11 +69,18 @@ tasks:
   image:
     desc: Build the production container image as IMAGE:IMAGE_TAG
     dir: "{{.TASKFILE_DIR}}/.."
-    preconditions:
+    preconditions: &runtime
       - sh: "{{.CONTAINER_RUNTIME | shellQuote}} info >/dev/null 2>&1"
         msg: Start Docker or Podman, or select one with CONTAINER_RUNTIME
     cmds:
       - '{{.CONTAINER_RUNTIME | shellQuote}} build --target production -t {{printf "%s:%s" .IMAGE .IMAGE_TAG | shellQuote}} .'
+
+  ui-image:
+    desc: Build the production UI container image as UI_IMAGE:IMAGE_TAG
+    dir: "{{.TASKFILE_DIR}}/.."
+    preconditions: *runtime
+    cmds:
+      - '{{.CONTAINER_RUNTIME | shellQuote}} build --target production -t {{printf "%s:%s" .UI_IMAGE .IMAGE_TAG | shellQuote}} ui'
 
   manifests:
     desc: Regenerate the CRDs and operator manifests from the operator code
