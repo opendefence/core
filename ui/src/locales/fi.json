@@ -322,6 +322,7 @@
     },
     "errors": {
       "alreadyInUse": "Kutsutunnus on jo käytössä",
+      "inviteSpent": "Tämä koodi käytettiin loppuun",
       "unexpected": "Odottamaton virhe"
     },
     "buttons": {
