@@ -41,7 +41,7 @@ interface OnboardingStep {
   description: string;
   image: string;
   mobileImage?: string;
-  roles: ("user" | "admin")[];
+  roles: ("user" | "superadmin")[];
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -51,7 +51,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: "onboarding.steps.welcome.description",
     image: "/Onboarding/ON_BOARDING_WELCOME.png",
     mobileImage: "/Onboarding/mobile/ON_BOARDING_WELCOME.png",
-    roles: ["user", "admin"],
+    roles: ["user", "superadmin"],
   },
   {
     id: "products",
@@ -59,7 +59,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: "onboarding.steps.products.description",
     image: "/Onboarding/ON_BOARDING_LAUNCH.png",
     mobileImage: "/Onboarding/mobile/ON_BOARDING_LAUNCH.png",
-    roles: ["user", "admin"],
+    roles: ["user", "superadmin"],
   },
   {
     id: "users",
@@ -67,7 +67,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: "onboarding.steps.users.description",
     image: "/Onboarding/ON_BOARDING_USER_MANAGEMENT.png",
     mobileImage: "/Onboarding/mobile/ON_BOARDING_USER_MANAGEMENT.png",
-    roles: ["admin"],
+    roles: ["superadmin"],
   },
   {
     id: "invite",
@@ -75,7 +75,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: "onboarding.steps.invite.description",
     image: "/Onboarding/ON_BOARDING_INVITE_OTHERS.png",
     mobileImage: "/Onboarding/mobile/ON_BOARDING_INVITE_OTHERS.png",
-    roles: ["admin"],
+    roles: ["superadmin"],
   },
   {
     id: "health",
@@ -83,7 +83,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: "onboarding.steps.health.description",
     image: "/Onboarding/ON_BOARDING_SYSTEM_STATUS.png",
     mobileImage: "/Onboarding/mobile/ON_BOARDING_SYSTEM_STATUS.png",
-    roles: ["user", "admin"],
+    roles: ["user", "superadmin"],
   },
   {
     id: "instructions",
@@ -91,7 +91,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     description: "onboarding.steps.instructions.description",
     image: "/Onboarding/ON_BOARDING_DOCS.png",
     mobileImage: "/Onboarding/mobile/ON_BOARDING_DOCS.png",
-    roles: ["user", "admin"],
+    roles: ["user", "superadmin"],
   },
 ];
 
@@ -155,7 +155,7 @@ export function OnboardingGuide() {
   const { deployment } = useDeployment();
 
   const relevantSteps = ONBOARDING_STEPS.filter((step) =>
-    step.roles.includes(userType as "user" | "admin"),
+    step.roles.includes(userType as "user" | "superadmin"),
   );
 
   // Preload all relevant images on mount (device-appropriate images)
@@ -215,11 +215,11 @@ export function OnboardingGuide() {
     if (
       lastRole &&
       lastRole !== userType &&
-      userType === "admin" &&
+      userType === "superadmin" &&
       !adminOnboardingSeen
     ) {
       const adminSteps = ONBOARDING_STEPS.filter((step) =>
-        step.roles.includes("admin"),
+        step.roles.includes("superadmin"),
       );
       const newAdminSteps = adminSteps.map((step) => step.id);
       setCompleted(
@@ -246,7 +246,7 @@ export function OnboardingGuide() {
       // Restore progress: find the first incomplete step
       if (parsedCompleted.length > 0 && !seenOnboarding) {
         const stepsForRole = ONBOARDING_STEPS.filter((step) =>
-          step.roles.includes(userType as "user" | "admin"),
+          step.roles.includes(userType as "user" | "superadmin"),
         );
         const firstIncompleteIndex = stepsForRole.findIndex(
           (step) => !parsedCompleted.includes(step.id),
