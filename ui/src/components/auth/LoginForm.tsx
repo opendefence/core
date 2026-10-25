@@ -1,8 +1,10 @@
 "use client";
 
-import type React from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { Loader2, Key, HelpCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -13,23 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Key, HelpCircle } from "lucide-react";
 import { useCheckCode } from "@/hooks/api/useCheckCode";
-import { useLoginCodeStore } from "@/store/LoginCodeStore";
-import { FormikProvider, useFormik, Form, Field, ErrorMessage } from "formik";
-import * as yup from "yup";
-import { useTranslation } from "react-i18next";
 import { LoginGuide } from "@/components/guides";
 
-const TOKEN_REGEX = /^[A-Z0-9]{8,}$/;
-
-interface ApiError extends Error {
-  response?: {
-    data?: {
-      detail?: string;
-    };
-  };
-}
+// generate_code uses [A-Z0-9]: 8 for an invite, 16 for an admin invite.
+const CODE_PATTERN = /^(?:[A-Z0-9]{8}|[A-Z0-9]{16})$/i;
 
 interface LoginFormProps {
   mtlsUrl: string;
@@ -38,78 +28,36 @@ interface LoginFormProps {
 
 export function LoginForm({ mtlsUrl, initialCode }: LoginFormProps) {
   const navigate = useNavigate();
-  const loginCodeStore = useLoginCodeStore();
-  const [codeNotValid, setCodeNotValid] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
   const { t } = useTranslation();
-
-  const CodeSchema = yup.object().shape({
-    code: yup
-      .string()
-      .required(t("login.codeRequired"))
-      .matches(TOKEN_REGEX, t("login.codeInvalid")),
-  });
-
-  const formik = useFormik({
-    initialValues: {
-      code: "",
-    },
-    validationSchema: CodeSchema,
-    validateOnMount: false,
-    validateOnChange: false,
-    validateOnBlur: false,
-    onSubmit: (values: { code: string }) => {
-      checkCode(values.code);
-    },
-  });
-
-  const { values, setFieldValue, submitCount } = formik;
+  const [showGuide, setShowGuide] = useState(false);
 
   const {
-    mutate: checkCode,
-    isLoading,
-    isError,
-    error,
-  } = useCheckCode({
-    onSuccess: (data) => {
-      loginCodeStore.setCode(values.code);
-      if (data.isAdminCodeValid) {
-        loginCodeStore.setCodeType("admin");
-        navigate({ to: "/callsign-setup" });
-      } else if (data.isEnrollmentCodeValid) {
-        loginCodeStore.setCodeType("user");
-        navigate({ to: "/callsign-setup" });
+    register,
+    handleSubmit,
+    setError,
+    clearErrors,
+    control,
+    formState: { errors },
+  } = useForm({ defaultValues: { code: initialCode ?? "" } });
+
+  const code = useWatch({ control, name: "code" });
+
+  const { mutate: checkCode, isLoading } = useCheckCode({
+    onSuccess: (data, checked) => {
+      if (data.isAdminCodeValid || data.isEnrollmentCodeValid) {
+        navigate({ to: "/callsign-setup", search: { code: checked } });
       } else {
-        loginCodeStore.setCodeType("unknown");
-        setCodeNotValid(true);
+        setError("code", { message: t("login.codeNotValid") });
       }
     },
-    onError: (err: ApiError) => {
-      const errorMessage = err.response?.data?.detail || "Unknown error";
-      formik.setErrors({ code: errorMessage });
-    },
+    onError: () => setError("code", { message: t("login.codeInvalid") }),
   });
 
-  // Auto-submit when initialCode is provided via URL
   useEffect(() => {
-    if (initialCode) {
-      void setFieldValue("code", initialCode, false);
-      setTimeout(() => {
-        checkCode(initialCode);
-      }, 100);
-    }
-  }, [initialCode, setFieldValue, checkCode]);
+    if (initialCode) checkCode(initialCode.toUpperCase());
+  }, [initialCode, checkCode]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const upperCaseValue = e.target.value.toUpperCase();
-    setCodeNotValid(false);
-    formik.setErrors({});
-    void setFieldValue("code", upperCaseValue, false);
-  };
-
-  const handleInputFocus = () => {
-    setCodeNotValid(false);
-  };
+  const onSubmit = handleSubmit(({ code }) => checkCode(code.toUpperCase()));
 
   return (
     <>
@@ -159,58 +107,55 @@ export function LoginForm({ mtlsUrl, initialCode }: LoginFormProps) {
             </div>
           </div>
 
-          <FormikProvider value={formik}>
-            <Form className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">{t("login.enterCode")}</Label>
-                <Field
-                  as={Input}
-                  id="code"
-                  name="code"
-                  type="text"
-                  placeholder={t("login.codePlaceholder")}
-                  className="font-mono h-12 text-base"
-                  onFocus={handleInputFocus}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  data-testid="login-code-input"
-                />
-                <span
-                  className="text-sm text-destructive"
-                  data-testid="login-code-error"
-                >
-                  {submitCount > 0 && <ErrorMessage name="code" />}
-                  {codeNotValid && <div>{t("login.codeNotValid")}</div>}
-                  {isError && (
-                    <div>
-                      {(error as ApiError).response?.data?.detail ||
-                        t("login.codeInvalid")}
-                    </div>
-                  )}
-                </span>
-              </div>
-
-              <Button
-                type="submit"
-                variant={"outline"}
-                className="w-full h-14 bg-primary-light hover:bg-primary-light/90 text-base font-semibold"
-                disabled={!values.code || isLoading}
-                data-testid="login-submit-button"
+          <form className="space-y-4" onSubmit={onSubmit} noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="code">{t("login.enterCode")}</Label>
+              <Input
+                id="code"
+                type="text"
+                autoComplete="off"
+                placeholder={t("login.codePlaceholder")}
+                className="font-mono h-12 text-base uppercase"
+                disabled={isLoading}
+                data-testid="login-code-input"
+                {...register("code", {
+                  required: t("login.codeRequired"),
+                  pattern: {
+                    value: CODE_PATTERN,
+                    message: t("login.codeInvalid"),
+                  },
+                  // A new attempt starts clean rather than showing the last verdict.
+                  onChange: () => clearErrors("code"),
+                })}
+              />
+              <span
+                className="text-sm text-destructive"
+                data-testid="login-code-error"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    {t("login.verifying")}
-                  </>
-                ) : (
-                  <>
-                    <Key className="w-5 h-5 mr-2" />
-                    {t("login.loginCode")}
-                  </>
-                )}
-              </Button>
-            </Form>
-          </FormikProvider>
+                {errors.code?.message}
+              </span>
+            </div>
+
+            <Button
+              type="submit"
+              variant={"outline"}
+              className="w-full h-14 bg-primary-light hover:bg-primary-light/90 text-base font-semibold"
+              disabled={!code || isLoading}
+              data-testid="login-submit-button"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  {t("login.verifying")}
+                </>
+              ) : (
+                <>
+                  <Key className="w-5 h-5 mr-2" />
+                  {t("login.loginCode")}
+                </>
+              )}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </>

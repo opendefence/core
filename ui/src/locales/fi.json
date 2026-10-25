@@ -311,14 +311,13 @@
   },
   "callsignSetup": {
     "title": "Aseta kutsutunnuksesi",
-    "usingAdmin": "Ylläpitokoodi käytössä: {{code}}",
     "usingInvite": "Kutsukoodi käytössä: {{code}}",
     "yourCallsignLabel": "Kutsutunnuksesi",
     "callsignPlaceholder": "Syötä kutsutunnus",
     "validation": {
       "required": "Kutsutunnus vaaditaan",
       "min": "Kutsutunnuksen tulee olla vähintään 3 merkkiä",
-      "pattern": "Vain aakkosnumeeriset merkit sallittu",
+      "pattern": "Vain kirjaimet, numerot ja alaviivat sallittu",
       "max": "Kutsutunnus voi olla enintään 30 merkkiä"
     },
     "errors": {

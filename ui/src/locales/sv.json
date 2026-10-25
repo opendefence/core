@@ -311,14 +311,13 @@
   },
   "callsignSetup": {
     "title": "Ställ in din anropssignal",
-    "usingAdmin": "Administratörskod används: {{code}}",
     "usingInvite": "Inbjudningskod används: {{code}}",
     "yourCallsignLabel": "Din anropssignal",
     "callsignPlaceholder": "Ange anropssignal",
     "validation": {
       "required": "Anropssignal krävs",
       "min": "Minst 3 tecken",
-      "pattern": "Endast alfanumeriska tecken tillåtna",
+      "pattern": "Endast bokstäver, siffror och understreck tillåtna",
       "max": "Högst 30 tecken"
     },
     "errors": {
