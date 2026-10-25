@@ -1,18 +1,19 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { useGetCertificate } from "@/hooks/api/useGetCertificate";
+import { CertificateError, useCertificate } from "@/api/certificates";
+import { useEnrollmentStatus } from "@/api/enrollment";
+import { downloadBlob } from "@/lib/downloadBlob";
 import {
   useGuidePreferences,
   withGuidePreference,
 } from "@/hooks/useGuidePreferences";
-import { useUserType } from "@/hooks/auth/useUserType";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MtlsInstructions } from "@/components/mtls/MtlsInstructions";
-import { MtlsCallsignDisplay } from "@/components/mtls/MtlsCallsignDisplay";
+import { MtlsPasswordDisplay } from "@/components/mtls/MtlsPasswordDisplay";
 import { MtlsExplanationCard } from "@/components/mtls/MtlsExplanationCard";
 import { MtlsPageHeader } from "@/components/mtls/MtlsPageHeader";
 import { MtlsActionButtons } from "@/components/mtls/MtlsActionButtons";
@@ -46,11 +47,9 @@ const isGuidedOS = (os: string) =>
   GUIDED.includes(os) || GUIDED_DESKTOP.includes(os);
 
 function MtlsInstallPage() {
-  const { callsign: userCallsign } = useUserType();
   const { t } = useTranslation();
   const isMobile = useIsMobile();
 
-  const [callsign, setCallsign] = useState("");
   const [selectedOS, setSelectedOS] = useState("");
   const [userOS, setUserOS] = useState("");
   const [showGuide, setShowGuide] = useState(false);
@@ -67,15 +66,6 @@ function MtlsInstallPage() {
     setUserOS(getOperatingSystem());
   }, []);
 
-  useEffect(() => {
-    const storedCallsign = readStore("callsign");
-    if (storedCallsign) {
-      setCallsign(storedCallsign);
-    } else if (userCallsign) {
-      setCallsign(userCallsign);
-    }
-  }, [userCallsign]);
-
   const osToShow = selectedOS || userOS;
   const guided = isGuidedOS(osToShow);
 
@@ -88,19 +78,29 @@ function MtlsInstallPage() {
 
   const mtlsUrl = withGuidePreference(appUrl(domain));
 
-  const getCertificateMutation = useGetCertificate({
-    onSuccess: () => {
-      writeStore("cert_downloaded", "true");
-      setCertDownloaded(true);
-      setDownloadCount((n) => n + 1);
-      // The guided flow moves to the next screen instead, which says more.
-      if (!guided) toast.success(t("mtlsInstall.certificateDownloaded"));
-    },
-    onError: (err) => {
-      console.error("Certificate download error:", err);
-      toast.error(err.message || t("mtlsInstall.downloadFailed"));
-    },
-  });
+  const { data: status } = useEnrollmentStatus();
+  const callsign = status?.callsign ?? "";
+  const commonName = status?.certificateCommonName;
+  const uri = status?.certificateUri;
+
+  const { mutate: request, data: bundle, isPending } = useCertificate();
+
+  // The certificate is made as soon as identity is known.
+  const requested = useRef(false);
+  useEffect(() => {
+    if (requested.current || !commonName || !uri) return;
+    requested.current = true;
+    request(
+      { commonName, uri },
+      {
+        onError: (error) => {
+          const reason =
+            error instanceof CertificateError ? error.reason : "failed";
+          toast.error(t(`mtlsInstall.errors.${reason}`));
+        },
+      },
+    );
+  }, [commonName, uri, request, t]);
 
   const canNavigate = certDownloaded;
 
@@ -141,11 +141,13 @@ function MtlsInstallPage() {
               {osToShow === "Linux" ? (
                 <LinuxInstallFlow
                   callsign={callsign}
+                  certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
-                  isDownloading={getCertificateMutation.isLoading}
+                  isDownloading={isPending}
+                  password={bundle?.pin ?? ""}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -158,11 +160,13 @@ function MtlsInstallPage() {
               ) : osToShow === "Windows" ? (
                 <WinInstallFlow
                   callsign={callsign}
+                  certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
-                  isDownloading={getCertificateMutation.isLoading}
+                  isDownloading={isPending}
+                  password={bundle?.pin ?? ""}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -175,11 +179,13 @@ function MtlsInstallPage() {
               ) : (
                 <MacInstallFlow
                   callsign={callsign}
+                  certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
-                  isDownloading={getCertificateMutation.isLoading}
+                  isDownloading={isPending}
+                  password={bundle?.pin ?? ""}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -217,9 +223,11 @@ function MtlsInstallPage() {
             {osToShow === "iOS" ? (
               <IosInstallFlow
                 callsign={callsign}
+                certName={commonName ?? ""}
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
-                isDownloading={getCertificateMutation.isLoading}
+                isDownloading={isPending}
+                password={bundle?.pin ?? ""}
                 downloadCount={downloadCount}
                 platformPicker={
                   <PlatformSelector
@@ -235,7 +243,8 @@ function MtlsInstallPage() {
                 fileName={`${callsign}_${deployment}.pfx`}
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
-                isDownloading={getCertificateMutation.isLoading}
+                isDownloading={isPending}
+                password={bundle?.pin ?? ""}
                 downloadCount={downloadCount}
                 platformPicker={
                   <PlatformSelector
@@ -283,12 +292,12 @@ function MtlsInstallPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-max">
                 <div className="lg:col-span-1 space-y-6">
                   <PlatformSelector value={osToShow} onValueChange={chooseOS} />
-                  <MtlsCallsignDisplay callsign={callsign} />
+                  <MtlsPasswordDisplay password={bundle?.pin ?? ""} />
                   <MtlsActionButtons
                     onDownload={handleDownloadKey}
-                    isDownloading={getCertificateMutation.isLoading}
+                    isDownloading={isPending}
                     mtlsUrl={mtlsUrl}
-                    disabled={!callsign}
+                    disabled={!bundle}
                     canNavigate={canNavigate}
                   />
                 </div>
@@ -337,13 +346,13 @@ function MtlsInstallPage() {
 
           <MtlsInstructions instructions={platformInstructions} />
 
-          <MtlsCallsignDisplay callsign={callsign} />
+          <MtlsPasswordDisplay password={bundle?.pin ?? ""} />
 
           <MtlsActionButtons
             onDownload={handleDownloadKey}
-            isDownloading={getCertificateMutation.isLoading}
+            isDownloading={isPending}
             mtlsUrl={mtlsUrl}
-            disabled={!callsign}
+            disabled={!bundle}
             canNavigate={canNavigate}
           />
         </div>

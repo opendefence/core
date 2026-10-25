@@ -14,13 +14,13 @@ import {
 const PARTS = ["open", "trust", "access"] as const;
 
 interface MacKeychainStepProps {
-  callsign: string;
+  certName: string;
   issuer: string;
   footer: (last: boolean, next: () => void) => ReactNode;
 }
 
 export function MacKeychainStep({
-  callsign,
+  certName,
   issuer,
   footer,
 }: MacKeychainStepProps) {
@@ -29,8 +29,8 @@ export function MacKeychainStep({
   const key = (k: string) => `mtlsInstall.mac.keychain.${PARTS[part]}.${k}`;
 
   const views: Record<(typeof PARTS)[number], ReactNode> = {
-    open: <KeychainList callsign={callsign} />,
-    trust: <KeychainTrust callsign={callsign} issuer={issuer} />,
+    open: <KeychainList certName={certName} />,
+    trust: <KeychainTrust certName={certName} issuer={issuer} />,
     access: (
       <div className="grid gap-3 md:grid-cols-2 md:items-start">
         <KeychainAccess />
@@ -87,7 +87,7 @@ export function MacKeychainStep({
               <ol className="flex flex-col gap-1.5 text-base">
                 {(
                   t(key("steps"), {
-                    callsign,
+                    certName,
                     returnObjects: true,
                   }) as string[]
                 ).map((line, i) => (
@@ -106,7 +106,7 @@ export function MacKeychainStep({
               )}
             </div>
             {PARTS[part] === "access" && (
-              <KeychainList callsign={callsign} expanded />
+              <KeychainList certName={certName} expanded />
             )}
           </div>
           <div className={PARTS[part] === "access" ? "" : "max-w-lg"}>
