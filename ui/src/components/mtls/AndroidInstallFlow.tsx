@@ -35,6 +35,7 @@ type DialogState = "dialog" | "waiting" | "no-dialog" | "returned";
 
 interface AndroidInstallFlowProps {
   callsign: string;
+  password: string;
   fileName: string;
   mtlsUrl: string;
   onDownload: () => void;
@@ -50,6 +51,7 @@ interface AndroidInstallFlowProps {
  */
 export function AndroidInstallFlow({
   callsign,
+  password,
   fileName,
   mtlsUrl,
   onDownload,
@@ -64,7 +66,7 @@ export function AndroidInstallFlow({
     CERT_STEPS.length,
   );
   const focus = usePageFocus(step === 1);
-  const { copied, copy } = useStickyCopy(callsign);
+  const { copied, copy } = useStickyCopy(password);
 
   // Restarted by every download, since each one can bring its own dialog.
   const [settled, setSettled] = useState(false);
@@ -131,7 +133,7 @@ export function AndroidInstallFlow({
 
           <div className="flex flex-1 flex-col justify-center">
             <DialogPreview
-              callsign={callsign}
+              password={password}
               caption={t("mtlsInstall.android.download.caption")}
             />
           </div>
@@ -141,7 +143,7 @@ export function AndroidInstallFlow({
             data-testid="mtls-download-button"
             data-mtls-downloading={isDownloading ? "true" : "false"}
             onClick={startDownload}
-            disabled={isDownloading || !callsign}
+            disabled={isDownloading || !password}
           >
             {isDownloading ? (
               <Loader2 className="size-7 animate-spin" />
@@ -158,7 +160,7 @@ export function AndroidInstallFlow({
           {/* Top of the screen: the one band that stays clear while the
               keyboard is up for the password. */}
           <PasswordCallout
-            callsign={callsign}
+            password={password}
             isCopied={copied}
             onCopy={copy}
           />

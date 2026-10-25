@@ -69,11 +69,11 @@ export function FirefoxCertManager({ mark }: { mark?: number }) {
 
 /** Firefox "Password Required" prompt when importing the key file. */
 export function FirefoxPassword({
-  callsign,
+  password,
   mark,
   buttonMark,
 }: {
-  callsign: string;
+  password: string;
   mark?: number;
   buttonMark?: number;
 }) {
@@ -90,7 +90,7 @@ export function FirefoxPassword({
         )}
       >
         {!!mark && <Mark n={mark} />}
-        {callsign}
+        {password}
       </span>
       <div className="mt-4 flex justify-end gap-2">
         <FfButton
@@ -107,10 +107,10 @@ export function FirefoxPassword({
 /** Firefox's own "identify yourself with a certificate" prompt. */
 export function FirefoxCertPicker({
   host,
-  callsign,
+  certName,
 }: {
   host: string;
-  callsign: string;
+  certName: string;
 }) {
   const { t } = useTranslation();
   const s = (k: string, v?: Record<string, string>) =>
@@ -122,7 +122,7 @@ export function FirefoxCertPicker({
         {s("ffPickBody", { host })}
       </p>
       <span className="mt-2 flex h-7 items-center justify-between rounded border border-[#0061e0] px-2">
-        <span className="truncate">{callsign} […]</span>
+        <span className="truncate">{certName} […]</span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0" />
       </span>
       <p className="mt-3 font-semibold">{s("ffPickDetails")}</p>
@@ -173,10 +173,10 @@ export function ChromeCertImport({ mark }: { mark?: number }) {
 
 /** Chrome/Chromium on Linux: "Enter certificate password". */
 export function ChromePassword({
-  callsign,
+  password,
   mark,
 }: {
-  callsign: string;
+  password: string;
   mark?: number;
 }) {
   const { t } = useTranslation();
@@ -192,7 +192,7 @@ export function ChromePassword({
         )}
       >
         {!!mark && <Mark n={mark} />}
-        {callsign}
+        {password}
       </span>
       <div className="mt-4 flex justify-end gap-2">
         <span className="rounded-full border border-white/30 px-3 py-1">
@@ -215,11 +215,11 @@ export function ChromePassword({
 /** Chrome/Chromium on Linux: "Select a certificate" table dialog. */
 export function ChromeLinuxCertPicker({
   host,
-  callsign,
+  certName,
   issuer,
 }: {
   host: string;
-  callsign: string;
+  certName: string;
   issuer: string;
 }) {
   const { t } = useTranslation();
@@ -238,7 +238,7 @@ export function ChromeLinuxCertPicker({
           <span>{s("crIssuer")}</span>
         </div>
         <div className="grid grid-cols-[1fr_1.2fr] gap-2 bg-[#1f4f8a] px-2 py-1.5">
-          <span className="truncate">{callsign}</span>
+          <span className="truncate">{certName}</span>
           <span className="truncate text-white/80">{issuer}</span>
         </div>
         <div className="h-6" />

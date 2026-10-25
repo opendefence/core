@@ -36,6 +36,8 @@ function browserName() {
 
 interface MacInstallFlowProps {
   callsign: string;
+  certName: string;
+  password: string;
   deployment: string;
   fileName: string;
   mtlsUrl: string;
@@ -47,6 +49,8 @@ interface MacInstallFlowProps {
 
 export function MacInstallFlow({
   callsign,
+  certName,
+  password,
   deployment,
   fileName,
   mtlsUrl,
@@ -62,7 +66,7 @@ export function MacInstallFlow({
     MAC_STEPS.length,
   );
   const { returned } = usePageFocus(step === 1);
-  const { copied, copy } = useStickyCopy(callsign);
+  const { copied, copy } = useStickyCopy(password);
   const loginUrl = `${window.location.origin}/`;
   const browser = browserName();
 
@@ -127,7 +131,7 @@ export function MacInstallFlow({
             data-testid="mtls-download-button"
             data-mtls-downloading={isDownloading ? "true" : "false"}
             onClick={startDownload}
-            disabled={isDownloading || !callsign}
+            disabled={isDownloading || !password}
             className={action}
           >
             {isDownloading ? (
@@ -165,9 +169,9 @@ export function MacInstallFlow({
               <MacKeychainAuthDialog />
             </Numbered>
             <Numbered n={3} label={t("mtlsInstall.mac.install.password")}>
-              <MacImportDialog fileName={fileName} callsign={callsign} />
+              <MacImportDialog fileName={fileName} password={password} />
               <PasswordCallout
-                callsign={callsign}
+                password={password}
                 isCopied={copied}
                 onCopy={copy}
               />
@@ -184,7 +188,7 @@ export function MacInstallFlow({
               type="button"
               data-testid="mac-retry"
               onClick={startDownload}
-              disabled={isDownloading || !callsign}
+              disabled={isDownloading || !password}
               className="flex min-h-11 items-center gap-2 underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />
@@ -208,7 +212,7 @@ export function MacInstallFlow({
             {t("mtlsInstall.mac.keychain.title")}
           </h1>
           <MacKeychainStep
-            callsign={callsign}
+            certName={certName}
             issuer={issuer}
             footer={(last, next) => (
               <>
@@ -240,11 +244,11 @@ export function MacInstallFlow({
             <ol className="grid gap-6 md:grid-cols-2">
               <Numbered
                 n={1}
-                label={t("mtlsInstall.mac.done.pick", { callsign })}
+                label={t("mtlsInstall.mac.done.pick", { certName })}
               >
                 <MacCertPicker
                   host={mtlsHost}
-                  callsign={callsign}
+                  certName={certName}
                   issuer={issuer}
                 />
               </Numbered>
@@ -259,14 +263,14 @@ export function MacInstallFlow({
               </Numbered>
               <Numbered
                 n={2}
-                label={t("mtlsInstall.mac.done.safariLogin", { callsign })}
+                label={t("mtlsInstall.mac.done.safariLogin", { certName })}
               >
-                <SafariCertPicker host={mtlsHost} callsign={callsign} />
+                <SafariCertPicker host={mtlsHost} certName={certName} />
               </Numbered>
             </ol>
           ) : (
             <p className="text-lg text-balance text-muted-foreground">
-              {t("mtlsInstall.mac.done.generic", { callsign })}
+              {t("mtlsInstall.mac.done.generic", { certName })}
             </p>
           )}
           {nav}

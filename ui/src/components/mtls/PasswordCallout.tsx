@@ -5,20 +5,20 @@ import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 
 interface PasswordCalloutProps {
-  callsign: string;
+  password: string;
   isCopied: boolean;
   onCopy: () => void;
 }
 
 /**
- * The callsign, framed as the answer to the question Android is asking.
+ * The PIN, framed as the answer to the question Android is asking.
  *
  * Light card on a dark app on purpose: the system dialog dims whatever is
  * behind it to roughly half brightness. Dark text on a light
  * card survives that; white text on a dark card goes unreadable outdoors.
  */
 export function PasswordCallout({
-  callsign,
+  password,
   isCopied,
   onCopy,
 }: PasswordCalloutProps) {
@@ -26,8 +26,8 @@ export function PasswordCallout({
 
   return (
     <div
-      data-testid="mtls-callsign-display"
-      data-callsign={callsign}
+      data-testid="mtls-password-display"
+      data-password={password}
       className="flex items-center gap-3 rounded-xl border-2 border-primary-light bg-white px-4 py-3"
     >
       <div className="min-w-0 flex-1">
@@ -37,12 +37,12 @@ export function PasswordCallout({
         <p
           className={cn(
             "break-all font-mono font-bold leading-tight text-black",
-            callsign.length > 8
+            password.length > 8
               ? "text-[clamp(1.25rem,7vw,2.25rem)] tracking-wide"
               : "text-[clamp(1.75rem,9vw,2.5rem)] tracking-wider",
           )}
         >
-          {callsign}
+          {password}
         </p>
       </div>
 
