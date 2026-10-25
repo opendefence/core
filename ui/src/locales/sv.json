@@ -322,6 +322,7 @@
     },
     "errors": {
       "alreadyInUse": "Anropssignal används redan",
+      "inviteSpent": "Koden tog slut",
       "unexpected": "Ett oväntat fel inträffade"
     },
     "buttons": {
