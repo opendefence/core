@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { useLoginAsAdmin } from "@/hooks/api/firstuser/useLoginAsAdmin";
 import { useInitEnrollment } from "@/hooks/api/firstuser/useInitEnrollment";
 
 interface StatusCodeError extends Error {
@@ -10,10 +9,9 @@ interface StatusCodeError extends Error {
 
 interface UseCallsignSetupOptions {
   code: string;
-  codeType: "admin" | "user" | "unknown" | null;
 }
 
-export function useCallsignSetup({ code, codeType }: UseCallsignSetupOptions) {
+export function useCallsignSetup({ code }: UseCallsignSetupOptions) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [errorMessage, setErrorMessage] = useState("");
@@ -30,15 +28,6 @@ export function useCallsignSetup({ code, codeType }: UseCallsignSetupOptions) {
 
   const clearError = () => setErrorMessage("");
 
-  const { mutate: loginAsAdmin, isLoading: isLoadingAdmin } = useLoginAsAdmin({
-    onSuccess: (jwt, variables) => {
-      localStorage.setItem("token", jwt);
-      localStorage.setItem("callsign", variables.callsign);
-      navigate({ to: "/mtls-install" });
-    },
-    onError: handleCommonError,
-  });
-
   const { mutate: initEnrollment, isLoading: isLoadingEnrollment } =
     useInitEnrollment({
       onSuccess: (data) => {
@@ -53,15 +42,10 @@ export function useCallsignSetup({ code, codeType }: UseCallsignSetupOptions) {
   const submitCallsign = (callsign: string) => {
     setIsSubmitting(true);
     setErrorMessage("");
-
-    if (codeType === "admin") {
-      loginAsAdmin({ callsign, code });
-    } else if (codeType === "user") {
-      initEnrollment({ callsign, invite_code: code });
-    }
+    initEnrollment({ callsign, invite_code: code });
   };
 
-  const isLoading = isSubmitting || isLoadingAdmin || isLoadingEnrollment;
+  const isLoading = isSubmitting || isLoadingEnrollment;
 
   return {
     errorMessage,
