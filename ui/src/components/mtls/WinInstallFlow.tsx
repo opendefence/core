@@ -35,6 +35,8 @@ const FF_CERT_MANAGER = "chrome://pippki/content/certManager.xhtml";
 
 interface WinInstallFlowProps {
   callsign: string;
+  certName: string;
+  password: string;
   deployment: string;
   fileName: string;
   mtlsUrl: string;
@@ -46,6 +48,8 @@ interface WinInstallFlowProps {
 
 export function WinInstallFlow({
   callsign,
+  certName,
+  password,
   deployment,
   fileName,
   mtlsUrl,
@@ -65,7 +69,7 @@ export function WinInstallFlow({
   );
   const { returned } = usePageFocus(step === 1);
   const { returned: ffReturned } = usePageFocus(steps[step] === "firefox");
-  const { copied, copy } = useStickyCopy(callsign);
+  const { copied, copy } = useStickyCopy(password);
   const { copied: urlCopied, copy: copyUrl } = useStickyCopy(FF_CERT_MANAGER);
   const s = (k: string) => t(`mtlsInstall.win.system.${k}`);
 
@@ -122,7 +126,7 @@ export function WinInstallFlow({
             data-testid="mtls-download-button"
             data-mtls-downloading={isDownloading ? "true" : "false"}
             onClick={startDownload}
-            disabled={isDownloading || !callsign}
+            disabled={isDownloading || !password}
             className={action}
           >
             {isDownloading ? (
@@ -172,10 +176,10 @@ export function WinInstallFlow({
                 next={next}
                 mark={3}
               >
-                <WinPasswordField callsign={callsign} mark={2} />
+                <WinPasswordField password={password} mark={2} />
               </WinWizardPage>
               <PasswordCallout
-                callsign={callsign}
+                password={password}
                 isCopied={copied}
                 onCopy={copy}
               />
@@ -218,7 +222,7 @@ export function WinInstallFlow({
                   next={next}
                   mark={0}
                 >
-                  <WinPasswordField callsign={callsign} mark={0} />
+                  <WinPasswordField password={password} mark={0} />
                 </WinWizardPage>,
                 <WinWizardPage
                   key="s"
@@ -265,7 +269,7 @@ export function WinInstallFlow({
               type="button"
               data-testid="win-retry"
               onClick={startDownload}
-              disabled={isDownloading || !callsign}
+              disabled={isDownloading || !password}
               className="flex min-h-11 items-center gap-2 underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />
@@ -363,9 +367,9 @@ export function WinInstallFlow({
             </ol>
             <div className="flex flex-col gap-4">
               <FirefoxCertManager mark={2} />
-              <FirefoxPassword callsign={callsign} mark={4} />
+              <FirefoxPassword password={password} mark={4} />
               <PasswordCallout
-                callsign={callsign}
+                password={password}
                 isCopied={copied}
                 onCopy={copy}
               />
@@ -396,16 +400,16 @@ export function WinInstallFlow({
                 firefox
                   ? "mtlsInstall.win.done.pickFirefox"
                   : "mtlsInstall.win.done.pick",
-                { callsign },
+                { certName },
               )}
             </p>
             <div className="flex flex-col gap-4">
               {firefox ? (
-                <FirefoxCertPicker host={host} callsign={callsign} />
+                <FirefoxCertPicker host={host} certName={certName} />
               ) : (
                 <WinCertPicker
                   host={host}
-                  callsign={callsign}
+                  certName={certName}
                   issuer={`${deployment} Intermediate CA`}
                 />
               )}
