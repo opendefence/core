@@ -2,7 +2,12 @@ import type React from "react";
 import { MoreVertical } from "lucide-react";
 import { cn } from "cn";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
+
+const DATE = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
 
 interface InviteCode {
   invitecode: string;
@@ -80,13 +85,13 @@ export function InviteCodeItem({
             {invite.owner_cs === callsign
               ? t("addUsers.createdByYou", {
                   date: invite.created
-                    ? format(new Date(invite.created), "MMM d, yyyy")
+                    ? DATE.format(new Date(invite.created))
                     : "",
                 })
               : t("addUsers.createdBy", {
                   creator: invite.owner_cs,
                   date: invite.created
-                    ? format(new Date(invite.created), "MMM d, yyyy")
+                    ? DATE.format(new Date(invite.created))
                     : "",
                 })}
           </p>

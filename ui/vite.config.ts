@@ -5,6 +5,22 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { federation } from "@module-federation/vite";
+import { dependencies } from "./package.json";
+
+const SHARED = [
+  "react",
+  "react-dom",
+  "i18next",
+  "react-i18next",
+  "@tanstack/react-router",
+] as const;
+
+const shared = Object.fromEntries(
+  SHARED.map((name) => [
+    name,
+    { requiredVersion: dependencies[name], singleton: true },
+  ]),
+);
 
 function themePlugin(env: Record<string, string>): Plugin {
   const themeName = env.VITE_THEME || "default";
@@ -219,16 +235,7 @@ export default defineConfig(({ mode }) => {
       }),
       federation({
         name: "core",
-        shared: {
-          react: { requiredVersion: "19.3.1", singleton: true },
-          i18next: { requiredVersion: "26.5.5", singleton: true },
-          "react-i18next": { requiredVersion: "17.1.2", singleton: true },
-          "@tanstack/react-router": {
-            requiredVersion: "1.170.45",
-            singleton: true,
-          },
-        },
-        runtime: "@module-federation/enhanced/runtime",
+        shared,
       }),
       react(),
       tailwindcss(),
