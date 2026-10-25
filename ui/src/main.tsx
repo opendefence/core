@@ -17,7 +17,6 @@ import {
   getActiveThemeName,
 } from "@/config/asset-loader";
 import { setRuntimeLocalization } from "@/config/localization";
-import { UserTypeFetcher } from "./hooks/auth/userTypeFetcher";
 import { BrowserGuard } from "@/components/BrowserGuard";
 import { applyGuidePreferenceFromUrl } from "@/hooks/useGuidePreferences";
 
@@ -68,10 +67,8 @@ const initializeApp = async () => {
         <QueryClientProvider client={queryClient}>
           <LegacyQueryClientProvider client={legacyQueryClient}>
             <BrowserGuard>
-              <UserTypeFetcher>
-                <App />
-                <Toaster position="top-center" richColors />
-              </UserTypeFetcher>
+              <App />
+              <Toaster position="top-center" richColors />
             </BrowserGuard>
           </LegacyQueryClientProvider>
         </QueryClientProvider>

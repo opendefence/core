@@ -248,13 +248,13 @@ function AdminToolsPage() {
   }, [callsign, userTypeLoading, navigate, t]);
 
   useEffect(() => {
-    if (!userTypeLoading && userType !== "admin") {
+    if (!userTypeLoading && userType !== "superadmin") {
       toast.error(t("adminTools.forbiddenAdminAccess"));
       navigate({ to: "/" });
     }
   }, [userType, userTypeLoading, navigate, t]);
 
-  if (!userTypeLoading && userType !== "admin") {
+  if (!userTypeLoading && userType !== "superadmin") {
     return (
       <div
         data-testid="admin-tools-forbidden"

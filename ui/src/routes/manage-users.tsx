@@ -87,7 +87,7 @@ function ManageUsersPage() {
   }, [userTypeLoading, callsign, autoOpen]);
 
   useEffect(() => {
-    if (!userTypeLoading && userType !== "admin") {
+    if (!userTypeLoading && userType !== "superadmin") {
       toast.error(t("manageUsers.forbidden"));
       navigate({ to: "/" });
     }
@@ -103,7 +103,7 @@ function ManageUsersPage() {
     if (open) setAdministratorsOpen(false);
   };
 
-  if (!userTypeLoading && userType !== "admin") {
+  if (!userTypeLoading && userType !== "superadmin") {
     return (
       <div
         data-testid="manage-users-forbidden"
