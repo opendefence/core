@@ -322,6 +322,7 @@
     },
     "errors": {
       "alreadyInUse": "Callsign is already in use",
+      "inviteSpent": "This code was used up",
       "unexpected": "An unexpected error occurred"
     },
     "buttons": {
