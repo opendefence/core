@@ -93,7 +93,7 @@ export function useInviteCodeManagement() {
   }, [callsign, userTypeLoading, navigate, t]);
 
   useEffect(() => {
-    if (!userTypeLoading && userType !== "admin") {
+    if (!userTypeLoading && userType !== "superadmin") {
       toast.error(t("addUsers.messages.forbiddenError"));
       navigate({ to: "/" });
     }
