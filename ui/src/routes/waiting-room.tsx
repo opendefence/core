@@ -1,10 +1,11 @@
 "use client";
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useOwnEnrollmentStatus } from "@/hooks/api/useOwnEnrollmentStatus";
+import { useEnrollmentStatus } from "@/api/enrollment";
+import { readToken } from "@/api/token";
 import { useDeployment } from "@/api/health";
 import { appUrl } from "@/lib/origins";
 import { CompactHeader } from "@/components/CompactHeader";
@@ -20,35 +21,27 @@ function WaitingRoomPage() {
   const { t } = useTranslation();
   const { deployment, domain } = useDeployment();
 
-  const callsign = localStorage.getItem("callsign") ?? undefined;
-  const approveCode = localStorage.getItem("approveCode") ?? undefined;
-
-  const approvalUrl = `${appUrl(domain)}approve-user?callsign=${callsign ?? ""}&approvalcode=${approveCode ?? ""}`;
-
-  useEffect(() => {
-    if (!approveCode || !callsign) {
-      navigate({ to: "/login" });
-    }
-  }, [approveCode, callsign, navigate]);
-
-  const [shouldPoll, setShouldPoll] = useState(true);
-
   const {
-    data: enrolled,
+    data: status,
     dataUpdatedAt,
     isError,
     failureCount,
-  } = useOwnEnrollmentStatus({
-    refetchInterval: shouldPoll ? 5000 : false,
-  });
+  } = useEnrollmentStatus(5000);
+
+  const callsign = status?.callsign ?? "";
+  const approveCode = status?.approvalCode ?? "";
+
+  const approvalUrl = `${appUrl(domain)}approve-user?callsign=${callsign}&approvalcode=${approveCode}`;
 
   useEffect(() => {
-    if (enrolled && shouldPoll) {
-      setShouldPoll(false);
-      toast.success(t("waitingRoom.approvedToast"));
-      window.location.replace("/mtls-install");
-    }
-  }, [enrolled, shouldPoll, t]);
+    if (!readToken()) navigate({ to: "/login" });
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!status?.approved) return;
+    toast.success(t("waitingRoom.approvedToast"));
+    window.location.replace("/mtls-install");
+  }, [status?.approved, t]);
 
   return (
     <div
@@ -68,15 +61,12 @@ function WaitingRoomPage() {
             </p>
           </div>
 
-          <ApprovalHandoff
-            approvalUrl={approvalUrl}
-            callsign={callsign || ""}
-          />
+          <ApprovalHandoff approvalUrl={approvalUrl} callsign={callsign} />
 
           {/* isError only flips after react-query's retries run out. */}
           <ApprovalStatus
-            callsign={callsign || ""}
-            approveCode={approveCode || ""}
+            callsign={callsign}
+            approveCode={approveCode}
             approvalUrl={approvalUrl}
             lastCheckedAt={dataUpdatedAt}
             failing={isError || failureCount > 0}
