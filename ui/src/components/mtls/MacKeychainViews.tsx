@@ -46,10 +46,10 @@ function Marked({
 
 /** Keychain Access list: finding the certificate, or opening its private key. */
 export function KeychainList({
-  callsign,
+  certName,
   expanded,
 }: {
-  callsign: string;
+  certName: string;
   expanded?: boolean;
 }) {
   const { t } = useTranslation();
@@ -67,7 +67,7 @@ export function KeychainList({
         >
           {!expanded && <Mark n={2} />}
           <Search className="h-3.5 w-3.5 shrink-0 text-white/60" />
-          <span className="truncate">{callsign}</span>
+          <span className="truncate">{certName}</span>
         </span>
       </div>
       <div className="mt-3 flex gap-1 text-white/60">
@@ -101,7 +101,7 @@ export function KeychainList({
             <ChevronRight className="h-4 w-4 shrink-0 text-white/60" />
           )}
           <CertIcon />
-          <span className="font-medium">{callsign}</span>
+          <span className="font-medium">{certName}</span>
           <span className="ml-auto text-white/60">{ui("certificate")}</span>
         </div>
         {expanded && (
@@ -129,10 +129,10 @@ export function KeychainList({
 
 /** The certificate window with Trust opened and "Always Trust" chosen. */
 export function KeychainTrust({
-  callsign,
+  certName,
   issuer,
 }: {
-  callsign: string;
+  certName: string;
   issuer: string;
 }) {
   const { t } = useTranslation();
@@ -145,7 +145,7 @@ export function KeychainTrust({
           <CertIcon />
         </span>
         <div className="min-w-0">
-          <p className="font-semibold">{callsign}</p>
+          <p className="font-semibold">{certName}</p>
           <p className="truncate text-white/70">{ui("issuedBy", { issuer })}</p>
         </div>
       </div>
