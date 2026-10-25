@@ -184,7 +184,7 @@
     },
     "androidWarning": {
       "title": "Android Users:",
-      "description": "When you download the certificate, a popup will appear asking for a password. Use your callsign as the password."
+      "description": "When you download the certificate, a popup will appear asking for a password. Use the PIN shown on this page."
     },
     "installSteps": {
       "title": "Installation Steps"
@@ -531,8 +531,6 @@
     "downloading": "Downloading...",
     "navigateButton": "Navigate with your key",
     "certificateDownloaded": "Certificate downloaded successfully!",
-    "downloadFailed": "Failed to download certificate. Please try again.",
-    "callsignNotFound": "Callsign not found",
     "os": {
       "Windows": "Windows",
       "MacOS": "MacOS",
@@ -547,7 +545,7 @@
           "2": "Double-click the .pfx file to open the Certificate Import Wizard",
           "3": "Select 'Current User' or 'Local Machine' (Current User is recommended)",
           "4": "Choose 'Automatically select the certificate store based on the type of certificate'",
-          "5": "When prompted, enter your callsign",
+          "5": "When prompted, enter the PIN shown on this page",
           "6": "Click 'Finish' to complete the installation",
           "7": "Use the 'Navigate with your key' button to access services"
         },
@@ -560,7 +558,7 @@
         "steps": {
           "1": "Download your certificate using the button below",
           "2": "Double-click the .pfx file to open Keychain Access",
-          "3": "When prompted, enter your callsign as the password",
+          "3": "When prompted, enter the PIN shown on this page",
           "4": "Verify the certificate was added to your login Keychain",
           "5": "Use the 'Navigate with your key' button to access services"
         },
@@ -585,7 +583,7 @@
         "steps": {
           "1": "Download your certificate",
           "2": "Your device will automatically open the installation window",
-          "3": "Enter your callsign as the password",
+          "3": "Enter the PIN shown on this page",
           "4": "Select 'VPN and app usage certificate' as the certificate purpose",
           "5": "Do not change the certificate name and press 'OK'",
           "6": "Proceed to the services using the key"
@@ -601,7 +599,7 @@
           "2": "Tap the file to open it, then tap 'Allow' to install",
           "3": "Go to Settings → General → VPN & Device Management",
           "4": "Tap the certificate under 'Downloaded Profile'",
-          "5": "When prompted, enter your callsign as the password",
+          "5": "Enter the PIN shown on this page",
           "6": "Tap 'Install' twice to confirm",
           "7": "Use the 'Navigate with your key' button to access services"
         },
@@ -674,7 +672,7 @@
         "downloadedBody": "Review the profile in the Settings app if you want to install it.",
         "close": "Close",
         "certTitle": "“{{host}}” requires a client certificate",
-        "certBody": "Use the certificate “{{callsign}}” when connecting to this website.",
+        "certBody": "Use the certificate “{{certName}}” when connecting to this website.",
         "cancel": "Cancel",
         "continue": "Continue"
       }
@@ -693,14 +691,14 @@
         "openHint": "From your browser's downloads in the top-right corner, or from your Downloads folder.",
         "retry": "Didn't download? Download again",
         "unlock": "Unlock with Touch ID or your Mac password",
-        "password": "Enter your callsign as the password and press OK",
+        "password": "Enter the PIN shown on this page and press OK",
         "comeBack": "After you press OK, Keychain Access opens. Then come back to this browser and press Installed – continue."
       },
       "done": {
-        "pick": "Select {{callsign}} and press OK",
-        "generic": "When the browser asks for a certificate, select {{callsign}}. If your Mac asks for a password, enter your Mac login password and choose Always Allow.",
+        "pick": "Select {{certName}} and press OK",
+        "generic": "When the browser asks for a certificate, select {{certName}}. If your Mac asks for a password, enter your Mac login password and choose Always Allow.",
         "allowIf": "If your Mac still asks for a password, enter your Mac password and choose Always Allow",
-        "safariLogin": "Press Login with Certificate, select {{callsign}} from the list and press Continue",
+        "safariLogin": "Press Login with Certificate, select {{certName}} from the list and press Continue",
         "safariGo": "Press Go to the service below"
       },
       "system": {
@@ -737,8 +735,8 @@
           "hint": "The new certificate doesn't show in the list until you search for it. Keychain Access didn't open? Open Spotlight (⌘ + space) and type Keychain Access.",
           "steps": [
             "Choose My Certificates",
-            "Search for {{callsign}} (⌘V)",
-            "Double-click the {{callsign}} row"
+            "Search for {{certName}}",
+            "Double-click the {{certName}} row"
           ]
         },
         "trust": {
@@ -752,7 +750,7 @@
         "access": {
           "title": "Allow use of the key",
           "steps": [
-            "Open the arrow left of the {{callsign}} row",
+            "Open the arrow left of the {{certName}} row",
             "Double-click Imported Private Key",
             "Choose Access Control",
             "Allow all applications to access this item",
@@ -792,7 +790,7 @@
         "openHint": "Open it from your browser's downloads in the top-right corner.",
         "steps": [
           "Press Next twice",
-          "Enter your callsign as the password",
+          "Enter the PIN shown on this page",
           "Press Next twice, then Finish and OK"
         ],
         "showAll": "Show every wizard page",
@@ -800,15 +798,15 @@
         "pages": [
           "Welcome: press Next",
           "File to import: press Next",
-          "Enter the password (your callsign) and press Next",
+          "Enter the PIN and press Next",
           "Certificate store: press Next",
           "Completing: press Finish",
           "Import successful: press OK"
         ]
       },
       "done": {
-        "pick": "Your browser asks for a certificate. Select {{callsign}} and press OK.",
-        "pickFirefox": "Firefox asks for a certificate. {{callsign}} is already selected. Press OK."
+        "pick": "Your browser asks for a certificate. Select {{certName}} and press OK.",
+        "pickFirefox": "Firefox asks for a certificate. {{certName}} is already selected. Press OK."
       },
       "firefox": {
         "title": "Add the key to Firefox",
@@ -820,7 +818,7 @@
           "Copy the address, then open it in a new window with these keys:",
           "Press Import…",
           "Open Downloads, select {{fileName}} and press Open.",
-          "Enter your callsign as the password and press Sign in.",
+          "Enter the PIN shown on this page and press Sign in.",
           "Press OK in the certificate window, then Installed – continue here."
         ]
       },
@@ -874,11 +872,11 @@
           "Copy the address, then open it in a new window with these keys:",
           "Press Import…",
           "Open Downloads, select {{fileName}} and press Select.",
-          "Enter your callsign as the password and press Sign in.",
+          "Enter the PIN shown on this page and press Sign in.",
           "Press OK in the certificate window, then Installed – continue here."
         ],
         "fallbackPath": "In Firefox: ≡ menu → Settings → search “certificates” → Manage certificates → Your Certificates.",
-        "pick": "Firefox asks for a certificate. {{callsign}} is already selected. Press OK."
+        "pick": "Firefox asks for a certificate. {{certName}} is already selected. Press OK."
       },
       "chrome": {
         "caption": "Your key is a file you add to your browser.",
@@ -887,11 +885,11 @@
           "Copy the address, then open it in a new window with these keys:",
           "Press Import.",
           "Open Downloads, select {{fileName}} and press Select.",
-          "Enter your callsign as the password and press OK.",
+          "Enter the PIN shown on this page and press OK.",
           "Come back to this window and press Installed – continue."
         ],
         "fallbackPath": "In the browser: ⋮ menu → Settings → Privacy and security → Security → Manage certificates → Your certificates.",
-        "pick": "Your browser asks for a certificate. {{callsign}} is already selected. Press OK."
+        "pick": "Your browser asks for a certificate. {{certName}} is already selected. Press OK."
       },
       "system": {
         "crManager": "Certificate Manager",
@@ -913,6 +911,12 @@
         "ffUnlockTitle": "Password Required",
         "ffYours": "Your Certificates"
       }
+    },
+    "errors": {
+      "notApproved": "Your account is not approved yet",
+      "approvalUsed": "This approval was already used. Ask an administrator to approve you again.",
+      "notIssued": "The certificate was not issued in time. Reload to try again.",
+      "failed": "Could not get the certificate"
     }
   },
   "browserGuard": {
