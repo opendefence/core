@@ -101,7 +101,7 @@ function RootLayout() {
         location.pathname.startsWith(path),
       );
 
-      if (isAdminPath && userType !== "admin") {
+      if (isAdminPath && userType !== "superadmin") {
         toast.error(t("common.forbiddenAdminAccess"));
         navigate({ to: "/" });
       }
