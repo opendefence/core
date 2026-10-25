@@ -105,11 +105,15 @@ function MtlsInstallPage() {
   const canNavigate = certDownloaded;
 
   const handleDownloadKey = () => {
-    if (callsign) {
-      getCertificateMutation.mutate({ callsign, deployment });
-    } else {
-      toast.error(t("mtlsInstall.callsignNotFound"));
-    }
+    if (!bundle) return;
+    downloadBlob(
+      new Blob([bundle.pfx], { type: "application/x-pkcs12" }),
+      `${callsign}_${deployment}.pfx`,
+    );
+    writeStore("cert_downloaded", "true");
+    setCertDownloaded(true);
+    setDownloadCount((n) => n + 1);
+    if (!guided) toast.success(t("mtlsInstall.certificateDownloaded"));
   };
 
   const chooseOS = setSelectedOS;
