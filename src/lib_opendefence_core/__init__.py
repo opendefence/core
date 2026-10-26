@@ -1,3 +1,3 @@
 """OpenDefence Kubernetes resource models."""
 
-__version__ = "0.4.1+261026"
+__version__ = "0.4.2+261026"

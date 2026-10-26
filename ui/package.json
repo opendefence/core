@@ -1,5 +1,6 @@
 {
   "name": "core-ui",
+  "version": "0.4.2+261026",
   "private": true,
   "type": "module",
   "scripts": {
