@@ -42,13 +42,13 @@ jobs:
         with:
           cache: true
       - name: Install dependencies
-        run: task ui:install
+        run: task -t taskfiles/ui.yaml install
       - name: Lint
-        run: task ui:lint
+        run: task -t taskfiles/ui.yaml lint
       - name: Typecheck
-        run: task ui:typecheck
+        run: task -t taskfiles/ui.yaml typecheck
       - name: Build
-        run: task ui:build
+        run: task -t taskfiles/ui.yaml build
       - name: Build the production image
         run: docker build --target production -t core-ui-check ui
 
