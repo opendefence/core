@@ -1,0 +1,61 @@
+# Build, check, and run the web UI from this checkout. Needs the checkout, so
+# it is not remote-safe.
+version: "3"
+
+vars:
+  UI_DIR: '{{.UI_DIR | default "ui"}}'
+  SCHEMA: '{{.SCHEMA | default "src/api/schema.d.ts"}}'
+
+tasks:
+  install:
+    desc: Install the UI dependencies from the lockfile
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: &pnpm
+      - sh: command -v pnpm >/dev/null
+        msg: pnpm is not on PATH
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  dev:
+    desc: Serve the UI with Vite, proxying /api to a port-forwarded core-api
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - pnpm vite {{.CLI_ARGS}}
+
+  build:
+    desc: Build the UI into ui/dist
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - pnpm vite build
+
+  api:
+    desc: Regenerate the API types from the Python API schema
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - uv run --locked --project .. opendefence_core api schema | pnpm openapi-typescript -o {{.SCHEMA | shellQuote}}
+      - pnpm prettier --write {{.SCHEMA | shellQuote}}
+
+  typecheck:
+    desc: Check the UI types without emitting
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - pnpm tsc -b
+
+  lint:
+    desc: Run ESLint and check the UI formatting
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - pnpm eslint .
+      - pnpm prettier --check .
+
+  format:
+    desc: Format the UI sources with Prettier
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - pnpm prettier --write .

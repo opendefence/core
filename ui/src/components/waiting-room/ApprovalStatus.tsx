@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ApprovalCodeDisplay } from "@/components/waiting-room/ApprovalCodeDisplay";
 import { ApprovalDetailsDrawer } from "@/components/waiting-room/ApprovalDetailsDrawer";

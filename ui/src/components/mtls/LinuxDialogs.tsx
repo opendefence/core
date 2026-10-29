@@ -2,7 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const FONT =
   "[font-family:Ubuntu,'Cantarell',system-ui,sans-serif] tracking-normal";

@@ -5,7 +5,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useTranslation } from "react-i18next";
 
 export function ApprovalMethodsSection() {

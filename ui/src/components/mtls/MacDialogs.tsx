@@ -2,7 +2,7 @@
 
 import { Compass, Fingerprint } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 export const PANEL =
   "w-full rounded-2xl border border-white/10 bg-[#2b2b2b] p-4 text-[13px] leading-snug tracking-normal text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] [font-family:-apple-system,system-ui,sans-serif]";

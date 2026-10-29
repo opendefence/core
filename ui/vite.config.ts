@@ -5,6 +5,22 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { federation } from "@module-federation/vite";
+import { dependencies } from "./package.json";
+
+const SHARED = [
+  "react",
+  "react-dom",
+  "i18next",
+  "react-i18next",
+  "@tanstack/react-router",
+] as const;
+
+const shared = Object.fromEntries(
+  SHARED.map((name) => [
+    name,
+    { requiredVersion: dependencies[name], singleton: true },
+  ]),
+);
 
 function themePlugin(env: Record<string, string>): Plugin {
   const themeName = env.VITE_THEME || "default";
@@ -23,7 +39,7 @@ function themePlugin(env: Record<string, string>): Plugin {
     load(id) {
       if (id !== RESOLVED_ID) return;
 
-      const themesDir = path.resolve(__dirname, "./public/themes");
+      const themesDir = path.resolve(import.meta.dirname, "./public/themes");
       const themeJsonPath = path.join(themesDir, themeName, "theme.json");
       const defaultThemeJsonPath = path.join(
         themesDir,
@@ -94,7 +110,7 @@ function manifestPlugin(env: Record<string, string>): Plugin {
   const themeName = env.VITE_THEME || "default";
 
   const generateManifest = () => {
-    const themesDir = path.resolve(__dirname, "./public/themes");
+    const themesDir = path.resolve(import.meta.dirname, "./public/themes");
     const manifestPath = path.join(themesDir, themeName, "manifest.json");
     const defaultManifestPath = path.join(
       themesDir,
@@ -110,16 +126,10 @@ function manifestPlugin(env: Record<string, string>): Plugin {
 
     const baseUrl = `/themes/${themeName}`;
 
-    const deploymentName = env.SERVER_DOMAIN
-      ? env.SERVER_DOMAIN.replace(/^mtls\./, "").split(".")[0]
-      : undefined;
-
     return {
       id: "/",
-      name: deploymentName
-        ? `${themeManifest.name || themeName} ${deploymentName}`
-        : themeManifest.name || themeName,
-      short_name: deploymentName || themeManifest.short_name,
+      name: themeManifest.name || themeName,
+      short_name: themeManifest.short_name,
       description: themeManifest.description || "",
       start_url: "/",
       scope: "/",
@@ -169,7 +179,7 @@ function manifestPlugin(env: Record<string, string>): Plugin {
       ],
       protocol_handlers: [
         {
-          protocol: "web+pvarki",
+          protocol: "web+opendefence",
           url: "/invite-code/%s",
         },
       ],
@@ -184,7 +194,7 @@ function manifestPlugin(env: Record<string, string>): Plugin {
     closeBundle() {
       const pwaManifest = generateManifest();
 
-      const distDir = path.resolve(__dirname, "./dist");
+      const distDir = path.resolve(import.meta.dirname, "./dist");
       if (!fs.existsSync(distDir)) {
         fs.mkdirSync(distDir, { recursive: true });
       }
@@ -224,17 +234,8 @@ export default defineConfig(({ mode }) => {
         autoCodeSplitting: true,
       }),
       federation({
-        name: "rasenmaeher",
-        shared: {
-          react: { requiredVersion: "18.3.1", singleton: true },
-          i18next: { requiredVersion: "25.6.2", singleton: true },
-          "react-i18next": { requiredVersion: "16.3.3", singleton: true },
-          "@tanstack/react-router": {
-            requiredVersion: "1.135.2",
-            singleton: true,
-          },
-        },
-        runtime: "@module-federation/enhanced/runtime",
+        name: "core",
+        shared,
       }),
       react(),
       tailwindcss(),
@@ -245,30 +246,20 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve(import.meta.dirname, "./src"),
       },
     },
     server: {
       watch: { ignored: ["**/.env*"] },
       host: env.SERVER_DOMAIN || "localhost",
-      fs: {
-        allow: [".", "../shared"],
-      },
       allowedHosts: [
-        `mtls.${env.SERVER_DOMAIN ?? "localhost"}`,
         env.SERVER_DOMAIN ?? "localhost",
-        "localhost",
-        "0.0.0.0",
-        "mtls.localmaeher.dev.pvarki.fi",
-        "localmaeher.dev.pvarki.fi",
-        /^mtls\..+\.dev\.pvarki\.fi$/,
-        /^.+\.dev\.pvarki\.fi$/,
-        /^mtls\..+\.solution\.dev\.pvarki\.fi$/,
-        /^.+\.solution\.dev\.pvarki\.fi$/,
-      ].filter(Boolean),
+        "local-dev.opendefence.fi",
+        /^.+\.local-dev\.opendefence\.fi$/,
+      ],
       proxy: {
         "/api": {
-          target: "http://rmapi:8000",
+          target: env.CORE_API || "http://127.0.0.1:8000",
           secure: false,
         },
       },

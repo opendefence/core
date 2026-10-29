@@ -3,7 +3,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import useHealthCheck from "@/hooks/helpers/useHealthcheck";
+import { useDeployment } from "@/api/health";
 import { useInvitePdfExport } from "@/hooks/helpers/useInvitePdfExport";
 import { InviteHeader } from "@/components/invite-code/InviteHeader";
 import { InviteQRCodeCard } from "@/components/invite-code/InviteQRCodeCard";
@@ -37,7 +37,7 @@ function getInviteUrl(code: string, autoOpenGuides: boolean): string {
 function InviteCodePage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
-  const { deployment } = useHealthCheck();
+  const { deployment } = useDeployment();
   const { t } = useTranslation();
 
   const [autoOpenGuides, setAutoOpenGuides] = useState(true);

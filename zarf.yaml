@@ -69,6 +69,18 @@ components:
         kind: Deployment
         name: core-api
         namespace: opendefence-system
+  - name: ui
+    required: true
+    manifests:
+      - name: ui
+        files:
+          - manifests/ui/deployment.yaml
+          - manifests/ui/service.yaml
+    healthChecks:
+      - apiVersion: apps/v1
+        kind: Deployment
+        name: core-ui
+        namespace: opendefence-system
   - name: ingress
     required: true
     manifests:
@@ -78,6 +90,7 @@ components:
           - manifests/ingress/certificate.yaml
           - manifests/ingress/tlsstore.yaml
           - manifests/ingress/api.yaml
+          - manifests/ingress/ui.yaml
     healthChecks:
       - apiVersion: cert-manager.io/v1
         kind: Certificate

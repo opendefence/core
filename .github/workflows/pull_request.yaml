@@ -33,6 +33,25 @@ jobs:
           .venv/bin/python -I -c 'import opendefence_core.api.app, opendefence_core.k8s_operator.app'
           .venv/bin/opendefence_core --version
 
+  ui:
+    runs-on: ubuntu-latest
+    name: Lint and build the web UI
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.1.1
+        with:
+          cache: true
+      - name: Install dependencies
+        run: task -t taskfiles/ui.yaml install
+      - name: Lint
+        run: task -t taskfiles/ui.yaml lint
+      - name: Typecheck
+        run: task -t taskfiles/ui.yaml typecheck
+      - name: Build
+        run: task -t taskfiles/ui.yaml build
+      - name: Build the production image
+        run: docker build --target production -t core-ui-check ui
+
   bumpversion-check:
     runs-on: ubuntu-latest
     steps:

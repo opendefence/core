@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { getCleanProductTitle } from "@/components/home/productUtils";
 import type { ProductDescription } from "@/hooks/api/useGetProductDescriptions";
 

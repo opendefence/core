@@ -1,0 +1,8 @@
+node_modules
+dist
+.vite
+.tanstack
+.__mf__temp
+.env
+.env.*
+Dockerfile

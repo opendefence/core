@@ -311,14 +311,13 @@
   },
   "callsignSetup": {
     "title": "Setup Your Callsign",
-    "usingAdmin": "Using admin code: {{code}}",
     "usingInvite": "Using invite code: {{code}}",
     "yourCallsignLabel": "Your Callsign",
     "callsignPlaceholder": "Enter your callsign",
     "validation": {
       "required": "Callsign is required",
       "min": "Callsign must be at least 3 characters",
-      "pattern": "Only alphanumeric characters allowed",
+      "pattern": "Only letters, numbers and underscores allowed",
       "max": "Callsign must be at most 30 characters"
     },
     "errors": {
