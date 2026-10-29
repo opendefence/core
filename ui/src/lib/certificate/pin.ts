@@ -25,6 +25,10 @@ export function savedPin(callsign: string): string {
   return pin;
 }
 
+export function readPin(callsign: string): string {
+  return readSession(key(callsign)) ?? "";
+}
+
 /** Drop the pin once it has done its job at the install dialog. */
 export function clearPin(callsign: string): void {
   clearSession(key(callsign));

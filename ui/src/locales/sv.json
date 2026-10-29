@@ -143,7 +143,13 @@
     "verifying": "Verifierar...",
     "codeRequired": "Kod krävs",
     "codeInvalid": "Ogiltigt kodformat",
-    "codeNotValid": "Ogiltig kod"
+    "codeNotValid": "Ogiltig kod",
+    "reasons": {
+      "enrollment_failed": {
+        "title": "Registreringen kunde inte slutföras",
+        "description": "Börja om med en ny inbjudningskod."
+      }
+    }
   },
   "loginGuide": {
     "title": "Inloggningsguide",
@@ -914,7 +920,6 @@
     },
     "errors": {
       "notApproved": "Ditt konto är inte godkänt ännu",
-      "approvalUsed": "Godkännandet är redan använt. Be en administratör godkänna dig igen.",
       "notIssued": "Certifikatet utfärdades inte i tid. Ladda om sidan.",
       "failed": "Kunde inte hämta certifikatet"
     }

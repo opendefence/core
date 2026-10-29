@@ -143,7 +143,13 @@
     "verifying": "Vahvistetaan...",
     "codeRequired": "Koodi vaaditaan",
     "codeInvalid": "Koodin muoto on virheellinen",
-    "codeNotValid": "Koodi on virheellinen"
+    "codeNotValid": "Koodi on virheellinen",
+    "reasons": {
+      "enrollment_failed": {
+        "title": "Liittymistä ei voitu viimeistellä",
+        "description": "Aloita alusta uudella kutsukoodilla."
+      }
+    }
   },
   "loginGuide": {
     "title": "Kirjautumisopas",
@@ -914,7 +920,6 @@
     },
     "errors": {
       "notApproved": "Tiliäsi ei ole vielä hyväksytty",
-      "approvalUsed": "Tämä hyväksyntä on jo käytetty. Pyydä ylläpitäjää hyväksymään sinut uudelleen.",
       "notIssued": "Varmennetta ei myönnetty ajoissa. Lataa sivu uudelleen.",
       "failed": "Varmenteen haku epäonnistui"
     }
