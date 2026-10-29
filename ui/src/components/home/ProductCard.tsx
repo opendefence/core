@@ -1,0 +1,114 @@
+import type React from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { BookOpen, ExternalLink } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { Product } from "./productUtils";
+import { getProductIcon, getCleanProductTitle } from "./productUtils";
+
+interface ProductCardProps {
+  product: Product;
+  isValidUser: boolean;
+  onProductClick: (product: Product) => void;
+  onDocsClick: (docsUrl: string | null, e: React.MouseEvent) => void;
+}
+
+export function ProductCard({
+  product,
+  isValidUser,
+  onProductClick,
+  onDocsClick,
+}: ProductCardProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      data-testid="product-card"
+      data-product-shortname={product.shortname}
+      data-product-valid={isValidUser ? "true" : "false"}
+      className={cn(
+        "group flex flex-col border border-border rounded-2xl overflow-hidden transition-all duration-300",
+        isValidUser
+          ? "hover:border-primary hover:shadow-xl hover:-translate-y-1 bg-card"
+          : "opacity-60 bg-card",
+      )}
+    >
+      <div className="flex flex-col flex-1 p-6">
+        <div className="flex flex-col flex-1 relative pr-20 md:pr-28">
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">
+              {t("home.productCard.label")}
+            </p>
+            <h3 className="text-lg md:text-xl font-bold text-foreground leading-tight break-words">
+              {getCleanProductTitle(product.title, product.shortname)}
+            </h3>
+          </div>
+
+          <p className="text-sm text-muted-foreground leading-relaxed flex-1 mb-6 break-words">
+            {product.description}
+          </p>
+
+          {product.icon && (
+            <img
+              src={product.icon}
+              alt={product.shortname}
+              className="w-13 h-13 sm:w-20 sm:h-20 lg:w-23 lg:h-23 object-contain absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
+          <Button
+            data-testid="product-card-launch-button"
+            size="sm"
+            onClick={() => onProductClick(product)}
+            variant={"outline"}
+            className={cn(
+              "flex items-center justify-center rounded-lg font-semibold transition-all h-12 text-sm md:text-base w-full sm:flex-1 cursor-pointer",
+              isValidUser
+                ? "bg-primary-light hover:bg-primary-light/90 text-primary-foreground"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            )}
+            disabled={!isValidUser}
+          >
+            <span className="inline-flex items-center gap-2">
+              {product.component.type === "component" ||
+              product.component.type === "markdown" ? (
+                <>
+                  <span className="shrink-0">
+                    {getProductIcon(product.shortname)}
+                  </span>
+                  <span>{t("home.productCard.launch")}</span>
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-5 h-5 shrink-0" />
+                  <span>{t("home.productCard.open")}</span>
+                </>
+              )}
+            </span>
+          </Button>
+          {product.docs && (
+            <Button
+              data-testid="product-card-docs-button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "flex items-center justify-center rounded-lg hover:bg-accent/50 h-12 text-sm md:text-base font-medium w-auto sm:flex-1",
+                !isValidUser && "opacity-50 cursor-not-allowed",
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDocsClick(product.docs, e);
+              }}
+              disabled={!isValidUser}
+            >
+              <BookOpen className="w-5 h-5 mr-2" />
+              {t("home.productCard.docs")}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,132 @@
+"use client";
+import { createFileRoute } from "@tanstack/react-router";
+
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { toast } from "sonner";
+import { useApproveUser } from "@/hooks/api/useApproveUser";
+import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
+interface ApproveUserSearch {
+  callsign?: string;
+  approvalcode?: string;
+}
+
+export const Route = createFileRoute("/approve-user")({
+  component: ApproveUserPage,
+  validateSearch: (search: Record<string, unknown>): ApproveUserSearch => {
+    return {
+      callsign: (search.callsign as string) || undefined,
+      approvalcode: (search.approvalcode as string) || undefined,
+    };
+  },
+});
+
+function ApproveUserPage() {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { callsign, approvalcode } = Route.useSearch();
+  const [approvalCode, setApprovalCode] = useState(approvalcode || "");
+
+  const approveUserMutation = useApproveUser({
+    onSuccess: () => {
+      toast.success(t("approveUser.approvedSuccess", { callsign }));
+      navigate({ to: "/approve-users" });
+    },
+    onError: (error) => {
+      toast.error(t("approveUser.approveFailed", { error: error.message }));
+    },
+  });
+
+  useEffect(() => {
+    if (!callsign) {
+      navigate({ to: "/approve-users" });
+    }
+  }, [callsign, navigate]);
+
+  const handleApprove = () => {
+    if (!approvalCode.trim()) {
+      toast.error(t("approveUser.enterApprovalCodeMessage"));
+      return;
+    }
+    if (!callsign) return;
+    approveUserMutation.mutate({ callsign, approvalCode });
+  };
+
+  return (
+    <div
+      data-testid="approve-user-page"
+      data-callsign={callsign ?? ""}
+      className="min-h-screen flex items-center justify-center bg-background p-4"
+    >
+      <div className="w-full max-w-md space-y-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">
+              {t("approveUser.title")}
+            </CardTitle>
+            <CardDescription className="text-center">
+              {t("approveUser.description", { callsign })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="approval-code">
+                {t("approveUser.approvalCodeLabel")}
+              </Label>
+              <Input
+                data-testid="approve-user-code-input"
+                id="approval-code"
+                value={approvalCode}
+                onChange={(e) => setApprovalCode(e.target.value)}
+                placeholder={t("approveUser.approvalCodePlaceholder")}
+                onKeyDown={(e) => e.key === "Enter" && handleApprove()}
+                autoFocus
+                disabled={approveUserMutation.isLoading}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                data-testid="approve-user-cancel-button"
+                variant="outline"
+                onClick={() => navigate({ to: "/approve-users" })}
+                disabled={approveUserMutation.isLoading}
+                className="flex-1"
+              >
+                {t("approveUser.cancel")}
+              </Button>
+              <Button
+                data-testid="approve-user-approve-button"
+                onClick={handleApprove}
+                variant={"outline"}
+                className="flex-1 bg-primary-light hover:bg-primary-light/90"
+                disabled={approveUserMutation.isLoading || !approvalCode.trim()}
+              >
+                {approveUserMutation.isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {t("approveUser.approving")}
+                  </>
+                ) : (
+                  t("approveUser.approve")
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
