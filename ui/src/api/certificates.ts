@@ -3,10 +3,10 @@ import { api } from "./client";
 import { createCsr } from "@/lib/certificate/csr";
 import { exportPrivateKey, generateKeyPair } from "@/lib/certificate/keypair";
 import { createPfx } from "@/lib/certificate/pfx";
-import { generatePin } from "@/lib/certificate/pin";
 
 const POLL_MS = 1000;
-const ATTEMPTS = 60;
+// Giving up is terminal: the approval is spent and the key cannot be reused.
+const ATTEMPTS = 180;
 
 export type CertificateFailure =
   "notApproved" | "approvalUsed" | "notIssued" | "failed";
@@ -24,6 +24,7 @@ export class CertificateError extends Error {
 interface Request {
   commonName: string;
   uri: string;
+  pin: string;
 }
 
 export interface Bundle {
@@ -63,12 +64,11 @@ async function awaitChain(): Promise<string> {
  */
 export function useCertificate() {
   return useMutation({
-    mutationFn: async ({ commonName, uri }: Request): Promise<Bundle> => {
+    mutationFn: async ({ commonName, uri, pin }: Request): Promise<Bundle> => {
       const keys = await generateKeyPair();
       await submit(await createCsr(keys, commonName, uri));
       const chain = await awaitChain();
 
-      const pin = generatePin();
       const pfx = await createPfx(
         await exportPrivateKey(keys.privateKey),
         chain,
