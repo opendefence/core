@@ -1,7 +1,7 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { CertificateError, useCertificate } from "@/api/certificates";
 import { useEnrollmentStatus } from "@/api/enrollment";
@@ -25,6 +25,7 @@ import { WinInstallFlow } from "@/components/mtls/WinInstallFlow";
 import { LinuxInstallFlow } from "@/components/mtls/LinuxInstallFlow";
 import { CompactHeader } from "@/components/CompactHeader";
 import { readStore, writeStore } from "@/lib/safeStorage";
+import { clearPin, savedPin } from "@/lib/certificate/pin";
 import {
   getOperatingSystem,
   PLATFORM_INSTRUCTIONS,
@@ -85,13 +86,16 @@ function MtlsInstallPage() {
 
   const { mutate: request, data: bundle, isPending } = useCertificate();
 
-  // The certificate is made as soon as identity is known.
+  // Keep pin during the instructions in case browser reloads the tab.
+  const pin = useMemo(() => (callsign ? savedPin(callsign) : ""), [callsign]);
+
+  // The certificate is made as soon as identity is known
   const requested = useRef(false);
   useEffect(() => {
-    if (requested.current || !commonName || !uri) return;
+    if (requested.current || !commonName || !uri || !pin) return;
     requested.current = true;
     request(
-      { commonName, uri },
+      { commonName, uri, pin },
       {
         onError: (error) => {
           const reason =
@@ -100,7 +104,24 @@ function MtlsInstallPage() {
         },
       },
     );
-  }, [commonName, uri, request, t]);
+  }, [commonName, uri, pin, request, t]);
+
+  useEffect(() => {
+    if (!isPending) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isPending]);
+
+  useEffect(() => {
+    if (!callsign) return;
+    const leave = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-mtls-url]")) clearPin(callsign);
+    };
+    document.addEventListener("click", leave);
+    return () => document.removeEventListener("click", leave);
+  }, [callsign]);
 
   const canNavigate = certDownloaded;
 
@@ -147,7 +168,7 @@ function MtlsInstallPage() {
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
                   isDownloading={isPending}
-                  password={bundle?.pin ?? ""}
+                  password={pin}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -166,7 +187,7 @@ function MtlsInstallPage() {
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
                   isDownloading={isPending}
-                  password={bundle?.pin ?? ""}
+                  password={pin}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -185,7 +206,7 @@ function MtlsInstallPage() {
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
                   isDownloading={isPending}
-                  password={bundle?.pin ?? ""}
+                  password={pin}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -227,7 +248,7 @@ function MtlsInstallPage() {
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
                 isDownloading={isPending}
-                password={bundle?.pin ?? ""}
+                password={pin}
                 downloadCount={downloadCount}
                 platformPicker={
                   <PlatformSelector
@@ -244,7 +265,7 @@ function MtlsInstallPage() {
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
                 isDownloading={isPending}
-                password={bundle?.pin ?? ""}
+                password={pin}
                 downloadCount={downloadCount}
                 platformPicker={
                   <PlatformSelector
@@ -292,7 +313,7 @@ function MtlsInstallPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-max">
                 <div className="lg:col-span-1 space-y-6">
                   <PlatformSelector value={osToShow} onValueChange={chooseOS} />
-                  <MtlsPasswordDisplay password={bundle?.pin ?? ""} />
+                  <MtlsPasswordDisplay password={pin} />
                   <MtlsActionButtons
                     onDownload={handleDownloadKey}
                     isDownloading={isPending}
@@ -346,7 +367,7 @@ function MtlsInstallPage() {
 
           <MtlsInstructions instructions={platformInstructions} />
 
-          <MtlsPasswordDisplay password={bundle?.pin ?? ""} />
+          <MtlsPasswordDisplay password={pin} />
 
           <MtlsActionButtons
             onDownload={handleDownloadKey}
