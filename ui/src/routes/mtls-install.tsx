@@ -1,10 +1,11 @@
 "use client";
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { CertificateError, useCertificate } from "@/api/certificates";
 import { useEnrollmentStatus } from "@/api/enrollment";
+import { readToken } from "@/api/token";
 import { downloadBlob } from "@/lib/downloadBlob";
 import {
   useGuidePreferences,
@@ -25,7 +26,7 @@ import { WinInstallFlow } from "@/components/mtls/WinInstallFlow";
 import { LinuxInstallFlow } from "@/components/mtls/LinuxInstallFlow";
 import { CompactHeader } from "@/components/CompactHeader";
 import { readStore, writeStore } from "@/lib/safeStorage";
-import { clearPin, savedPin } from "@/lib/certificate/pin";
+import { clearPin, readPin, savedPin } from "@/lib/certificate/pin";
 import {
   getOperatingSystem,
   PLATFORM_INSTRUCTIONS,
@@ -49,15 +50,13 @@ const isGuidedOS = (os: string) =>
 
 function MtlsInstallPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const [selectedOS, setSelectedOS] = useState("");
   const [userOS, setUserOS] = useState("");
   const [showGuide, setShowGuide] = useState(false);
   const { autoOpen } = useGuidePreferences();
-  const [certDownloaded, setCertDownloaded] = useState<boolean>(
-    () => readStore("cert_downloaded") === "true",
-  );
   // Counts completed downloads rather than tracking a flag: re-downloading has
   // to move the Android flow on again, and the flag is already true by then.
   const [downloadCount, setDownloadCount] = useState(0);
@@ -79,15 +78,23 @@ function MtlsInstallPage() {
 
   const mtlsUrl = withGuidePreference(appUrl(domain));
 
-  const { data: status } = useEnrollmentStatus();
+  const { data: status, isError } = useEnrollmentStatus();
   const callsign = status?.callsign ?? "";
   const commonName = status?.certificateCommonName;
   const uri = status?.certificateUri;
 
-  const { mutate: request, data: bundle, isPending } = useCertificate();
+  const { mutate: request, data: bundle, isPending, error } = useCertificate();
+
+  // Scoped by callsign
+  const certDownloaded =
+    !!callsign && readStore(`cert_downloaded:${callsign}`) === "true";
 
   // Keep pin during the instructions in case browser reloads the tab.
-  const pin = useMemo(() => (callsign ? savedPin(callsign) : ""), [callsign]);
+  const pin = useMemo(
+    () =>
+      !callsign ? "" : certDownloaded ? readPin(callsign) : savedPin(callsign),
+    [callsign, certDownloaded],
+  );
 
   // The certificate is made as soon as identity is known
   const requested = useRef(false);
@@ -100,11 +107,22 @@ function MtlsInstallPage() {
         onError: (error) => {
           const reason =
             error instanceof CertificateError ? error.reason : "failed";
-          toast.error(t(`mtlsInstall.errors.${reason}`));
+          if (reason !== "approvalUsed")
+            toast.error(t(`mtlsInstall.errors.${reason}`));
         },
       },
     );
   }, [commonName, uri, pin, request, t]);
+
+  // Nothing works without an approved enrollment and a key this page made
+  useEffect(() => {
+    const spent =
+      error instanceof CertificateError && error.reason === "approvalUsed";
+    if (!readToken()) navigate({ to: "/login" });
+    else if (status && !status.approved) navigate({ to: "/waiting-room" });
+    else if (isError || (spent && !certDownloaded))
+      navigate({ to: "/login", search: { reason: "enrollment_failed" } });
+  }, [status, isError, error, certDownloaded, navigate]);
 
   useEffect(() => {
     if (!isPending) return;
@@ -131,8 +149,7 @@ function MtlsInstallPage() {
       new Blob([bundle.pfx], { type: "application/x-pkcs12" }),
       `${callsign}_${deployment}.pfx`,
     );
-    writeStore("cert_downloaded", "true");
-    setCertDownloaded(true);
+    writeStore(`cert_downloaded:${callsign}`, "true");
     setDownloadCount((n) => n + 1);
     if (!guided) toast.success(t("mtlsInstall.certificateDownloaded"));
   };

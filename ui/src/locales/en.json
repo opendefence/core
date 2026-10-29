@@ -143,7 +143,13 @@
     "verifying": "Verifying...",
     "codeRequired": "Code is required",
     "codeInvalid": "Code format is invalid",
-    "codeNotValid": "Code is invalid"
+    "codeNotValid": "Code is invalid",
+    "reasons": {
+      "enrollment_failed": {
+        "title": "Enrollment could not be finished",
+        "description": "Start again with a new invite code."
+      }
+    }
   },
   "loginGuide": {
     "title": "Login Guide",
@@ -914,7 +920,6 @@
     },
     "errors": {
       "notApproved": "Your account is not approved yet",
-      "approvalUsed": "This approval was already used. Ask an administrator to approve you again.",
       "notIssued": "The certificate was not issued in time. Reload to try again.",
       "failed": "Could not get the certificate"
     }
