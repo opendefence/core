@@ -15,6 +15,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     Integration,
     IntegrationRole,
     IntegrationSpec,
+    IntegrationStatus,
     Invite,
     InviteSpec,
     InviteStatus,
@@ -28,6 +29,11 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserSpec,
 )
 from lib_opendefence_core.models.v1alpha1.common import PlatformCondition
+
+
+def uid(name: str) -> str:
+    """Deterministic uid for the named object, as the API server would assign one."""
+    return str(uuid5(NAMESPACE_DNS, name))
 
 
 def refs(names: Iterable[str]) -> list[ObjectRef]:
@@ -50,6 +56,7 @@ def condition(condition_type: str, status: bool, reason: str) -> PlatformConditi
 def make_user(
     name: str = "alpha1",
     *,
+    callsign: str = "foxtrot6",
     namespace: str | None = None,
     roles: Iterable[str] = (),
     groups: Iterable[str] = (),
@@ -58,13 +65,16 @@ def make_user(
     certificate_approved_at: datetime | None = None,
     revoked_at: datetime | None = None,
 ) -> User:
-    """User whose callsign is its name, with a stable UUID and resource version."""
+    """User with a stable UUID and resource version.
+
+    The callsign is independent of the name; pass it when it matters.
+    """
     return User(
         api_version=API_VERSION,
         kind="User",
-        metadata=ObjectMeta(name=name, namespace=namespace, uid=str(uuid5(NAMESPACE_DNS, name)), resource_version="1"),
+        metadata=ObjectMeta(name=name, namespace=namespace, uid=uid(name), resource_version="1"),
         spec=UserSpec(
-            callsign=name,
+            callsign=callsign,
             role_refs=refs(roles),
             group_refs=refs(groups),
             approval_code=approval_code,
@@ -76,15 +86,15 @@ def make_user(
 
 
 def make_role(name: str, *, owner: str | None = None) -> Role:
-    """Role displayed by its name, with uid uid-<name>. owner names the controlling Integration."""
-    metadata = ObjectMeta(name=name, uid=f"uid-{name}")
+    """Role displayed by its name. owner names the controlling Integration."""
+    metadata = ObjectMeta(name=name, uid=uid(name))
     if owner is not None:
         metadata.owner_references = [
             OwnerReference(
                 api_version=API_VERSION,
                 kind="Integration",
                 name=owner,
-                uid=f"uid-{owner}",
+                uid=uid(owner),
                 controller=True,
             )
         ]
@@ -96,17 +106,23 @@ def make_role(name: str, *, owner: str | None = None) -> Role:
     )
 
 
-def make_integration(name: str, *, roles: Iterable[str] = ()) -> Integration:
-    """Integration displayed by its name, with uid uid-<name>."""
+def make_integration(name: str, *, roles: Iterable[str] = (), resolved: bool | None = None) -> Integration:
+    """Integration displayed by its name, with a ReferencesResolved condition unless resolved is None."""
+    status = (
+        None
+        if resolved is None
+        else IntegrationStatus(conditions=[_resolved_condition(resolved)], observed_generation=1)
+    )
     return Integration(
         api_version=API_VERSION,
         kind="Integration",
-        metadata=ObjectMeta(name=name, uid=f"uid-{name}"),
+        metadata=ObjectMeta(name=name, uid=uid(name), generation=1),
         spec=IntegrationSpec(
             display_name=name,
             version="1.0.0",
             extra_roles=[IntegrationRole(name=role, display_name=role) for role in roles],
         ),
+        status=status,
     )
 
 
@@ -117,11 +133,11 @@ def make_group(
     managers: Iterable[str] = (),
     roles: Iterable[str] = (),
 ) -> Group:
-    """Group displayed by its name, with uid uid-<name>."""
+    """Group displayed by its name."""
     return Group(
         api_version=API_VERSION,
         kind="Group",
-        metadata=ObjectMeta(name=name, uid=f"uid-{name}"),
+        metadata=ObjectMeta(name=name, uid=uid(name)),
         spec=GroupSpec(
             display_name=name,
             parent_ref=ObjectRef(name=parent) if parent else None,
@@ -148,7 +164,7 @@ def make_invite(
     return Invite(
         api_version=API_VERSION,
         kind="Invite",
-        metadata=ObjectMeta(name=name, uid=f"uid-{name}"),
+        metadata=ObjectMeta(name=name, uid=uid(name)),
         spec=InviteSpec(
             code=code,
             group_refs=refs(groups),
@@ -175,7 +191,7 @@ def make_binding(name: str, *, user: str, namespace: str = "taky", synced: bool 
     return UserBinding(
         api_version=API_VERSION,
         kind="UserBinding",
-        metadata=ObjectMeta(name=name, namespace=namespace, uid=f"uid-{namespace}-{name}", generation=1),
+        metadata=ObjectMeta(name=name, namespace=namespace, uid=uid(f"{namespace}/{name}"), generation=1),
         spec=UserBindingSpec(user_ref=ObjectRef(name=user)),
         status=status,
     )

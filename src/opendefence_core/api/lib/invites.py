@@ -6,35 +6,85 @@ from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.controller import get_condition
 from cloudcoil.errors import ResourceConflict
 
+from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
     Invite,
+    InviteSpec,
     InviteStatus,
+    ObjectRef,
     User,
     UserSpec,
 )
 from opendefence_core.api.lib.codes import generate_code
+from opendefence_core.api.lib.roles import ensure_role
+from opendefence_core.api.lib.users import check_callsign
 
 APPROVAL_CODE_LENGTH = 8
+INVITE_CODE_LENGTH = 8
+ADMIN_CODE_LENGTH = 16
 UNLIMITED = -1
+
+logger = get_logger(__name__)
 
 
 class InviteNotRedeemable(Exception):
     """No invite with the code, or it is not ready, expired or used up"""
 
 
-class CallsignTaken(Exception):
-    """A user with the callsign already exists"""
-
-
 async def find_invite(code: str) -> Invite | None:
     """Invite with the code, if it can still be redeemed."""
-    # TODO: Lists every Invite per lookup; index them (label or informer) before this sees real load
     async for invite in await Invite.async_list():
         if invite.spec.code == code and _is_redeemable(invite):
             return invite
     return None
+
+
+async def list_invites() -> list[Invite]:
+    """Invites an administrator can manage, auto-approving ones excluded."""
+    return [invite async for invite in await Invite.async_list() if not invite.spec.auto_approve]
+
+
+async def unique_invite_code() -> str:
+    """Generated code that no invite holds yet."""
+    taken = {invite.spec.code async for invite in await Invite.async_list()}
+    while (code := generate_code(INVITE_CODE_LENGTH)) in taken:
+        pass
+    return code
+
+
+async def create_invite(spec: InviteSpec) -> Invite:
+    """Create an invite under a generated name."""
+    invite = Invite(
+        api_version=API_VERSION,
+        kind="Invite",
+        metadata=ObjectMeta(generate_name="invite-"),
+        spec=spec,
+    )
+    created = await invite.async_create()
+    logger.audit("Invite %s created", created.name)
+    return created
+
+
+async def create_admin_invite(role: str, display_name: str) -> str:
+    """Create a single-use auto-approving invite for the role and return its code."""
+    await ensure_role(role, display_name)
+    code = generate_code(ADMIN_CODE_LENGTH)
+    await create_invite(InviteSpec(code=code, role_refs=[ObjectRef(name=role)], use_count=1, auto_approve=True))
+    return code
+
+
+async def update_invite(invite: Invite, spec: InviteSpec) -> Invite:
+    """Replace the invite spec, failing on a concurrent change."""
+    invite.spec = spec
+    return await invite.async_update()
+
+
+async def delete_invite(invite: Invite) -> None:
+    """Delete the invite."""
+    await invite.async_remove()
+    logger.audit("Invite %s deleted", invite.name)
 
 
 async def redeem(code: str, callsign: str) -> User:
@@ -43,9 +93,11 @@ async def redeem(code: str, callsign: str) -> User:
     if invite is None:
         raise InviteNotRedeemable
     user = _new_user(invite, callsign)
-    await _check_callsign(user)
+    await check_callsign(callsign)
     await _use(invite)
-    return await user.async_create()
+    created = await user.async_create()
+    logger.audit("Invite %s redeemed as user %s", invite.name, created.name)
+    return created
 
 
 def _used(invite: Invite) -> int:
@@ -67,7 +119,7 @@ def _new_user(invite: Invite, callsign: str) -> User:
     return User(
         api_version=API_VERSION,
         kind="User",
-        metadata=ObjectMeta(name=callsign),
+        metadata=ObjectMeta(generate_name="user-"),
         spec=UserSpec(
             callsign=callsign,
             role_refs=invite.spec.role_refs,
@@ -76,14 +128,6 @@ def _new_user(invite: Invite, callsign: str) -> User:
             approved_at=datetime.now(UTC) if invite.spec.auto_approve else None,
         ),
     )
-
-
-async def _check_callsign(user: User) -> None:
-    """Fail on a taken callsign before the invite is used."""
-    try:
-        await user.async_create(dry_run=True)
-    except ResourceConflict as exc:
-        raise CallsignTaken from exc
 
 
 async def _use(invite: Invite) -> None:

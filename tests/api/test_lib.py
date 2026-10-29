@@ -1,20 +1,27 @@
 """REST API building blocks: JWTs and invite redemption rules."""
 
 import os
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import jwt as pyjwt
 import pytest
+from cloudcoil.errors import ResourceNotFound
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 
-from lib_opendefence_core.models.v1alpha1 import Invite
+from lib_opendefence_core.models.v1alpha1 import Invite, InviteSpec, Role, User
 from opendefence_core.api.config import get_api_config
-from opendefence_core.api.lib import invites
+from opendefence_core.api.lib import invites, roles, uids
 from opendefence_core.api.lib import jwt as api_jwt
 from opendefence_core.api.lib.codes import ALPHABET, generate_code
-from tests.factories import make_invite, make_user
+from tests.factories import make_invite, make_role, make_user, uid
+from tests.fakes import FakeList
+
+# The pair the identifier contract gives as its example.
+CANONICAL_UID = "550e8400-e29b-41d4-a716-446655440000"
+COMPACT_UID = "VQ6EAOKbQdSnFkRmVUQAAA"
 
 
 def _write_key(path: Path, key: ec.EllipticCurvePrivateKey) -> None:
@@ -63,6 +70,48 @@ def test_generate_code() -> None:
     code = generate_code(12)
     assert len(code) == 12
     assert set(code) <= set(ALPHABET)
+
+
+def test_compact_matches_the_contract() -> None:
+    """The compact form is the one the identifier contract specifies."""
+    assert uids.compact(CANONICAL_UID) == COMPACT_UID
+    assert uids.canonical(COMPACT_UID) == CANONICAL_UID
+
+
+@pytest.mark.parametrize("sent", [CANONICAL_UID, COMPACT_UID])
+def test_canonical_accepts_either_form(sent: str) -> None:
+    """Both accepted forms name the same uid."""
+    assert uids.canonical(sent) == CANONICAL_UID
+
+
+def test_compact_is_twenty_two_characters() -> None:
+    """Every uid encodes to the same compact width."""
+    encoded = uids.compact(uid("alpha1"))
+    assert len(encoded) == uids.COMPACT_LENGTH
+    assert re.fullmatch(uids.COMPACT_PATTERN, encoded)
+
+
+def test_id_of_requires_a_uid() -> None:
+    """An object the API server has not stored has no id."""
+    user = make_user()
+    assert uids.id_of(user) == uids.compact(uid("alpha1"))
+    assert user.metadata is not None
+    user.metadata.uid = None
+    with pytest.raises(ValueError, match="uid"):
+        uids.id_of(user)
+
+
+async def test_by_uid_scans_the_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Kubernetes cannot get by uid, so by_uid lists and scans."""
+    users = [make_user("user-1"), make_user("user-2")]
+
+    async def async_list(cls: type[User], **kwargs: object) -> FakeList[User]:
+        _ = cls, kwargs
+        return FakeList(users)
+
+    monkeypatch.setattr(User, "async_list", classmethod(async_list))
+    assert await uids.by_uid(User, uid("user-2")) is users[1]
+    assert await uids.by_uid(User, uid("nobody")) is None
 
 
 def test_jwt_round_trip(jwt_key: ec.EllipticCurvePrivateKey) -> None:
@@ -151,7 +200,7 @@ def test_invite_redeemable(invite: Invite, redeemable: bool) -> None:
 def test_new_user_from_invite() -> None:
     """Users inherit the invite's refs and get an approval code."""
     user = invites._new_user(_invite(), "bravo2")
-    assert user.name == "bravo2"
+    assert user.metadata is not None and user.metadata.generate_name == "user-"
     assert user.spec.callsign == "bravo2"
     assert [ref.name for ref in user.spec.group_refs] == ["team"]
     assert [ref.name for ref in user.spec.role_refs] == ["user"]
@@ -164,3 +213,65 @@ def test_new_user_auto_approved() -> None:
     """Auto-approving invites approve the user right away."""
     user = invites._new_user(_invite(auto_approve=True), "bravo2")
     assert user.spec.approved_at is not None
+
+
+@pytest.fixture
+def made_roles(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    """Record the roles ensure_role would create."""
+    created: list[tuple[str, str]] = []
+
+    async def create_role(name: str, display_name: str) -> Role:
+        created.append((name, display_name))
+        return make_role(name)
+
+    monkeypatch.setattr(roles, "create_role", create_role)
+    return created
+
+
+async def test_ensure_role_keeps_an_existing_role(
+    monkeypatch: pytest.MonkeyPatch, made_roles: list[tuple[str, str]]
+) -> None:
+    """A role that is already there is left as it is."""
+
+    async def async_get(name: str) -> Role:
+        return make_role(name)
+
+    monkeypatch.setattr(Role, "async_get", async_get)
+    await roles.ensure_role("superadmin", "Superadmin")
+    assert made_roles == []
+
+
+async def test_ensure_role_creates_a_missing_role(
+    monkeypatch: pytest.MonkeyPatch, made_roles: list[tuple[str, str]]
+) -> None:
+    """A reference to a missing role never resolves, so create it first."""
+
+    async def async_get(name: str) -> Role:
+        raise ResourceNotFound(name)
+
+    monkeypatch.setattr(Role, "async_get", async_get)
+    await roles.ensure_role("group-admin", "Group admin")
+    assert made_roles == [("group-admin", "Group admin")]
+
+
+async def test_admin_invite_is_single_use_and_approves(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The first administrator's invite grants the role once and needs no approver."""
+    specs: list[InviteSpec] = []
+
+    async def ensure_role(name: str, display_name: str) -> None:
+        _ = name, display_name
+
+    async def create_invite(spec: InviteSpec) -> Invite:
+        specs.append(spec)
+        return make_invite()
+
+    monkeypatch.setattr(invites, "ensure_role", ensure_role)
+    monkeypatch.setattr(invites, "create_invite", create_invite)
+
+    code = await invites.create_admin_invite("superadmin", "Superadmin")
+    [spec] = specs
+    assert spec.code == code
+    assert len(code) == invites.ADMIN_CODE_LENGTH
+    assert [ref.name for ref in spec.role_refs] == ["superadmin"]
+    assert spec.use_count == 1
+    assert spec.auto_approve is True

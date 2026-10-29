@@ -13,7 +13,12 @@ from lib_opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, 
 BINDINGS_SYNCED_CONDITION = "BindingsSynced"
 CERTIFICATE_READY_CONDITION = "CertificateReady"
 ACCEPTED_CREDENTIALS_ANNOTATION = "platform.opendefence.fi/accepted-credentials"
-CALLSIGN_PATTERN = r"^[a-z0-9]{3,30}$"
+CALLSIGN_PATTERN = r"^[A-Za-z0-9_]{3,30}$"
+
+
+def normalize_callsign(callsign: str) -> str:
+    """Key a callsign for uniqueness. Callsigns are stored as typed and compared folded."""
+    return callsign.casefold()
 
 
 class BindingObservation(BaseModel):
@@ -40,8 +45,10 @@ class UserSpec(BaseModel):
     """Desired identity of a platform user."""
 
     callsign: Annotated[str, PrinterColumn(name="Callsign")] = Field(
-        min_length=1,
-        description="Mutable callsign displayed for the user. The Kubernetes UID identifies the user.",
+        description=(
+            "Mutable callsign displayed for the user, stored as typed and unique "
+            "without regard to case. The Kubernetes UID identifies the user."
+        ),
         pattern=CALLSIGN_PATTERN,
     )
     revoked_at: Annotated[datetime | None, PrinterColumn(name="Revoked")] = Field(
@@ -114,7 +121,11 @@ class UserStatus(PlatformStatus):
     short_names=("oduser",),
 )
 class User(Resource):
-    """Cluster-scoped platform user with an immutable Kubernetes UID."""
+    """Cluster-scoped platform user with an immutable Kubernetes UID.
+
+    The name is generated and never changes; the callsign is a mutable label, like
+    displayName on Group and Role. The operator rejects a callsign another user holds.
+    """
 
     spec: UserSpec = Field(description="Desired configuration of the user.")
     status: UserStatus | None = Field(

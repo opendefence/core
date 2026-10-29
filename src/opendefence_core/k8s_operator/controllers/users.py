@@ -15,12 +15,36 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
+from lib_opendefence_core.models.v1alpha1.user import normalize_callsign
 from opendefence_core.certificates import wants_certificate
 from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
 
 users = Controller(User, name="users", owns=(CertificateRequest,), events=recorder("users"))
+
+
+@users.validate(operations=("CREATE", "UPDATE"))
+async def validate_user_callsign(request: AdmissionRequest[User]) -> None:
+    """Reject a callsign another user already holds, comparing without regard to case.
+
+    Users are named independently of their callsign, so Kubernetes no longer keeps
+    callsigns unique.
+    """
+    obj = request.resource
+    if obj is None:
+        return
+    callsign = normalize_callsign(obj.spec.callsign)
+    old = request.old_resource
+    if old is not None and normalize_callsign(old.spec.callsign) == callsign:
+        return  # Approve, revoke and role writes leave the callsign alone
+    client = await request.client(User)
+    async for other in await client.list():
+        if other.name != obj.name and normalize_callsign(other.spec.callsign) == callsign:
+            raise AdmissionDenied(
+                f"Callsign {obj.spec.callsign} is taken by user {other.name}",
+                reason="CallsignTaken",
+            )
 
 
 @users.validate(operations=("DELETE",))

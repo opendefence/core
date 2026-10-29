@@ -987,7 +987,14 @@ spec:
     storage: true
     schema:
       openAPIV3Schema:
-        description: Cluster-scoped platform user with an immutable Kubernetes UID.
+        description: 'Cluster-scoped platform user with an immutable Kubernetes UID.
+
+
+          The name is generated and never changes; the callsign is a mutable label,
+          like
+
+          displayName on Group and Role. The operator rejects a callsign another user
+          holds.'
         properties:
           apiVersion:
             type: string
@@ -999,10 +1006,10 @@ spec:
             description: Desired configuration of the user.
             properties:
               callsign:
-                description: Mutable callsign displayed for the user. The Kubernetes
-                  UID identifies the user.
-                minLength: 1
-                pattern: ^[a-z0-9]{3,30}$
+                description: Mutable callsign displayed for the user, stored as typed
+                  and unique without regard to case. The Kubernetes UID identifies
+                  the user.
+                pattern: ^[A-Za-z0-9_]{3,30}$
                 title: Callsign
                 type: string
               revokedAt:

@@ -194,7 +194,7 @@ spec:
       serviceAccountName: core-operator
       containers:
       - name: operator
-        image: ghcr.io/opendefence/core:0.3.0-261023
+        image: ghcr.io/opendefence/core:0.4.0-261026
         args:
         - run
         env:
@@ -240,6 +240,31 @@ webhooks:
     service:
       name: core-operator
       namespace: opendefence-system
+      path: /validate/validate-user-callsign-4deb977492b6
+      port: 443
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClBMQUNFSE9MREVSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  rules:
+  - apiGroups:
+    - platform.opendefence.fi
+    apiVersions:
+    - v1alpha1
+    resources:
+    - users
+    operations:
+    - CREATE
+    - UPDATE
+    scope: Cluster
+- name: validate-1.core-operator.opendefence-system.cloudcoil.io
+  admissionReviewVersions:
+  - v1
+  sideEffects: None
+  failurePolicy: Fail
+  matchPolicy: Exact
+  timeoutSeconds: 5
+  clientConfig:
+    service:
+      name: core-operator
+      namespace: opendefence-system
       path: /validate/validate-user-delete-44a1835650b9
       port: 443
     caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClBMQUNFSE9MREVSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
@@ -253,7 +278,7 @@ webhooks:
     operations:
     - DELETE
     scope: Cluster
-- name: validate-1.core-operator.opendefence-system.cloudcoil.io
+- name: validate-2.core-operator.opendefence-system.cloudcoil.io
   admissionReviewVersions:
   - v1
   sideEffects: None
