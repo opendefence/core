@@ -148,6 +148,10 @@
       "enrollment_failed": {
         "title": "Registreringen kunde inte slutföras",
         "description": "Börja om med en ny inbjudningskod."
+      },
+      "invite_unusable": {
+        "title": "Inbjudan kan inte längre användas",
+        "description": "Den tog slut eller har gått ut. Be om en ny inbjudningskod."
       }
     }
   },
@@ -328,7 +332,6 @@
     },
     "errors": {
       "alreadyInUse": "Anropssignal används redan",
-      "inviteSpent": "Koden tog slut",
       "unexpected": "Ett oväntat fel inträffade"
     },
     "buttons": {
