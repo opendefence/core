@@ -69,7 +69,7 @@ def test_user_crd_is_cluster_scoped_with_status_and_aliases() -> None:
     assert "publicKey" in status
     assert "roleRefs" in spec
     assert "callsign" in spec
-    assert spec["callsign"]["pattern"] == r"^[A-Za-z0-9_]{3,30}$"
+    assert spec["callsign"]["pattern"] == r"^[A-Za-z0-9][A-Za-z0-9_]{2,29}$"
     assert spec["certificateApprovedAt"]["format"] == "date-time"
     assert "certificateApprovedAt" not in _schema(User)["properties"]["spec"]["required"]
     assert {"Callsign", "Revoked", "Approved", "Age"} <= _column_names(manifest)
