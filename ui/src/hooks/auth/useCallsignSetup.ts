@@ -31,7 +31,7 @@ export function useCallsignSetup({ code }: UseCallsignSetupOptions) {
           if (status === 409) {
             setErrorMessage(t("callsignSetup.errors.alreadyInUse"));
           } else if (status === 404) {
-            setErrorMessage(t("callsignSetup.errors.inviteSpent"));
+            navigate({ to: "/login", search: { reason: "invite_unusable" } });
           } else {
             setErrorMessage(t("callsignSetup.errors.unexpected"));
           }

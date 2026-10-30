@@ -148,6 +148,10 @@
       "enrollment_failed": {
         "title": "Enrollment could not be finished",
         "description": "Start again with a new invite code."
+      },
+      "invite_unusable": {
+        "title": "That invite can no longer be used",
+        "description": "It ran out or expired. Ask for a new invite code."
       }
     }
   },
@@ -328,7 +332,6 @@
     },
     "errors": {
       "alreadyInUse": "Callsign is already in use",
-      "inviteSpent": "This code was used up",
       "unexpected": "An unexpected error occurred"
     },
     "buttons": {

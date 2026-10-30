@@ -148,6 +148,10 @@
       "enrollment_failed": {
         "title": "Liittymistä ei voitu viimeistellä",
         "description": "Aloita alusta uudella kutsukoodilla."
+      },
+      "invite_unusable": {
+        "title": "Kutsua ei voi enää käyttää",
+        "description": "Se käytettiin loppuun tai vanheni. Pyydä uusi kutsukoodi."
       }
     }
   },
@@ -328,7 +332,6 @@
     },
     "errors": {
       "alreadyInUse": "Kutsutunnus on jo käytössä",
-      "inviteSpent": "Tämä koodi käytettiin loppuun",
       "unexpected": "Odottamaton virhe"
     },
     "buttons": {
