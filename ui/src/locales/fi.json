@@ -328,6 +328,7 @@
       "required": "Kutsutunnus vaaditaan",
       "min": "Kutsutunnuksen tulee olla vähintään 3 merkkiä",
       "pattern": "Vain kirjaimet, numerot ja alaviivat sallittu",
+      "firstChar": "Alettava kirjaimella tai numerolla",
       "max": "Kutsutunnus voi olla enintään 30 merkkiä"
     },
     "errors": {
