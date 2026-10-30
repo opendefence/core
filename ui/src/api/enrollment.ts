@@ -2,7 +2,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./client";
 import { writeToken } from "./token";
 
-// 404 means the invite ran out, 409 that someone else holds the callsign.
+// 404 means the invite is no longer redeemable: used up, expired or changed since it was
+// checked. 409 means someone else holds the callsign.
 export class EnrollError extends Error {
   status: number;
 
