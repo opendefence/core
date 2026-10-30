@@ -1007,9 +1007,10 @@ spec:
             properties:
               callsign:
                 description: Mutable callsign displayed for the user, stored as typed
-                  and unique without regard to case. The Kubernetes UID identifies
-                  the user.
-                pattern: ^[A-Za-z0-9_]{3,30}$
+                  and unique without regard to case. It starts with a letter or a
+                  digit. It continues with letters, digits or underscores. The Kubernetes
+                  UID identifies the user.
+                pattern: ^[A-Za-z0-9][A-Za-z0-9_]{2,29}$
                 title: Callsign
                 type: string
               revokedAt:

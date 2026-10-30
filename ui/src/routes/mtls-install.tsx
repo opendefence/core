@@ -1,18 +1,20 @@
 "use client";
 
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import { useGetCertificate } from "@/hooks/api/useGetCertificate";
+import { CertificateError, useCertificate } from "@/api/certificates";
+import { useEnrollmentStatus } from "@/api/enrollment";
+import { readToken } from "@/api/token";
+import { downloadBlob } from "@/lib/downloadBlob";
 import {
   useGuidePreferences,
   withGuidePreference,
 } from "@/hooks/useGuidePreferences";
-import { useUserType } from "@/hooks/auth/useUserType";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MtlsInstructions } from "@/components/mtls/MtlsInstructions";
-import { MtlsCallsignDisplay } from "@/components/mtls/MtlsCallsignDisplay";
+import { MtlsPasswordDisplay } from "@/components/mtls/MtlsPasswordDisplay";
 import { MtlsExplanationCard } from "@/components/mtls/MtlsExplanationCard";
 import { MtlsPageHeader } from "@/components/mtls/MtlsPageHeader";
 import { MtlsActionButtons } from "@/components/mtls/MtlsActionButtons";
@@ -24,6 +26,7 @@ import { WinInstallFlow } from "@/components/mtls/WinInstallFlow";
 import { LinuxInstallFlow } from "@/components/mtls/LinuxInstallFlow";
 import { CompactHeader } from "@/components/CompactHeader";
 import { readStore, writeStore } from "@/lib/safeStorage";
+import { clearPin, readPin, savedPin } from "@/lib/certificate/pin";
 import {
   getOperatingSystem,
   PLATFORM_INSTRUCTIONS,
@@ -46,18 +49,14 @@ const isGuidedOS = (os: string) =>
   GUIDED.includes(os) || GUIDED_DESKTOP.includes(os);
 
 function MtlsInstallPage() {
-  const { callsign: userCallsign } = useUserType();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  const [callsign, setCallsign] = useState("");
   const [selectedOS, setSelectedOS] = useState("");
   const [userOS, setUserOS] = useState("");
   const [showGuide, setShowGuide] = useState(false);
   const { autoOpen } = useGuidePreferences();
-  const [certDownloaded, setCertDownloaded] = useState<boolean>(
-    () => readStore("cert_downloaded") === "true",
-  );
   // Counts completed downloads rather than tracking a flag: re-downloading has
   // to move the Android flow on again, and the flag is already true by then.
   const [downloadCount, setDownloadCount] = useState(0);
@@ -66,15 +65,6 @@ function MtlsInstallPage() {
   useEffect(() => {
     setUserOS(getOperatingSystem());
   }, []);
-
-  useEffect(() => {
-    const storedCallsign = readStore("callsign");
-    if (storedCallsign) {
-      setCallsign(storedCallsign);
-    } else if (userCallsign) {
-      setCallsign(userCallsign);
-    }
-  }, [userCallsign]);
 
   const osToShow = selectedOS || userOS;
   const guided = isGuidedOS(osToShow);
@@ -88,28 +78,80 @@ function MtlsInstallPage() {
 
   const mtlsUrl = withGuidePreference(appUrl(domain));
 
-  const getCertificateMutation = useGetCertificate({
-    onSuccess: () => {
-      writeStore("cert_downloaded", "true");
-      setCertDownloaded(true);
-      setDownloadCount((n) => n + 1);
-      // The guided flow moves to the next screen instead, which says more.
-      if (!guided) toast.success(t("mtlsInstall.certificateDownloaded"));
-    },
-    onError: (err) => {
-      console.error("Certificate download error:", err);
-      toast.error(err.message || t("mtlsInstall.downloadFailed"));
-    },
-  });
+  const { data: status, isError } = useEnrollmentStatus();
+  const callsign = status?.callsign ?? "";
+  const commonName = status?.certificateCommonName;
+  const uri = status?.certificateUri;
+
+  const { mutate: request, data: bundle, isPending, error } = useCertificate();
+
+  // Scoped by callsign
+  const certDownloaded =
+    !!callsign && readStore(`cert_downloaded:${callsign}`) === "true";
+
+  // Keep pin during the instructions in case browser reloads the tab.
+  const pin = useMemo(
+    () =>
+      !callsign ? "" : certDownloaded ? readPin(callsign) : savedPin(callsign),
+    [callsign, certDownloaded],
+  );
+
+  // The certificate is made as soon as identity is known
+  const requested = useRef(false);
+  useEffect(() => {
+    if (requested.current || !commonName || !uri || !pin) return;
+    requested.current = true;
+    request(
+      { commonName, uri, pin },
+      {
+        onError: (error) => {
+          const reason =
+            error instanceof CertificateError ? error.reason : "failed";
+          if (reason !== "approvalUsed")
+            toast.error(t(`mtlsInstall.errors.${reason}`));
+        },
+      },
+    );
+  }, [commonName, uri, pin, request, t]);
+
+  // Nothing works without an approved enrollment and a key this page made
+  useEffect(() => {
+    const spent =
+      error instanceof CertificateError && error.reason === "approvalUsed";
+    if (!readToken()) navigate({ to: "/login" });
+    else if (status && !status.approved) navigate({ to: "/waiting-room" });
+    else if (isError || (spent && !certDownloaded))
+      navigate({ to: "/login", search: { reason: "enrollment_failed" } });
+  }, [status, isError, error, certDownloaded, navigate]);
+
+  useEffect(() => {
+    if (!isPending) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isPending]);
+
+  useEffect(() => {
+    if (!callsign) return;
+    const leave = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-mtls-url]")) clearPin(callsign);
+    };
+    document.addEventListener("click", leave);
+    return () => document.removeEventListener("click", leave);
+  }, [callsign]);
 
   const canNavigate = certDownloaded;
 
   const handleDownloadKey = () => {
-    if (callsign) {
-      getCertificateMutation.mutate({ callsign, deployment });
-    } else {
-      toast.error(t("mtlsInstall.callsignNotFound"));
-    }
+    if (!bundle) return;
+    downloadBlob(
+      new Blob([bundle.pfx], { type: "application/x-pkcs12" }),
+      `${callsign}_${deployment}.pfx`,
+    );
+    writeStore(`cert_downloaded:${callsign}`, "true");
+    setDownloadCount((n) => n + 1);
+    if (!guided) toast.success(t("mtlsInstall.certificateDownloaded"));
   };
 
   const chooseOS = setSelectedOS;
@@ -137,11 +179,13 @@ function MtlsInstallPage() {
               {osToShow === "Linux" ? (
                 <LinuxInstallFlow
                   callsign={callsign}
+                  certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
-                  isDownloading={getCertificateMutation.isLoading}
+                  isDownloading={isPending}
+                  password={pin}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -154,11 +198,13 @@ function MtlsInstallPage() {
               ) : osToShow === "Windows" ? (
                 <WinInstallFlow
                   callsign={callsign}
+                  certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
-                  isDownloading={getCertificateMutation.isLoading}
+                  isDownloading={isPending}
+                  password={pin}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -171,11 +217,13 @@ function MtlsInstallPage() {
               ) : (
                 <MacInstallFlow
                   callsign={callsign}
+                  certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
                   mtlsUrl={mtlsUrl}
                   onDownload={handleDownloadKey}
-                  isDownloading={getCertificateMutation.isLoading}
+                  isDownloading={isPending}
+                  password={pin}
                   downloadCount={downloadCount}
                   platformPicker={
                     <PlatformSelector
@@ -213,9 +261,11 @@ function MtlsInstallPage() {
             {osToShow === "iOS" ? (
               <IosInstallFlow
                 callsign={callsign}
+                certName={commonName ?? ""}
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
-                isDownloading={getCertificateMutation.isLoading}
+                isDownloading={isPending}
+                password={pin}
                 downloadCount={downloadCount}
                 platformPicker={
                   <PlatformSelector
@@ -231,7 +281,8 @@ function MtlsInstallPage() {
                 fileName={`${callsign}_${deployment}.pfx`}
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
-                isDownloading={getCertificateMutation.isLoading}
+                isDownloading={isPending}
+                password={pin}
                 downloadCount={downloadCount}
                 platformPicker={
                   <PlatformSelector
@@ -279,12 +330,12 @@ function MtlsInstallPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-max">
                 <div className="lg:col-span-1 space-y-6">
                   <PlatformSelector value={osToShow} onValueChange={chooseOS} />
-                  <MtlsCallsignDisplay callsign={callsign} />
+                  <MtlsPasswordDisplay password={pin} />
                   <MtlsActionButtons
                     onDownload={handleDownloadKey}
-                    isDownloading={getCertificateMutation.isLoading}
+                    isDownloading={isPending}
                     mtlsUrl={mtlsUrl}
-                    disabled={!callsign}
+                    disabled={!bundle}
                     canNavigate={canNavigate}
                   />
                 </div>
@@ -333,13 +384,13 @@ function MtlsInstallPage() {
 
           <MtlsInstructions instructions={platformInstructions} />
 
-          <MtlsCallsignDisplay callsign={callsign} />
+          <MtlsPasswordDisplay password={pin} />
 
           <MtlsActionButtons
             onDownload={handleDownloadKey}
-            isDownloading={getCertificateMutation.isLoading}
+            isDownloading={isPending}
             mtlsUrl={mtlsUrl}
-            disabled={!callsign}
+            disabled={!bundle}
             canNavigate={canNavigate}
           />
         </div>

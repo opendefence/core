@@ -88,7 +88,7 @@ function HomePage() {
       <div data-testid="home-page" className="mb-12 space-y-6">
         <HomeGreeting callsign={callsign} isValidUser={isValidUser} />
 
-        {userType === "admin" && (
+        {userType === "superadmin" && (
           <AdminToolsSection
             onNavigate={() => navigate({ to: "/admin-tools" })}
           />

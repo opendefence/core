@@ -28,7 +28,7 @@ export function CallsignForm({
     formState: { errors },
   } = useForm({ mode: "onChange", defaultValues: { callsign: "" } });
 
-  // Sent as typed: CALLSIGN_PATTERN is ^[A-Za-z0-9_]{3,30}$, unique without regard to case.
+  // Sent as typed: CALLSIGN_PATTERN is ^[A-Za-z0-9][A-Za-z0-9_]{2,29}$, unique without regard to case.
   const submit = handleSubmit(({ callsign }) => onSubmit(callsign));
 
   return (
@@ -52,6 +52,11 @@ export function CallsignForm({
             pattern: {
               value: /^[A-Za-z0-9_]+$/,
               message: t("callsignSetup.validation.pattern"),
+            },
+            validate: {
+              firstChar: (value) =>
+                /^[A-Za-z0-9]/.test(value) ||
+                t("callsignSetup.validation.firstChar"),
             },
             minLength: { value: 3, message: t("callsignSetup.validation.min") },
             maxLength: {

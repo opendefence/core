@@ -176,7 +176,7 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
           </div>
         )}
 
-        {userType === "admin" && (
+        {userType === "superadmin" && (
           <div className="space-y-1">
             <h3 className="text-xs font-semibold text-sidebar-foreground/50 mb-3 px-3 uppercase tracking-wider">
               {t("common.administrators")}
@@ -322,13 +322,13 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
                     {callsign || "UNKNOWN"}
                   </p>
                   <p className="text-xs text-sidebar-foreground/60 capitalize">
-                    {userType === "admin"
+                    {userType === "superadmin"
                       ? t("common.admin")
                       : t("common.user")}
                   </p>
                 </div>
 
-                {userType === "admin" ? (
+                {userType === "superadmin" ? (
                   <UserStar className="w-4 h-4 text-green-400" />
                 ) : (
                   <User className="w-4 h-4 text-blue-400" />

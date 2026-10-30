@@ -96,10 +96,10 @@ export function CertIcon() {
 /** macOS asking for the .pfx password when the file is opened. */
 export function MacImportDialog({
   fileName,
-  callsign,
+  password,
 }: {
   fileName: string;
-  callsign: string;
+  password: string;
 }) {
   const { t } = useTranslation();
   const s = (k: string, v?: Record<string, string>) =>
@@ -120,7 +120,7 @@ export function MacImportDialog({
                 "flex h-7 min-w-0 flex-1 items-center truncate rounded-md border border-[#0a84ff] bg-black/30 px-2 font-mono",
               )}
             >
-              {callsign}
+              {password}
             </span>
           </div>
         </div>
@@ -136,11 +136,11 @@ export function MacImportDialog({
 /** Chromium's own certificate picker. */
 export function MacCertPicker({
   host,
-  callsign,
+  certName,
   issuer,
 }: {
   host: string;
-  callsign: string;
+  certName: string;
   issuer: string;
 }) {
   const { t } = useTranslation();
@@ -159,7 +159,7 @@ export function MacCertPicker({
           <span>{s("issuer")}</span>
         </div>
         <div className="grid grid-cols-[1fr_1.3fr] gap-2 bg-[#1f5fa8] px-2 py-1.5">
-          <span className="truncate font-medium">{callsign}</span>
+          <span className="truncate font-medium">{certName}</span>
           <span className="truncate text-white/80">{issuer}</span>
         </div>
       </div>
@@ -260,10 +260,10 @@ export function SafariDownloadDialog({ host }: { host: string }) {
 /** Safari's certificate picker (light), opened from "Kirjaudu varmenteella". */
 export function SafariCertPicker({
   host,
-  callsign,
+  certName,
 }: {
   host: string;
-  callsign: string;
+  certName: string;
 }) {
   const { t } = useTranslation();
   const s = (k: string, v?: Record<string, string>) =>
@@ -297,7 +297,7 @@ export function SafariCertPicker({
         {other("w-12")}
         <div className="flex items-center gap-2 bg-[#2a63d9] px-2 py-1 font-medium text-white ring-[3px] ring-[#c41010]">
           <CertIcon />
-          {callsign}
+          {certName}
         </div>
         {other("w-16")}
       </div>

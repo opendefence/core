@@ -18,6 +18,7 @@ import { Header } from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDeployment } from "@/api/health";
 import { appUrl, isAppOrigin } from "@/lib/origins";
+import { readStore } from "@/lib/safeStorage";
 import { useIsTablet } from "@/hooks/use-tablet";
 
 export const Route = createRootRoute({
@@ -41,7 +42,12 @@ function RootLayout() {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
 
-  const { userType, isLoading: userTypeLoading, isValidUser } = useUserType();
+  const {
+    userType,
+    isLoading: userTypeLoading,
+    isValidUser,
+    callsign,
+  } = useUserType();
   const { domain } = useDeployment();
 
   const toggleSidebar = (open: boolean) => {
@@ -59,7 +65,8 @@ function RootLayout() {
       domain &&
       location.pathname === "/"
     ) {
-      const certDownloaded = localStorage.getItem("cert_downloaded") === "true";
+      const certDownloaded =
+        readStore(`cert_downloaded:${callsign}`) === "true";
 
       if (!certDownloaded) {
         navigate({ to: "/mtls-install" });
@@ -71,7 +78,14 @@ function RootLayout() {
       window.location.href = withGuidePreference(appUrl(domain));
       return;
     }
-  }, [userTypeLoading, isValidUser, domain, location.pathname, navigate]);
+  }, [
+    userTypeLoading,
+    isValidUser,
+    callsign,
+    domain,
+    location.pathname,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (isMobile || isTablet) {
@@ -101,7 +115,7 @@ function RootLayout() {
         location.pathname.startsWith(path),
       );
 
-      if (isAdminPath && userType !== "admin") {
+      if (isAdminPath && userType !== "superadmin") {
         toast.error(t("common.forbiddenAdminAccess"));
         navigate({ to: "/" });
       }
