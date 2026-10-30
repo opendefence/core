@@ -136,9 +136,10 @@ def test_enroll_errors(monkeypatch: pytest.MonkeyPatch, error: type[Exception], 
     assert response.status_code == status
 
 
-def test_enroll_rejects_bad_callsign() -> None:
-    """Callsigns must match the User callsign pattern."""
-    response = client.post("/api/v3/enrollment", json={"code": "CODE1234", "callsign": "Not Valid!"})
+@pytest.mark.parametrize("callsign", ["Not Valid!", "_foxtrot", "ab"])
+def test_enroll_rejects_bad_callsign(callsign: str) -> None:
+    """Callsigns must match the User callsign pattern, which reserves the leading underscore."""
+    response = client.post("/api/v3/enrollment", json={"code": "CODE1234", "callsign": callsign})
     assert response.status_code == 422
 
 

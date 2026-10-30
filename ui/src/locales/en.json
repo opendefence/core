@@ -328,6 +328,7 @@
       "required": "Callsign is required",
       "min": "Callsign must be at least 3 characters",
       "pattern": "Only letters, numbers and underscores allowed",
+      "firstChar": "Must start with a letter or number",
       "max": "Callsign must be at most 30 characters"
     },
     "errors": {

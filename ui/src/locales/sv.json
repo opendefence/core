@@ -328,6 +328,7 @@
       "required": "Anropssignal krävs",
       "min": "Minst 3 tecken",
       "pattern": "Endast bokstäver, siffror och understreck tillåtna",
+      "firstChar": "Måste börja med bokstav eller siffra",
       "max": "Högst 30 tecken"
     },
     "errors": {
