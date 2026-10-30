@@ -13,7 +13,7 @@ from lib_opendefence_core.models.v1alpha1.common import API_VERSION, ObjectRef, 
 BINDINGS_SYNCED_CONDITION = "BindingsSynced"
 CERTIFICATE_READY_CONDITION = "CertificateReady"
 ACCEPTED_CREDENTIALS_ANNOTATION = "platform.opendefence.fi/accepted-credentials"
-CALLSIGN_PATTERN = r"^[A-Za-z0-9_]{3,30}$"
+CALLSIGN_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_]{2,29}$"
 
 
 def normalize_callsign(callsign: str) -> str:
@@ -47,7 +47,8 @@ class UserSpec(BaseModel):
     callsign: Annotated[str, PrinterColumn(name="Callsign")] = Field(
         description=(
             "Mutable callsign displayed for the user, stored as typed and unique "
-            "without regard to case. The Kubernetes UID identifies the user."
+            "without regard to case. It starts with a letter or a digit. It continues "
+            "with letters, digits or underscores. The Kubernetes UID identifies the user."
         ),
         pattern=CALLSIGN_PATTERN,
     )
