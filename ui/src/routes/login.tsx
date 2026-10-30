@@ -18,7 +18,7 @@ interface LoginSearch {
   reason?: string;
 }
 
-const REASONS = ["enrollment_failed"];
+const REASONS = ["enrollment_failed", "invite_unusable"];
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
