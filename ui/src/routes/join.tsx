@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ClientCertificate } from "@/lib/certificate/native";
-import { deploymentHost, joinDomain } from "@/lib/native";
+import { deploymentHost, joinDomain, typedHost } from "@/lib/native";
 
 export const Route = createFileRoute("/join")({
   component: JoinPage,
@@ -55,7 +55,7 @@ function JoinPage() {
     event.preventDefault();
     let host: string;
     try {
-      host = deploymentHost(new URL(`https://${domain.trim()}`));
+      host = typedHost(domain);
     } catch {
       toast.error(t("join.invalidDomain"));
       return;

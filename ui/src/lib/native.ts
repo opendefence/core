@@ -26,6 +26,15 @@ export function deploymentHost(url: URL): string {
     : url.host;
 }
 
+/** Drops a typed scheme or path. */
+export function typedHost(input: string): string {
+  const bare = input
+    .trim()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, "")
+    .replace(/\/.*$/, "");
+  return deploymentHost(new URL(`https://${bare}`));
+}
+
 /** Reloads so the API client picks up the domain. */
 export function joinDomain(domain: string, path: string): void {
   writeStore(DOMAIN_KEY, domain);
