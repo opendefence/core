@@ -2,6 +2,7 @@ package fi.opendefence.core;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
@@ -46,13 +47,19 @@ final class ClientIdentity {
     }
 
     static boolean isAppHost(Context context, String host) {
-        String domain = prefs(context).getString(DOMAIN, null);
+        String domain = hostname(context);
         return domain != null && host != null && host.equalsIgnoreCase(APP_LABEL + domain);
     }
 
     static boolean isDeploymentHost(Context context, String host) {
-        String domain = prefs(context).getString(DOMAIN, null);
+        String domain = hostname(context);
         return domain != null && host != null && (host.equalsIgnoreCase(domain) || isAppHost(context, host));
+    }
+
+    // The stored domain may carry a port
+    private static String hostname(Context context) {
+        String domain = prefs(context).getString(DOMAIN, null);
+        return domain == null ? null : Uri.parse("https://" + domain).getHost();
     }
 
     private static SharedPreferences prefs(Context context) {

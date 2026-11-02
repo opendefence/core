@@ -1,3 +1,5 @@
+import { isNative, readPort } from "./native";
+
 // The platform serves two origins: the base domain for enrollment, app.<domain> for mTLS.
 const APP_LABEL = "app";
 
@@ -14,6 +16,9 @@ export function baseUrl(domain: string): string {
 }
 
 function originUrl(host: string): string {
-  const { protocol, port } = window.location;
+  // The app runs on https://localhost
+  const { protocol, port } = isNative
+    ? { protocol: "https:", port: readPort() }
+    : window.location;
   return `${protocol}//${host}${port ? `:${port}` : ""}/`;
 }

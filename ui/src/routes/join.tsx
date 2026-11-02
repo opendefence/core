@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ClientCertificate } from "@/lib/certificate/native";
-import { joinDomain } from "@/lib/native";
+import { deploymentHost, joinDomain } from "@/lib/native";
 
 export const Route = createFileRoute("/join")({
   component: JoinPage,
@@ -47,7 +47,7 @@ function JoinPage() {
       const value = url.searchParams.get(key);
       if (value) search.set(key, value);
     }
-    void join(url.hostname, `/login?${search}`);
+    void join(deploymentHost(url), `/login?${search}`);
     return true;
   };
 
@@ -55,7 +55,7 @@ function JoinPage() {
     event.preventDefault();
     let host: string;
     try {
-      host = new URL(`https://${domain.trim()}`).hostname;
+      host = deploymentHost(new URL(`https://${domain.trim()}`));
     } catch {
       toast.error(t("join.invalidDomain"));
       return;
@@ -88,7 +88,7 @@ function JoinPage() {
             inputMode="url"
             autoCapitalize="none"
             autoCorrect="off"
-            placeholder="example.opendefence.fi"
+            placeholder="local-dev.opendefence.fi"
             value={domain}
             onChange={(event) => setDomain(event.target.value)}
           />

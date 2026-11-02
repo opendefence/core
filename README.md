@@ -199,6 +199,37 @@ task ui:android:sync    # build the UI and copy it into ui/android
 task ui:android:build   # build ui/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
+### Test on a phone with adb
+
+A phone that is not rooted cannot listen on port 443. Forward port 8443 to
+Traefik on your machine:
+
+```sh
+adb reverse tcp:8443 tcp:443
+adb reverse --list
+```
+
+Debug builds trust user CAs. Install base's local CA on the phone:
+
+```sh
+task base:export-ca > public-root-ca.pem
+adb push public-root-ca.pem /sdcard/Download/
+```
+
+On the phone, open Settings > Security > Encryption & credentials > Install a
+certificate > CA certificate. Select `public-root-ca.pem`.
+
+Install the app and read its log:
+
+```sh
+adb install -r ui/android/app/build/outputs/apk/debug/app-debug.apk
+adb logcat -s Capacitor MtlsWebViewClient
+```
+
+In the app, scan an invite QR code or type `local-dev.opendefence.fi`. The app
+adds port 8443 to that domain. To use another port, type it, for example
+`local-dev.opendefence.fi:9443`.
+
 ## Package
 
 `zarf.yaml` defines the package. Components deploy in order:
