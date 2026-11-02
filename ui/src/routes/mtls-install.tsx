@@ -26,6 +26,8 @@ import { MtlsActionButtons } from "@/components/mtls/MtlsActionButtons";
 import { PlatformSelector } from "@/components/mtls/PlatformSelector";
 import { AndroidInstallFlow } from "@/components/mtls/AndroidInstallFlow";
 import { IosInstallFlow } from "@/components/mtls/IosInstallFlow";
+import { NativeInstallFlow } from "@/components/mtls/NativeInstallFlow";
+import { isNative } from "@/lib/native";
 import { MacInstallFlow } from "@/components/mtls/MacInstallFlow";
 import { WinInstallFlow } from "@/components/mtls/WinInstallFlow";
 import { LinuxInstallFlow } from "@/components/mtls/LinuxInstallFlow";
@@ -40,7 +42,7 @@ import { MtlsGuide } from "@/components/guides";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/mtls-install")({
-  component: MtlsInstallPage,
+  component: isNative ? NativeInstallFlow : MtlsInstallPage,
 });
 
 // Platforms we walk through the install one screen at a time.

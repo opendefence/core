@@ -3,14 +3,14 @@ const LINE_LENGTH = 64;
 const CERTIFICATE_BLOCK =
   /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g;
 
-function encode(der: ArrayBuffer): string {
+export function encode(der: ArrayBuffer): string {
   const bytes = new Uint8Array(der);
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
 }
 
-function decode(base64: string): ArrayBuffer {
+export function decode(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

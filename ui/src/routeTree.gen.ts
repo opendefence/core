@@ -15,6 +15,7 @@ import { Route as ApproveUserRouteImport } from './routes/approve-user'
 import { Route as ApproveUsersRouteImport } from './routes/approve-users'
 import { Route as CallsignSetupRouteImport } from './routes/callsign-setup'
 import { Route as ErrorRouteImport } from './routes/error'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ManageGroupsRouteImport } from './routes/manage-groups'
 import { Route as ManageRolesRouteImport } from './routes/manage-roles'
@@ -52,6 +53,11 @@ const CallsignSetupRoute = CallsignSetupRouteImport.update({
 const ErrorRoute = ErrorRouteImport.update({
   id: '/error',
   path: '/error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/approve-users': typeof ApproveUsersRoute
   '/callsign-setup': typeof CallsignSetupRoute
   '/error': typeof ErrorRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/manage-groups': typeof ManageGroupsRoute
   '/manage-roles': typeof ManageRolesRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/approve-users': typeof ApproveUsersRoute
   '/callsign-setup': typeof CallsignSetupRoute
   '/error': typeof ErrorRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/manage-groups': typeof ManageGroupsRoute
   '/manage-roles': typeof ManageRolesRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/approve-users': typeof ApproveUsersRoute
   '/callsign-setup': typeof CallsignSetupRoute
   '/error': typeof ErrorRoute
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/manage-groups': typeof ManageGroupsRoute
   '/manage-roles': typeof ManageRolesRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/approve-users'
     | '/callsign-setup'
     | '/error'
+    | '/join'
     | '/login'
     | '/manage-groups'
     | '/manage-roles'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/approve-users'
     | '/callsign-setup'
     | '/error'
+    | '/join'
     | '/login'
     | '/manage-groups'
     | '/manage-roles'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/approve-users'
     | '/callsign-setup'
     | '/error'
+    | '/join'
     | '/login'
     | '/manage-groups'
     | '/manage-roles'
@@ -202,6 +214,7 @@ export interface RootRouteChildren {
   ApproveUsersRoute: typeof ApproveUsersRoute
   CallsignSetupRoute: typeof CallsignSetupRoute
   ErrorRoute: typeof ErrorRoute
+  JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
   ManageGroupsRoute: typeof ManageGroupsRoute
   ManageRolesRoute: typeof ManageRolesRoute
@@ -254,6 +267,13 @@ declare module '@tanstack/react-router' {
       path: '/error'
       fullPath: '/error'
       preLoaderRoute: typeof ErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -322,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApproveUsersRoute: ApproveUsersRoute,
   CallsignSetupRoute: CallsignSetupRoute,
   ErrorRoute: ErrorRoute,
+  JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
   ManageGroupsRoute: ManageGroupsRoute,
   ManageRolesRoute: ManageRolesRoute,

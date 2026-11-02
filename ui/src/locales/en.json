@@ -126,6 +126,16 @@
       }
     }
   },
+  "join": {
+    "title": "Join a deployment",
+    "description": "Scan an invite or type the address.",
+    "scan": "Scan invite",
+    "scanDescription": "Point the camera at the QR code.",
+    "notInvite": "Not an invite",
+    "domain": "Address",
+    "invalidDomain": "Invalid address",
+    "continue": "Continue"
+  },
   "loginGuide": {
     "title": "Login Guide",
     "steps": {
@@ -1043,6 +1053,10 @@
       "notApproved": "Your account is not approved yet",
       "notIssued": "The certificate was not issued in time. Reload to try again.",
       "failed": "Could not get the certificate"
+    },
+    "native": {
+      "working": "Creating your key…",
+      "explanation": "The key stays on this phone."
     }
   },
   "browserGuard": {

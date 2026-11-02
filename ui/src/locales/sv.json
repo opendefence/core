@@ -126,6 +126,16 @@
       }
     }
   },
+  "join": {
+    "title": "Gå med i tjänsten",
+    "description": "Skanna inbjudan eller skriv adressen.",
+    "scan": "Skanna inbjudan",
+    "scanDescription": "Rikta kameran mot QR-koden.",
+    "notInvite": "Ingen inbjudan",
+    "domain": "Adress",
+    "invalidDomain": "Ogiltig adress",
+    "continue": "Fortsätt"
+  },
   "loginGuide": {
     "title": "Inloggningsguide",
     "steps": {
@@ -1043,6 +1053,10 @@
       "notApproved": "Ditt konto är inte godkänt ännu",
       "notIssued": "Certifikatet utfärdades inte i tid. Ladda om sidan.",
       "failed": "Kunde inte hämta certifikatet"
+    },
+    "native": {
+      "working": "Skapar din nyckel…",
+      "explanation": "Nyckeln stannar i den här telefonen."
     }
   },
   "browserGuard": {

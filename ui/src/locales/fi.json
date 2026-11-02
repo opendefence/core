@@ -126,6 +126,16 @@
       }
     }
   },
+  "join": {
+    "title": "Liity palveluun",
+    "description": "Skannaa kutsu tai kirjoita osoite.",
+    "scan": "Skannaa kutsu",
+    "scanDescription": "Osoita kameralla QR-koodia.",
+    "notInvite": "Ei ole kutsu",
+    "domain": "Osoite",
+    "invalidDomain": "Virheellinen osoite",
+    "continue": "Jatka"
+  },
   "loginGuide": {
     "title": "Kirjautumisopas",
     "steps": {
@@ -1043,6 +1053,10 @@
       "notApproved": "Tiliäsi ei ole vielä hyväksytty",
       "notIssued": "Varmennetta ei myönnetty ajoissa. Lataa sivu uudelleen.",
       "failed": "Varmenteen haku epäonnistui"
+    },
+    "native": {
+      "working": "Luodaan avainta…",
+      "explanation": "Avain pysyy tässä puhelimessa."
     }
   },
   "browserGuard": {
