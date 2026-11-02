@@ -7,6 +7,7 @@ import { getOperatingSystem } from "@/lib/platformUtils";
 import { useDeployment } from "@/api/health";
 import { getTheme } from "@/config/themes";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { isNative } from "@/lib/native";
 import { MobileGuard } from "./browser-guard/MobileGuard";
 import { DesktopGuard } from "./browser-guard/DesktopGuard";
 
@@ -55,7 +56,7 @@ export function BrowserGuard({ children }: { children: React.ReactNode }) {
 
   const downloadLinks = useMemo(() => getBrowserDownloadLinks(os), [os]);
 
-  if (browserInfo.isSupported || userAcceptedRisk) {
+  if (isNative || browserInfo.isSupported || userAcceptedRisk) {
     return <>{children}</>;
   }
 

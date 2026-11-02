@@ -1,7 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { api } from "./client";
 import { createCsr } from "@/lib/certificate/csr";
-import { exportPrivateKey, generateKeyPair } from "@/lib/certificate/keypair";
+import {
+  exportPrivateKey,
+  generateKeyPair,
+  webSigner,
+} from "@/lib/certificate/keypair";
+import { ClientCertificate, keystoreSigner } from "@/lib/certificate/native";
 import { createPfx } from "@/lib/certificate/pfx";
 
 const POLL_MS = 1000;
@@ -21,9 +26,12 @@ export class CertificateError extends Error {
   }
 }
 
-interface Request {
+interface Identity {
   commonName: string;
   uri: string;
+}
+
+interface Request extends Identity {
   pin: string;
 }
 
@@ -66,7 +74,7 @@ export function useCertificate() {
   return useMutation({
     mutationFn: async ({ commonName, uri, pin }: Request): Promise<Bundle> => {
       const keys = await generateKeyPair();
-      await submit(await createCsr(keys, commonName, uri));
+      await submit(await createCsr(webSigner(keys), commonName, uri));
       const chain = await awaitChain();
 
       const pfx = await createPfx(
@@ -75,6 +83,16 @@ export function useCertificate() {
         pin,
       );
       return { pin, pfx };
+    },
+  });
+}
+
+/** In the app the key stays in the Android Keystore, so there is no PIN. */
+export function useKeystoreCertificate() {
+  return useMutation({
+    mutationFn: async ({ commonName, uri }: Identity) => {
+      await submit(await createCsr(await keystoreSigner(), commonName, uri));
+      return ClientCertificate.storeChain({ chainPem: await awaitChain() });
     },
   });
 }

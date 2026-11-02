@@ -185,6 +185,20 @@ includes:
 Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
 (default `kind-<CLUSTER_NAME>`).
 
+## Android app
+
+`ui/android` holds a Capacitor shell around the web UI. The app creates the
+user's key in the Android Keystore. The key cannot be exported, so there is no
+PFX file and no PIN. The app sends the certificate to `app.<domain>` only.
+
+Build a debug APK. You need a JDK (`mise install`) and an Android SDK in
+`ANDROID_HOME`:
+
+```sh
+task ui:android:sync    # build the UI and copy it into ui/android
+task ui:android:build   # build ui/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
 ## Package
 
 `zarf.yaml` defines the package. Components deploy in order:

@@ -11,24 +11,22 @@ import {
 } from "@/components/ui/drawer";
 import { Camera, Scan } from "lucide-react";
 import { cn } from "cn";
-import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import jsQR from "jsqr";
 
-/** The user the QR code names: the id acts, the callsign shows. */
-interface ScannedUser {
-  id: string;
-  callsign: string;
-}
-
 interface QRScannerProps {
-  onScanSuccess: (user: ScannedUser, approvalCode: string) => void;
-  onApprovalCodeScanned: (approvalCode: string) => void;
+  /** Return true to close the scanner. */
+  onRead: (data: string) => boolean;
+  trigger: string;
+  title: string;
+  description: string;
 }
 
 export function QRScanner({
-  onScanSuccess,
-  onApprovalCodeScanned,
+  onRead,
+  trigger,
+  title,
+  description,
 }: QRScannerProps) {
   const { t } = useTranslation();
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -54,31 +52,8 @@ export function QRScanner({
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-    if (code) {
-      try {
-        const url = new URL(code.data);
-        const userParam = url.searchParams.get("user");
-        const callsignParam = url.searchParams.get("callsign");
-        const approvalCodeParam = url.searchParams.get("approvalcode");
-
-        if (userParam && callsignParam && approvalCodeParam) {
-          onScanSuccess(
-            { id: userParam, callsign: callsignParam },
-            approvalCodeParam,
-          );
-          setIsScannerOpen(false);
-          toast.success(t("approveUsers.qrScannedSuccessfully"));
-        } else {
-          toast.error(t("approveUsers.invalidQRFormat"));
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
-        onApprovalCodeScanned(code.data);
-        setIsScannerOpen(false);
-        toast.success(t("approveUsers.approvalCodeScanned"));
-      }
-    }
-  }, [onScanSuccess, onApprovalCodeScanned, t]);
+    if (code && onRead(code.data)) setIsScannerOpen(false);
+  }, [onRead]);
 
   const stopScanning = useCallback(() => {
     if (scanIntervalRef.current) {
@@ -133,7 +108,7 @@ export function QRScanner({
           className="flex-1 rounded-xl bg-transparent h-14 text-base font-semibold cursor-pointer"
         >
           <Camera className="w-4 h-4 mr-2" />
-          {t("approveUsers.scanQRCode")}
+          {trigger}
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-[90vh] md:h-auto">
@@ -141,12 +116,10 @@ export function QRScanner({
           <DrawerHeader className="pt-4 md:pt-10 shrink-0">
             <DrawerTitle className="text-center">
               <Scan className="mb-2 mx-auto size-10 md:size-12" />
-              <p className="text-sm md:text-base">
-                {t("approveUsers.scanApprovalQR")}
-              </p>
+              <p className="text-sm md:text-base">{title}</p>
             </DrawerTitle>
             <DrawerDescription className="text-sm md:text-md mt-3">
-              {t("approveUsers.pointCamera")}
+              {description}
             </DrawerDescription>
           </DrawerHeader>
 

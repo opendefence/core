@@ -17,9 +17,11 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isAppOrigin } from "@/lib/origins";
+import { isNative, readDomain } from "@/lib/native";
 import { useIsTablet } from "@/hooks/use-tablet";
 
 const ENROLLMENT_PATHS = [
+  "/join",
   "/login",
   "/callsign-setup",
   "/waiting-room",
@@ -31,6 +33,9 @@ export const Route = createRootRoute({
   component: RootLayoutWrapper,
   // Stored state cannot prove a session, so /login resumes once the API has.
   beforeLoad: ({ location }) => {
+    // The app must join a deployment first
+    if (isNative && !readDomain() && location.pathname !== "/join")
+      throw redirect({ to: "/join" });
     if (isAppOrigin() || ENROLLMENT_PATHS.includes(location.pathname)) return;
     throw redirect({ to: "/login" });
   },

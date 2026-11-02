@@ -2,6 +2,7 @@ import type { UseMutationOptions } from "@tanstack/react-query";
 import createClient, { type Middleware } from "openapi-fetch";
 import type { paths } from "./schema";
 import { isAppOrigin } from "@/lib/origins";
+import { isNative, readDomain } from "@/lib/native";
 import { readToken } from "./token";
 
 // app.* authenticates by client certificate
@@ -13,8 +14,11 @@ const authorization: Middleware = {
   },
 };
 
-// Same origin: Traefik serves /api next to the UI
-export const api = createClient<paths>({});
+// Same origin on the web, the joined domain in the app
+const domain = isNative ? readDomain() : null;
+export const api = createClient<paths>({
+  baseUrl: domain ? `https://${domain}` : undefined,
+});
 api.use(authorization);
 
 /** What a caller may say about a mutation. The call itself belongs to the hook. */
