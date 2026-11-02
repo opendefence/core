@@ -53,6 +53,26 @@ tasks:
       - pnpm eslint .
       - pnpm prettier --check .
 
+  android:sync:
+    desc: Build the UI and copy it into the Capacitor Android project
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"
+    preconditions: *pnpm
+    cmds:
+      - pnpm vite build
+      - pnpm cap sync android
+
+  android:build:
+    desc: Build a debug APK of the Android app
+    dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}/android"
+    deps: [android:sync]
+    preconditions:
+      - sh: command -v java >/dev/null
+        msg: java is not on PATH, run mise install
+      - sh: test -n "${ANDROID_HOME:-}" && test -d "$ANDROID_HOME"
+        msg: ANDROID_HOME does not point at an Android SDK
+    cmds:
+      - ./gradlew assembleDebug
+
   format:
     desc: Format the UI sources with Prettier
     dir: "{{.TASKFILE_DIR}}/../{{.UI_DIR}}"

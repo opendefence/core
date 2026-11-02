@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">OpenDefence</string>
+    <string name="title_activity_main">OpenDefence</string>
+    <string name="package_name">fi.opendefence.core</string>
+    <string name="custom_url_scheme">fi.opendefence.core</string>
+</resources>
