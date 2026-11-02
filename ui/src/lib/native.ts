@@ -6,8 +6,24 @@ export const isNative = Capacitor.isNativePlatform();
 
 const DOMAIN_KEY = "native_domain";
 
+/** host[:port] of the joined deployment. */
 export function readDomain(): string | null {
   return readStore(DOMAIN_KEY);
+}
+
+export function readPort(): string {
+  const domain = readDomain();
+  return domain ? new URL(`https://${domain}`).port : "";
+}
+
+// A phone reaches the dev cluster through `adb reverse tcp:8443 tcp:443`
+const LOCAL_DEV = "local-dev.opendefence.fi";
+const LOCAL_DEV_PORT = "8443";
+
+export function deploymentHost(url: URL): string {
+  return url.hostname === LOCAL_DEV && !url.port
+    ? `${url.hostname}:${LOCAL_DEV_PORT}`
+    : url.host;
 }
 
 /** Reloads so the API client picks up the domain. */
