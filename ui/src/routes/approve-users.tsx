@@ -1,7 +1,7 @@
 "use client";
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -9,7 +9,8 @@ import { useEnrollmentList } from "@/hooks/api/useEnrollmentList";
 import { useApproveUser } from "@/hooks/api/useApproveUser";
 import { useRejectUser } from "@/hooks/api/useRejectUser";
 import { EnrollmentState } from "@/hooks/api/model/enrollmentState";
-import { useUserType } from "@/hooks/auth/useUserType";
+import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
+import { Forbidden } from "@/components/Forbidden";
 
 import {
   QRScanner,
@@ -29,23 +30,11 @@ function ApproveUsersPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [approvalCode, setApprovalCode] = useState("");
 
-  const navigate = useNavigate();
   const { t } = useTranslation();
-  const { userType, isLoading: userTypeLoading, callsign } = useUserType();
-
-  useEffect(() => {
-    if (!userTypeLoading && !callsign) {
-      toast.error(t("approveUsers.noCallsignFound"));
-      navigate({ to: "/login" });
-    }
-  }, [callsign, userTypeLoading, navigate, t]);
-
-  useEffect(() => {
-    if (!userTypeLoading && userType !== "superadmin") {
-      toast.error(t("approveUsers.forbidden"));
-      navigate({ to: "/" });
-    }
-  }, [userType, userTypeLoading, navigate, t]);
+  const { isLoading: userTypeLoading, allowed } = useRequireSuperadmin({
+    noCallsign: "approveUsers.noCallsignFound",
+    forbidden: "approveUsers.forbidden",
+  });
 
   const {
     data: enrollmentList,
@@ -115,15 +104,8 @@ function ApproveUsersPage() {
     setApprovalCode(code);
   };
 
-  if (!userTypeLoading && userType !== "superadmin") {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6 text-center py-12">
-        <h1 className="text-6xl font-bold text-destructive">403</h1>
-        <p className="text-xl text-muted-foreground">
-          {t("approveUsers.forbidden")}
-        </p>
-      </div>
-    );
+  if (!userTypeLoading && !allowed) {
+    return <Forbidden message={t("approveUsers.forbidden")} />;
   }
 
   if (isLoading || userTypeLoading) {

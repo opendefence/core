@@ -1,11 +1,11 @@
 "use client";
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useUserType } from "@/hooks/auth/useUserType";
+import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
+import { Forbidden } from "@/components/Forbidden";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Users,
   Shield,
@@ -126,7 +126,10 @@ function AdminToolCard({ item, onAction }: AdminToolCardProps) {
 function AdminToolsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { userType, isLoading: userTypeLoading, callsign } = useUserType();
+  const { isLoading: userTypeLoading, allowed } = useRequireSuperadmin({
+    noCallsign: "approveUsers.noCallsignFound",
+    forbidden: "adminTools.forbiddenAdminAccess",
+  });
   const { type } = Route.useSearch();
   const [keycloakModalOpen, setKeycloakModalOpen] = useState(false);
   const { currentLanguage } = useLanguage();
@@ -240,31 +243,13 @@ function AdminToolsPage() {
   const showServiceTools = type === "services" || type === "all";
   const showTypeSelector = !type;
 
-  useEffect(() => {
-    if (!userTypeLoading && !callsign) {
-      toast.error(t("approveUsers.noCallsignFound"));
-      navigate({ to: "/login" });
-    }
-  }, [callsign, userTypeLoading, navigate, t]);
-
-  useEffect(() => {
-    if (!userTypeLoading && userType !== "superadmin") {
-      toast.error(t("adminTools.forbiddenAdminAccess"));
-      navigate({ to: "/" });
-    }
-  }, [userType, userTypeLoading, navigate, t]);
-
-  if (!userTypeLoading && userType !== "superadmin") {
+  if (!userTypeLoading && !allowed) {
     return (
-      <div
-        data-testid="admin-tools-forbidden"
-        className="w-full max-w-2xl mx-auto space-y-6 text-center py-12"
-      >
-        <h1 className="text-6xl font-bold text-destructive">403</h1>
-        <p className="text-xl text-muted-foreground">
-          {t("adminTools.forbiddenAdminAccess")}
-        </p>
-      </div>
+      <Forbidden
+        testid="admin-tools-forbidden"
+        className="w-full max-w-2xl"
+        message={t("adminTools.forbiddenAdminAccess")}
+      />
     );
   }
 

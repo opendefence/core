@@ -1,15 +1,15 @@
 "use client";
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useUserType } from "@/hooks/auth/useUserType";
+import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
+import { Forbidden } from "@/components/Forbidden";
 import { TypeConfirmationModal } from "@/components/ConfirmationModals";
 import { useTranslation } from "react-i18next";
 import { useUserManagement } from "@/hooks/api/useUserManagement";
-import { useGuidePreferences } from "@/hooks/useGuidePreferences";
+import { useWalkthrough } from "@/hooks/useWalkthrough";
 import {
   UserList,
   BulkActionsBar,
@@ -24,11 +24,18 @@ export const Route = createFileRoute("/manage-users")({
 function ManageUsersPage() {
   const [administratorsOpen, setAdministratorsOpen] = useState(true);
   const [fightersOpen, setFightersOpen] = useState(false);
-  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
-
-  const { userType, isLoading: userTypeLoading, callsign } = useUserType();
-  const { autoOpen } = useGuidePreferences();
-  const navigate = useNavigate();
+  const {
+    callsign,
+    isLoading: userTypeLoading,
+    allowed,
+  } = useRequireSuperadmin({
+    noCallsign: "manageUsers.messages.noCandidateFound",
+    forbidden: "manageUsers.forbidden",
+  });
+  const [walkthroughOpen, setWalkthroughOpen] = useWalkthrough(
+    `manage-users-walkthrough-${callsign}`,
+    !userTypeLoading,
+  );
   const { t } = useTranslation();
 
   const {
@@ -68,31 +75,6 @@ function ManageUsersPage() {
     confirmBulkAction,
   } = useUserManagement({ currentCallsign: callsign });
 
-  useEffect(() => {
-    if (!userTypeLoading && !callsign) {
-      toast.error(t("manageUsers.messages.noCandidateFound"));
-      navigate({ to: "/login" });
-    }
-  }, [callsign, userTypeLoading, navigate, t]);
-
-  useEffect(() => {
-    // The help button still opens this; only the uninvited appearance stops.
-    if (!autoOpen) return;
-    const walkthroughKey = `manage-users-walkthrough-${callsign}`;
-    const hasSeenWalkthrough = localStorage.getItem(walkthroughKey);
-    if (!hasSeenWalkthrough && !userTypeLoading) {
-      setWalkthroughOpen(true);
-      localStorage.setItem(walkthroughKey, "true");
-    }
-  }, [userTypeLoading, callsign, autoOpen]);
-
-  useEffect(() => {
-    if (!userTypeLoading && userType !== "superadmin") {
-      toast.error(t("manageUsers.forbidden"));
-      navigate({ to: "/" });
-    }
-  }, [userType, userTypeLoading, navigate, t]);
-
   const handleAdministratorsOpen = (open: boolean) => {
     setAdministratorsOpen(open);
     if (open) setFightersOpen(false);
@@ -103,17 +85,12 @@ function ManageUsersPage() {
     if (open) setAdministratorsOpen(false);
   };
 
-  if (!userTypeLoading && userType !== "superadmin") {
+  if (!userTypeLoading && !allowed) {
     return (
-      <div
-        data-testid="manage-users-forbidden"
-        className="max-w-4xl mx-auto space-y-6 text-center py-12"
-      >
-        <h1 className="text-6xl font-bold text-destructive">403</h1>
-        <p className="text-xl text-muted-foreground">
-          {t("manageUsers.forbidden")}
-        </p>
-      </div>
+      <Forbidden
+        testid="manage-users-forbidden"
+        message={t("manageUsers.forbidden")}
+      />
     );
   }
 
