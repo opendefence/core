@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { useUsers } from "@/hooks/api/useUsers";
-import { usePromoteUser } from "@/hooks/api/usePromoteUser";
-import { useDemoteUser } from "@/hooks/api/useDemoteUser";
-import { useDeleteUser } from "@/hooks/api/useDeleteUser";
-
-export interface User {
-  callsign: string;
-  roles: string[];
-}
+import {
+  isAdmin,
+  useDemoteUser,
+  usePromoteUser,
+  useRevokeUser,
+  useUsers,
+  type User,
+} from "@/api/users";
 
 interface UseUserManagementOptions {
   currentCallsign: string | null;
@@ -32,13 +31,7 @@ export function useUserManagement({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
-  const {
-    data: users,
-    isLoading,
-    refetch,
-  } = useUsers({
-    refetchInterval: 10000,
-  });
+  const { data: users, isLoading, refetch } = useUsers("active", 10000);
 
   const promoteUserMutation = usePromoteUser({
     onSuccess: () => {
@@ -74,7 +67,7 @@ export function useUserManagement({
     },
   });
 
-  const deleteUserMutation = useDeleteUser({
+  const deleteUserMutation = useRevokeUser({
     onSuccess: () => {
       toast.error(
         t("manageUsers.messages.removed", { callsign: selectedUser?.callsign }),
@@ -90,25 +83,24 @@ export function useUserManagement({
     },
   });
 
-  const administrators = users?.filter((u) => u.roles?.includes("admin")) || [];
-  const fighters = users?.filter((u) => !u.roles?.includes("admin")) || [];
+  const administrators = users?.filter(isAdmin) || [];
+  const fighters = users?.filter((user) => !isAdmin(user)) || [];
 
-  const isAdmin = (user: User) => user.roles?.includes("admin");
   const isCurrentUser = (user: User) => user.callsign === currentCallsign;
 
-  const hasAdminSelected = selectedUsers.some((userCallsign) =>
-    administrators.some((admin) => admin.callsign === userCallsign),
+  const hasAdminSelected = administrators.some((admin) =>
+    selectedUsers.includes(admin.id),
   );
 
-  const toggleUserSelection = (userCallsign: string) => {
-    if (userCallsign === currentCallsign) {
+  const toggleUserSelection = (user: User) => {
+    if (isCurrentUser(user)) {
       toast.error(t("manageUsers.messages.cannotSelectSelf"));
       return;
     }
     setSelectedUsers((prev) =>
-      prev.includes(userCallsign)
-        ? prev.filter((c) => c !== userCallsign)
-        : [...prev, userCallsign],
+      prev.includes(user.id)
+        ? prev.filter((id) => id !== user.id)
+        : [...prev, user.id],
     );
   };
 
@@ -119,12 +111,12 @@ export function useUserManagement({
 
   const handlePromoteConfirm = () => {
     if (!selectedUser) return;
-    promoteUserMutation.mutate({ callsign: selectedUser.callsign });
+    promoteUserMutation.mutate(selectedUser.id);
   };
 
   const handleDemoteClick = () => {
     if (!selectedUser) return;
-    if (selectedUser.callsign === currentCallsign) {
+    if (isCurrentUser(selectedUser)) {
       toast.error(t("manageUsers.messages.cannotDemoteOwn"));
       return;
     }
@@ -133,13 +125,13 @@ export function useUserManagement({
 
   const handleDemoteConfirm = () => {
     if (!selectedUser) return;
-    demoteUserMutation.mutate({ callsign: selectedUser.callsign });
+    demoteUserMutation.mutate(selectedUser.id);
   };
 
   const handleRemoveClick = () => {
     if (!selectedUser) return;
 
-    if (selectedUser.callsign === currentCallsign) {
+    if (isCurrentUser(selectedUser)) {
       toast.error(t("manageUsers.messages.cannotDeleteOwn"));
       return;
     }
@@ -154,7 +146,7 @@ export function useUserManagement({
 
   const handleRemoveConfirm = () => {
     if (!selectedUser) return;
-    deleteUserMutation.mutate(selectedUser.callsign);
+    deleteUserMutation.mutate(selectedUser.id);
   };
 
   const handleBulkPromote = () => {
@@ -173,13 +165,13 @@ export function useUserManagement({
   };
 
   const confirmBulkAction = async () => {
-    for (const callsign of selectedUsers) {
+    for (const userId of selectedUsers) {
       if (bulkAction === "promote") {
-        await promoteUserMutation.mutateAsync({ callsign });
+        await promoteUserMutation.mutateAsync(userId);
       } else if (bulkAction === "demote") {
-        await demoteUserMutation.mutateAsync({ callsign });
+        await demoteUserMutation.mutateAsync(userId);
       } else if (bulkAction === "remove") {
-        await deleteUserMutation.mutateAsync(callsign);
+        await deleteUserMutation.mutateAsync(userId);
       }
     }
     toast.success(t(`manageUsers.messages.bulk${bulkAction}Success`));
