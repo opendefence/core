@@ -789,6 +789,7 @@ export interface components {
       validUntil: string | null;
       /** Createdat */
       createdAt: string | null;
+      createdBy: components["schemas"]["UserSummary"] | null;
     };
     /**
      * ProductComponent
@@ -944,7 +945,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Successful Response */
+      /** @description CSR stored, not yet signed. */
       202: {
         headers: {
           [name: string]: unknown;

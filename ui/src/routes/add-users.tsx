@@ -2,7 +2,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { useInviteCodeManagement } from "@/hooks/api/inviteCode/useInviteCodeManagement";
+import { useInviteCodeManagement } from "@/hooks/useInviteCodeManagement";
 import { InviteCodeHeader } from "@/components/add-users/InviteCodeHeader";
 import { InviteCodeItem } from "@/components/add-users/InviteCodeItem";
 import { BulkActionsBar } from "@/components/add-users/BulkActionsBar";
@@ -11,12 +11,6 @@ import {
   ManageCodeDialog,
   WalkthroughDialog,
 } from "@/components/add-users/InviteCodeDialogs";
-interface InviteCode {
-  invitecode: string;
-  active: boolean;
-  owner_cs?: string;
-  created?: string;
-}
 
 export const Route = createFileRoute("/add-users")({
   component: AddUsersPage,
@@ -29,19 +23,17 @@ function AddUsersPage() {
     setFilterText,
     createModalOpen,
     setCreateModalOpen,
-    selectedCode,
     manageDialogOpen,
-    setManageDialogOpen,
-    selectedCodes,
+    closeManageDialog,
+    selectedInvite,
+    selectedIds,
     bulkMode,
     walkthroughOpen,
     setWalkthroughOpen,
-    inviteCodes,
-    filteredCodes,
+    filteredInvites,
     isLoading,
     userTypeLoading,
     userType,
-    callsign,
     isCreating,
     isDeleting,
     isTogglingStatus,
@@ -93,7 +85,7 @@ function AddUsersPage() {
 
       {bulkMode && (
         <BulkActionsBar
-          selectedCount={selectedCodes.length}
+          selectedCount={selectedIds.length}
           onEnable={handleBulkEnable}
           onDisable={handleBulkDisable}
           onDelete={handleBulkDelete}
@@ -101,21 +93,20 @@ function AddUsersPage() {
       )}
 
       <div className="space-y-3">
-        {filteredCodes.map((invite: InviteCode) => (
+        {filteredInvites.map((invite) => (
           <InviteCodeItem
-            key={invite.invitecode}
+            key={invite.id}
             invite={invite}
-            callsign={callsign ?? undefined}
             bulkMode={bulkMode}
-            isSelected={selectedCodes.includes(invite.invitecode)}
+            isSelected={selectedIds.includes(invite.id)}
             onCodeClick={(code: string, e: React.MouseEvent) => {
               e.preventDefault();
               handleCodeClick(code);
             }}
-            onManageClick={(code: string, e: React.MouseEvent) => {
+            onManageClick={(id: string, e: React.MouseEvent) => {
               e.preventDefault();
               e.stopPropagation();
-              handleManageClick(code);
+              handleManageClick(id);
             }}
             onToggleSelection={toggleCodeSelection}
           />
@@ -135,9 +126,8 @@ function AddUsersPage() {
 
       <ManageCodeDialog
         open={manageDialogOpen}
-        onOpenChange={setManageDialogOpen}
-        selectedCode={selectedCode}
-        inviteCodes={inviteCodes}
+        onOpenChange={(open) => (open ? undefined : closeManageDialog())}
+        selectedInvite={selectedInvite}
         onToggleStatus={handleToggleStatus}
         onDelete={handleDeleteCode}
         isDeleting={isDeleting}
