@@ -3,6 +3,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useInviteCodeManagement } from "@/hooks/useInviteCodeManagement";
+import { Forbidden } from "@/components/Forbidden";
 import { InviteCodeHeader } from "@/components/add-users/InviteCodeHeader";
 import { InviteCodeItem } from "@/components/add-users/InviteCodeItem";
 import { BulkActionsBar } from "@/components/add-users/BulkActionsBar";
@@ -33,7 +34,7 @@ function AddUsersPage() {
     filteredInvites,
     isLoading,
     userTypeLoading,
-    userType,
+    allowed,
     isCreating,
     isDeleting,
     isTogglingStatus,
@@ -49,15 +50,8 @@ function AddUsersPage() {
     toggleBulkMode,
   } = useInviteCodeManagement();
 
-  if (!userTypeLoading && userType !== "superadmin") {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6 text-center py-12">
-        <h1 className="text-6xl font-bold text-destructive">403</h1>
-        <p className="text-xl text-muted-foreground">
-          {t("addUsers.forbidden")}
-        </p>
-      </div>
-    );
+  if (!userTypeLoading && !allowed) {
+    return <Forbidden message={t("addUsers.forbidden")} />;
   }
 
   if (isLoading || userTypeLoading) {
