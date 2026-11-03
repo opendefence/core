@@ -1,18 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client";
 import { readToken } from "@/api/token";
-import type { components } from "@/api/schema";
+import { SUPERADMIN_ROLE } from "@/api/roles";
+import { isAdmin, type User } from "@/api/users";
 import { isAppOrigin } from "@/lib/origins";
 
-type UserResponse = components["schemas"]["UserResponse"];
-
-// Should match naming.SUPERADMIN_ROLE.
-const SUPERADMIN_ROLE = "superadmin";
-
-function typeOf(user: UserResponse): "superadmin" | "user" {
-  return user.effectiveRoles.some((role) => role.name === SUPERADMIN_ROLE)
-    ? SUPERADMIN_ROLE
-    : "user";
+function typeOf(user: User): "superadmin" | "user" {
+  return isAdmin(user) ? SUPERADMIN_ROLE : "user";
 }
 
 export function useUserType() {
