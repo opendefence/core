@@ -3,7 +3,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useProducts } from "@/api/integrations";
-import { useGetProductInstructions } from "@/hooks/api/useGetProductInstructions";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import {
@@ -49,7 +48,6 @@ function ProductPage() {
     isLoading: productsLoading,
     error: productsError,
   } = useProducts(currentLanguage);
-  const { data: instructionsData } = useGetProductInstructions(shortname);
 
   const product = products.find((p) => p.name === shortname);
 
@@ -113,7 +111,6 @@ function ProductPage() {
           }
         >
           <Remote
-            data={instructionsData?.data || {}}
             meta={{
               theme: import.meta.env.VITE_THEME,
               callsign: callsign,
