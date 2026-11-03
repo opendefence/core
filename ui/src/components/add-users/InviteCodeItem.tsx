@@ -2,6 +2,7 @@ import type React from "react";
 import { MoreVertical } from "lucide-react";
 import { cn } from "cn";
 import { useTranslation } from "react-i18next";
+import { isActive, type Invite } from "@/api/invites";
 
 const DATE = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -9,26 +10,17 @@ const DATE = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
 });
 
-interface InviteCode {
-  invitecode: string;
-  active: boolean;
-  owner_cs?: string;
-  created?: string;
-}
-
 interface InviteCodeItemProps {
-  invite: InviteCode;
-  callsign?: string;
+  invite: Invite;
   bulkMode: boolean;
   isSelected: boolean;
   onCodeClick: (code: string, e: React.MouseEvent) => void;
-  onManageClick: (code: string, e: React.MouseEvent) => void;
-  onToggleSelection: (code: string) => void;
+  onManageClick: (id: string, e: React.MouseEvent) => void;
+  onToggleSelection: (id: string) => void;
 }
 
 export function InviteCodeItem({
   invite,
-  callsign,
   bulkMode,
   isSelected,
   onCodeClick,
@@ -36,13 +28,14 @@ export function InviteCodeItem({
   onToggleSelection,
 }: InviteCodeItemProps) {
   const { t } = useTranslation();
+  const active = isActive(invite);
 
   const handleClick = (e: React.MouseEvent) => {
     if (bulkMode) {
-      onToggleSelection(invite.invitecode);
+      onToggleSelection(invite.id);
     } else {
-      if (invite.active !== true) return;
-      onCodeClick(invite.invitecode, e);
+      if (!active) return;
+      onCodeClick(invite.code, e);
     }
   };
 
@@ -50,13 +43,13 @@ export function InviteCodeItem({
     <div
       onClick={handleClick}
       data-testid="invite-code-item"
-      data-invite-code={invite.invitecode}
-      data-invite-active={invite.active ? "true" : "false"}
+      data-invite-code={invite.code}
+      data-invite-active={active ? "true" : "false"}
       data-invite-selected={isSelected ? "true" : "false"}
       className={cn(
         "flex items-center justify-between p-5 bg-card border-2 border-border rounded-xl hover:bg-accent/50 hover:border-primary/50 transition-all",
         bulkMode && isSelected && "bg-accent border-primary",
-        invite.active !== true ? "cursor-not-allowed" : "cursor-pointer",
+        !active ? "cursor-not-allowed" : "cursor-pointer",
       )}
     >
       <div className="flex items-center gap-4 flex-1">
@@ -66,40 +59,34 @@ export function InviteCodeItem({
               className="font-mono font-bold text-lg"
               data-testid="invite-code-value"
             >
-              {invite.invitecode}
+              {invite.code}
             </span>
             <span
               data-testid="invite-code-status"
-              data-invite-status={invite.active ? "active" : "inactive"}
+              data-invite-status={active ? "active" : "inactive"}
               className={cn(
                 "text-xs font-bold uppercase px-3 py-0.5 rounded-full",
-                invite.active
+                active
                   ? "text-green-600 bg-green-100 dark:bg-green-900/30"
                   : "text-gray-500 bg-gray-100 dark:bg-gray-800",
               )}
             >
-              {t(`addUsers.${invite.active ? "active" : "inactive"}`)}
+              {t(`addUsers.${active ? "active" : "inactive"}`)}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            {invite.owner_cs === callsign
-              ? t("addUsers.createdByYou", {
-                  date: invite.created
-                    ? DATE.format(new Date(invite.created))
-                    : "",
-                })
-              : t("addUsers.createdBy", {
-                  creator: invite.owner_cs,
-                  date: invite.created
-                    ? DATE.format(new Date(invite.created))
-                    : "",
-                })}
-          </p>
+          {invite.createdAt && (
+            <p className="text-xs text-muted-foreground mt-2">
+              {t(invite.createdBy ? "addUsers.createdBy" : "addUsers.created", {
+                creator: invite.createdBy?.callsign,
+                date: DATE.format(new Date(invite.createdAt)),
+              })}
+            </p>
+          )}
         </div>
       </div>
       {!bulkMode && (
         <button
-          onClick={(e) => onManageClick(invite.invitecode, e)}
+          onClick={(e) => onManageClick(invite.id, e)}
           className="text-muted-foreground hover:text-foreground p-2"
           data-testid="invite-code-manage-button"
         >
