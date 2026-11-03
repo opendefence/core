@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "cn";
 import { useTranslation } from "react-i18next";
-import type { User } from "@/hooks/api/useUserManagement";
+import type { User } from "@/api/users";
 
 interface UserListProps {
   testIdPrefix?: string;
@@ -16,10 +16,11 @@ interface UserListProps {
   onOpenChange: (open: boolean) => void;
   emptyMessage: string;
   bulkMode: boolean;
+  /** The ids of the users picked for a bulk action. */
   selectedUsers: string[];
   currentCallsign: string | null;
   onUserClick: (user: User) => void;
-  onUserSelect: (callsign: string) => void;
+  onUserSelect: (user: User) => void;
 }
 
 export function UserList({
@@ -70,23 +71,21 @@ export function UserList({
               data-testid="user-list-item"
               data-callsign={user.callsign}
               data-user-selected={
-                bulkMode && selectedUsers.includes(user.callsign)
-                  ? "true"
-                  : "false"
+                bulkMode && selectedUsers.includes(user.id) ? "true" : "false"
               }
               data-user-current={
                 user.callsign === currentCallsign ? "true" : "false"
               }
-              key={user.callsign}
+              key={user.id}
               className={cn(
                 "flex items-center gap-3 p-4 bg-card border-2 rounded-xl hover:bg-accent/50 transition-colors cursor-pointer",
-                bulkMode && selectedUsers.includes(user.callsign)
+                bulkMode && selectedUsers.includes(user.id)
                   ? "border-primary bg-primary/5"
                   : "border-border",
               )}
               onClick={() => {
                 if (bulkMode) {
-                  onUserSelect(user.callsign);
+                  onUserSelect(user);
                 } else {
                   onUserClick(user);
                 }

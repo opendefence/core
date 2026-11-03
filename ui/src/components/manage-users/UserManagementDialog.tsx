@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranslation } from "react-i18next";
-import type { User } from "@/hooks/api/useUserManagement";
+import type { User } from "@/api/users";
 
 interface UserManagementDialogProps {
   user: User | null;
