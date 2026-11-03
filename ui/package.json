@@ -30,7 +30,6 @@
     "react-i18next": "^17.1.2",
     "react-markdown": "^10.1.0",
     "react-qr-code": "^2.2.0",
-    "react-query": "^3.39.3",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.8",

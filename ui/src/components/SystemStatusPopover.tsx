@@ -21,11 +21,13 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import {
-  useHealthCheck,
-  HEALTH_CHECK_STALE_AFTER_MS,
-} from "@/hooks/api/useHealthCheck";
+  useProductStatus,
+  PRODUCT_STALE_AFTER_MS,
+  type Product,
+} from "@/api/integrations";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLanguage } from "@/hooks/useLanguage";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 
 /**
@@ -81,15 +83,16 @@ const productStyles: Record<
 
 export function SystemStatusPopover() {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+  const { currentLanguage } = useLanguage();
   const {
-    data: healthData,
+    data: products = [],
     dataUpdatedAt,
     isError,
     isFetching,
     failureCount,
     refetch,
-  } = useHealthCheck();
-  const { t } = useTranslation();
+  } = useProductStatus(currentLanguage);
   const isMobile = useIsMobile();
   const isOnline = useOnlineStatus();
   const now = useNow(open ? OPEN_TICK_MS : CLOSED_TICK_MS);
@@ -98,19 +101,19 @@ export function SystemStatusPopover() {
   const age = hasSynced ? Math.max(0, now - dataUpdatedAt) : Infinity;
 
   // The cached response only describes the products as of the last successful
-  // check. Once we are offline, a check has failed, or the answer has aged out,
+  // read. Once we are offline, a read has failed, or the answer has aged out,
   // their real state is unknown and must not be rendered as if it were fresh.
   const isStale =
     !isOnline ||
     isError ||
     failureCount > 0 ||
     !hasSynced ||
-    age > HEALTH_CHECK_STALE_AFTER_MS;
+    age > PRODUCT_STALE_AFTER_MS;
 
   const formatAge = () => {
     if (!hasSynced) return t("systemStatus.never");
 
-    // The check runs every HEALTH_CHECK_INTERVAL_MS (30s), so a label that only
+    // The read runs every PRODUCT_POLL_MS (30s), so a label that only
     // resolves to whole minutes would read "just now" forever and never tell
     // the user anything. Seconds keep it counting visibly between checks.
     if (age < JUST_NOW_BELOW_MS) return t("systemStatus.justNow");
@@ -129,9 +132,16 @@ export function SystemStatusPopover() {
     return new Date(dataUpdatedAt).toLocaleString();
   };
 
-  const products = healthData ? Object.entries(healthData.products) : [];
+  // Pending means the operator has not settled the product yet, so its real
+  // state is no more known than a stale one's.
+  const stateOf = (product: Product): ProductState => {
+    if (isStale) return "unknown";
+    if (product.state === "ready") return "up";
+    return product.state === "degraded" ? "down" : "unknown";
+  };
 
-  const overallStatus = !isStale && healthData?.all_ok === true;
+  const overallStatus =
+    !isStale && products.every((product) => product.state === "ready");
 
   const triggerButton = (
     <button className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-accent/20 border">
@@ -191,23 +201,19 @@ export function SystemStatusPopover() {
             {t("systemStatus.noServices")}
           </p>
         ) : (
-          products.map(([product, status]) => {
-            const state: ProductState = isStale
-              ? "unknown"
-              : status
-                ? "up"
-                : "down";
+          products.map((product) => {
+            const state = stateOf(product);
             const styles = productStyles[state];
 
             return (
               <div
-                key={product}
+                key={product.id}
                 className={`flex items-center justify-between p-2 rounded-md text-xs ${styles.row}`}
               >
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${styles.dot}`} />
                   <span className="capitalize font-medium text-foreground">
-                    {product}
+                    {product.name}
                   </span>
                 </div>
                 <span
