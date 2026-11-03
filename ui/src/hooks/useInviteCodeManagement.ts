@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -10,18 +10,28 @@ import {
   useSetInviteActive,
   type Invite,
 } from "@/api/invites";
-import { useUserType } from "@/hooks/auth/useUserType";
-import { useGuidePreferences } from "@/hooks/useGuidePreferences";
+import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
+import { useWalkthrough } from "@/hooks/useWalkthrough";
 
 const POLL_MS = 10000;
 
 export function useInviteCodeManagement() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { userType, isLoading: userTypeLoading, callsign } = useUserType();
-  const { autoOpen } = useGuidePreferences();
 
-  const [walkthroughOpen, setWalkthroughOpen] = useState(false);
+  const {
+    callsign,
+    isLoading: userTypeLoading,
+    allowed,
+  } = useRequireSuperadmin({
+    noCallsign: "addUsers.messages.noCallsignError",
+    forbidden: "addUsers.messages.forbiddenError",
+  });
+
+  const [walkthroughOpen, setWalkthroughOpen] = useWalkthrough(
+    `add-users-walkthrough-${callsign}`,
+    !userTypeLoading,
+  );
   const [filterText, setFilterText] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
@@ -31,29 +41,6 @@ export function useInviteCodeManagement() {
 
   const { data: invites, isLoading, refetch } = useInvites(POLL_MS);
   const byId = (id: string | null) => invites?.find((i) => i.id === id);
-
-  useEffect(() => {
-    if (!userTypeLoading && !callsign) {
-      toast.error(t("addUsers.messages.noCallsignError"));
-      navigate({ to: "/login" });
-    }
-  }, [callsign, userTypeLoading, navigate, t]);
-
-  useEffect(() => {
-    if (!userTypeLoading && userType !== "superadmin") {
-      toast.error(t("addUsers.messages.forbiddenError"));
-      navigate({ to: "/" });
-    }
-  }, [userType, userTypeLoading, navigate, t]);
-
-  useEffect(() => {
-    // The help button still opens this; only the uninvited appearance stops.
-    if (!autoOpen || userTypeLoading) return;
-    const key = `add-users-walkthrough-${callsign}`;
-    if (localStorage.getItem(key)) return;
-    localStorage.setItem(key, "true");
-    setWalkthroughOpen(true);
-  }, [callsign, userTypeLoading, autoOpen]);
 
   const failed = (key: string) => (error: Error) =>
     toast.error(t(key, { error: error.message }));
@@ -118,7 +105,7 @@ export function useInviteCodeManagement() {
       ) ?? [],
     isLoading,
     userTypeLoading,
-    userType,
+    allowed,
 
     isCreating: create.isPending,
     isDeleting: remove.isPending,
