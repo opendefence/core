@@ -13,12 +13,8 @@ import {
   Server,
   KeyRound,
   type LucideIcon,
-  ExternalLink,
 } from "lucide-react";
 import { KeycloakManageModal } from "@/components/KeycloakManageModal";
-import { useLanguage } from "@/hooks/useLanguage";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useGetAdminProductDescriptions } from "@/hooks/api/useGetAdminProductDescriptions";
 
 type AdminToolsSearch = {
   type?: "users" | "services" | "all";
@@ -45,8 +41,7 @@ interface MenuItem {
   action:
     | { type: "navigate"; to: string; search?: Record<string, unknown> }
     | { type: "external"; url: string }
-    | { type: "modal"; modal: string }
-    | { type: "product"; shortname: string };
+    | { type: "modal"; modal: string };
 }
 
 interface MenuSection {
@@ -57,18 +52,6 @@ interface MenuSection {
 interface AdminToolCardProps {
   item: MenuItem;
   onAction: (item: MenuItem) => void;
-}
-
-function AdminToolCardSkeleton() {
-  return (
-    <div className="flex items-center gap-6 p-6 w-full border border-border rounded-2xl bg-card">
-      <Skeleton className="w-16 h-16 rounded-xl opacity-50 animate-pulse" />
-      <div className="flex flex-col flex-1 gap-2">
-        <Skeleton className="h-6 w-32 opacity-50 animate-pulse" />
-        <Skeleton className="h-4 w-48 opacity-50 animate-pulse" />
-      </div>
-    </div>
-  );
 }
 
 function AdminToolCard({ item, onAction }: AdminToolCardProps) {
@@ -132,36 +115,6 @@ function AdminToolsPage() {
   });
   const { type } = Route.useSearch();
   const [keycloakModalOpen, setKeycloakModalOpen] = useState(false);
-  const { currentLanguage } = useLanguage();
-
-  const { data: adminProductDescriptions, isLoading: isLoadingProducts } =
-    useGetAdminProductDescriptions(currentLanguage);
-
-  // Build dynamic menu items from admin product descriptions
-  const adminProductItems: MenuItem[] = (adminProductDescriptions ?? []).map(
-    (product) => {
-      if (product.component.type === "link") {
-        return {
-          icon: ExternalLink,
-          title: product.title,
-          description: product.description,
-          action: {
-            type: "external" as const,
-            url: product.component.ref,
-          },
-        };
-      }
-      return {
-        icon: ExternalLink,
-        title: product.title,
-        description: product.description,
-        action: {
-          type: "product" as const,
-          shortname: product.shortname,
-        },
-      };
-    },
-  );
 
   const typeSelectorItems: MenuItem[] = [
     {
@@ -213,7 +166,6 @@ function AdminToolsPage() {
     {
       titleKey: "adminTools.toolsDesc",
       items: [
-        ...adminProductItems,
         {
           icon: KeyRound,
           titleKey: "adminTools.keycloakTitle",
@@ -231,11 +183,6 @@ function AdminToolsPage() {
       if (item.action.modal === "keycloak") {
         setKeycloakModalOpen(true);
       }
-    } else if (item.action.type === "product") {
-      navigate({
-        to: "/product/$shortname",
-        params: { shortname: item.action.shortname },
-      });
     }
   };
 
@@ -318,22 +265,13 @@ function AdminToolsPage() {
             </h2>
 
             <div data-testid="admin-tools-grid" className="grid gap-4">
-              {section.titleKey === "adminTools.toolsDesc" &&
-              isLoadingProducts ? (
-                <>
-                  <AdminToolCardSkeleton />
-                  <AdminToolCardSkeleton />
-                  <AdminToolCardSkeleton />
-                </>
-              ) : (
-                section.items.map((item) => (
-                  <AdminToolCard
-                    key={item.titleKey ?? item.title}
-                    item={item}
-                    onAction={handleAction}
-                  />
-                ))
-              )}
+              {section.items.map((item) => (
+                <AdminToolCard
+                  key={item.titleKey ?? item.title}
+                  item={item}
+                  onAction={handleAction}
+                />
+              ))}
             </div>
           </div>
         ))}
