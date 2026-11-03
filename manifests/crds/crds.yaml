@@ -550,6 +550,22 @@ spec:
                 minLength: 1
                 title: Code
                 type: string
+              createdByRef:
+                description: Reference to the user that created the invite; unset
+                  for invites the CLI created.
+                properties:
+                  name:
+                    description: Kubernetes resource name of the referenced platform
+                      object.
+                    minLength: 1
+                    title: Name
+                    type: string
+                required:
+                - name
+                title: ObjectRef
+                type: object
+                default: null
+                nullable: true
               groupRefs:
                 description: References to groups the invited user will join.
                 items:

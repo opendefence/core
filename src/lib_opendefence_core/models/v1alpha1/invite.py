@@ -15,6 +15,11 @@ class InviteSpec(BaseModel):
     """Desired grants and limits of a platform invite."""
 
     code: str = Field(min_length=1, description="Invite redemption code.")
+    created_by_ref: ObjectRef | None = Field(
+        default=None,
+        alias="createdByRef",
+        description="Reference to the user that created the invite; unset for invites the CLI created.",
+    )
     group_refs: Annotated[list[ObjectRef], ListType("map", keys=("name",))] = Field(
         default_factory=list,
         alias="groupRefs",

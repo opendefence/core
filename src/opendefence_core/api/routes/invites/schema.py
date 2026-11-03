@@ -6,10 +6,10 @@ from typing import Self
 
 from pydantic import Field
 
-from lib_opendefence_core.models.v1alpha1 import Invite, InviteSpec, ObjectRef
+from lib_opendefence_core.models.v1alpha1 import Invite, InviteSpec, ObjectRef, User
 from opendefence_core.api.lib.invites import UNLIMITED
 from opendefence_core.api.lib.uids import RefId, id_of
-from opendefence_core.api.schema import ApiModel
+from opendefence_core.api.schema import ApiModel, UserSummary
 
 
 class InviteLimits(ApiModel):
@@ -25,10 +25,11 @@ class CreateInviteRequest(InviteLimits):
     role_ids: list[RefId] = Field(default_factory=list)
     group_ids: list[RefId] = Field(default_factory=list)
 
-    def to_spec(self, code: str, roles: Sequence[str], groups: Sequence[str]) -> InviteSpec:
+    def to_spec(self, code: str, roles: Sequence[str], groups: Sequence[str], creator: str) -> InviteSpec:
         """InviteSpec holding the generated code and the resolved reference names."""
         return InviteSpec(
             code=code,
+            created_by_ref=ObjectRef(name=creator),
             role_refs=[ObjectRef(name=name) for name in roles],
             group_refs=[ObjectRef(name=name) for name in groups],
             use_count=self.use_count,
@@ -56,11 +57,19 @@ class InviteResponse(ApiModel):
     used: int
     valid_until: datetime | None
     created_at: datetime | None
+    created_by: UserSummary | None
 
     @classmethod
-    def from_resource(cls, invite: Invite, roles: Mapping[str, str], groups: Mapping[str, str]) -> Self:
+    def from_resource(
+        cls,
+        invite: Invite,
+        roles: Mapping[str, str],
+        groups: Mapping[str, str],
+        users: Mapping[str, User],
+    ) -> Self:
         """Response for the Invite resource, naming its references by id."""
         created = invite.metadata.creation_timestamp if invite.metadata else None
+        creator = invite.spec.created_by_ref
         return cls(
             id=id_of(invite),
             code=invite.spec.code,
@@ -70,6 +79,7 @@ class InviteResponse(ApiModel):
             used=invite.status.used if invite.status else 0,
             valid_until=invite.spec.valid_until,
             created_at=created.root if created else None,
+            created_by=UserSummary.of(users[creator.name]) if creator and creator.name in users else None,
         )
 
 
