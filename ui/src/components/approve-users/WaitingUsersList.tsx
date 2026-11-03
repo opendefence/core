@@ -8,6 +8,7 @@ import { cn } from "cn";
 import { useTranslation } from "react-i18next";
 
 interface WaitingUser {
+  id: string;
   callsign: string;
 }
 
@@ -15,7 +16,7 @@ interface WaitingUsersListProps {
   users: WaitingUser[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUserClick: (callsign: string) => void;
+  onUserClick: (user: WaitingUser) => void;
 }
 
 export function WaitingUsersList({
@@ -56,15 +57,15 @@ export function WaitingUsersList({
           ) : (
             users.map((user) => (
               <div
-                key={user.callsign}
-                onClick={() => onUserClick(user.callsign)}
+                key={user.id}
+                onClick={() => onUserClick(user)}
                 className="flex items-center justify-between p-3 rounded-lg hover:bg-accent/50 transition-colors group cursor-pointer"
                 data-testid="waiting-user-item"
                 data-callsign={user.callsign}
               >
                 <span className="font-medium">{user.callsign}</span>
                 <button
-                  onClick={() => onUserClick(user.callsign)}
+                  onClick={() => onUserClick(user)}
                   className="p-2 hover:bg-accent rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                   data-testid="waiting-user-menu"
                 >

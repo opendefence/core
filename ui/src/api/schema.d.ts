@@ -587,6 +587,14 @@ export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     /**
+     * ApproveUserRequest
+     * @description Approval code the user showed.
+     */
+    ApproveUserRequest: {
+      /** Approvalcode */
+      approvalCode: string;
+    };
+    /**
      * CheckRequest
      * @description Invite code to check.
      */
@@ -894,8 +902,6 @@ export interface components {
       roles: components["schemas"]["RoleRef"][];
       /** Effectiveroles */
       effectiveRoles: components["schemas"]["RoleRef"][];
-      /** Approvalcode */
-      approvalCode: string | null;
     };
     /** @enum {string} */
     UserState: "pending" | "active" | "revoked";
@@ -2120,7 +2126,11 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ApproveUserRequest"];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
