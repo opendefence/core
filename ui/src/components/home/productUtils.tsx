@@ -1,19 +1,6 @@
 import type React from "react";
 import { Zap } from "lucide-react";
 
-export interface Product {
-  shortname: string;
-  title: string;
-  icon: string | null;
-  description: string;
-  language: string;
-  docs: string | null;
-  component: {
-    type: "component" | "markdown" | "link";
-    ref: string;
-  };
-}
-
 export function getProductIcon(shortname: string): React.ReactNode {
   const iconMap: Record<string, React.ReactNode> = {
     tak: <Zap className="w-6 h-6" />,

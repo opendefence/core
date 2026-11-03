@@ -20,7 +20,7 @@ import {
 import { User, UserSearch as UserStar } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useGetProductDescriptions } from "@/hooks/api/useGetProductDescriptions";
+import { useProducts } from "@/api/integrations";
 import { SidebarProductLink } from "@/components/SidebarProductLink";
 
 interface SidebarProps {
@@ -35,7 +35,7 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
   const { t } = useTranslation();
   const { currentLanguage, changeLanguage } = useLanguage();
   const { callsign } = useUserType();
-  const { data: products = [] } = useGetProductDescriptions(currentLanguage);
+  const { data: products = [] } = useProducts(currentLanguage);
 
   // Get current path with search params
   const currentPath = location.pathname;
@@ -146,9 +146,9 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
               >
                 {products.map((product) => (
                   <SidebarProductLink
-                    key={product.shortname}
+                    key={product.name}
                     product={product}
-                    isActive={currentProductShortname === product.shortname}
+                    isActive={currentProductShortname === product.name}
                     isMobile={isMobile}
                     onClose={onClose}
                   />
