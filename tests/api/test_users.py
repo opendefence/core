@@ -84,7 +84,6 @@ def test_me(users: list[User]) -> None:
         "state": "active",
         "roles": [role_ref("superadmin")],
         "effectiveRoles": [role_ref("comms"), role_ref("medic"), role_ref("superadmin")],
-        "approvalCode": None,
     }
 
 
@@ -97,15 +96,22 @@ def test_me_separates_granted_roles_from_direct_ones(users: list[User]) -> None:
 
 
 def test_read_users(users: list[User]) -> None:
-    """Listing carries the state and the approval code."""
+    """Listing carries the state."""
     _ = users
     response = client.get("/api/v3/users")
     assert response.status_code == 200
-    assert [(user["id"], user["state"], user["approvalCode"]) for user in response.json()] == [
-        (user_id("user-2"), "pending", "ABCD1234"),
-        (user_id("user-1"), "active", None),
-        (user_id("user-3"), "revoked", None),
+    assert [(user["id"], user["state"]) for user in response.json()] == [
+        (user_id("user-2"), "pending"),
+        (user_id("user-1"), "active"),
+        (user_id("user-3"), "revoked"),
     ]
+
+
+def test_users_never_carry_the_approval_code(users: list[User]) -> None:
+    """No user response carries an approval code."""
+    _ = users
+    bodies = [*client.get("/api/v3/users").json(), client.get("/api/v3/users/me").json()]
+    assert all("approvalCode" not in body for body in bodies)
 
 
 def test_read_users_by_state(users: list[User]) -> None:
@@ -223,8 +229,24 @@ def test_approve_and_revoke(users: list[User]) -> None:
     """Approving and revoking move the user between states."""
     _ = users
     target = user_id("user-2")
-    assert client.post(f"/api/v3/users/{target}/approve").json()["state"] == "active"
+    approved = client.post(f"/api/v3/users/{target}/approve", json={"approvalCode": "ABCD1234"})
+    assert approved.json()["state"] == "active"
     assert client.post(f"/api/v3/users/{target}/revoke").json()["state"] == "revoked"
+
+
+def test_approve_rejects_a_wrong_approval_code(users: list[User]) -> None:
+    """A wrong code approves nobody."""
+    _ = users
+    target = user_id("user-2")
+    assert client.post(f"/api/v3/users/{target}/approve", json={"approvalCode": "NOPE"}).status_code == 403
+    assert client.get(f"/api/v3/users/{target}").json()["state"] == "pending"
+
+
+def test_approve_rejects_a_user_that_holds_no_code(users: list[User]) -> None:
+    """A user holding no code cannot be approved."""
+    _ = users
+    target = user_id("user-3")
+    assert client.post(f"/api/v3/users/{target}/approve", json={"approvalCode": "ABCD1234"}).status_code == 403
 
 
 def test_cannot_revoke_yourself(users: list[User]) -> None:
@@ -237,4 +259,5 @@ def test_cannot_revoke_yourself(users: list[User]) -> None:
 def test_approve_unknown_user(users: list[User]) -> None:
     """An id no user holds is 404 before anything is written."""
     _ = users
-    assert client.post(f"/api/v3/users/{user_id('user-99')}/approve").status_code == 404
+    sent = {"approvalCode": "ABCD1234"}
+    assert client.post(f"/api/v3/users/{user_id('user-99')}/approve", json=sent).status_code == 404

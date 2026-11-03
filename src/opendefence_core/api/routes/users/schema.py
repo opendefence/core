@@ -19,6 +19,12 @@ class RenameUserRequest(ApiModel):
     callsign: str = Field(pattern=CALLSIGN_PATTERN)
 
 
+class ApproveUserRequest(ApiModel):
+    """Approval code the user showed."""
+
+    approval_code: str = Field(min_length=1)
+
+
 class UserResponse(ApiModel):
     """User, as the platform shows them. The resource name stays internal."""
 
@@ -27,7 +33,6 @@ class UserResponse(ApiModel):
     state: UserState
     roles: list[RoleRef]
     effective_roles: list[RoleRef]
-    approval_code: str | None
 
     @classmethod
     def from_resource(cls, user: User, roles: Mapping[str, Role], groups: Mapping[str, Group]) -> Self:
@@ -39,5 +44,4 @@ class UserResponse(ApiModel):
             state=state_of(user),
             roles=RoleRef.resolve(user.spec.role_refs, roles),
             effective_roles=[RoleRef.of(roles[name]) for name in held if name in roles],
-            approval_code=user.spec.approval_code,
         )
