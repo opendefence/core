@@ -8,7 +8,7 @@ from cloudcoil.resources import Resource
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from lib_opendefence_core.models.v1alpha1 import Group, Invite, InviteSpec, Role
+from lib_opendefence_core.models.v1alpha1 import Group, Invite, InviteSpec, Role, User
 from opendefence_core.api import lookups
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import jwt_user
@@ -32,6 +32,11 @@ async def _none_by_name(kind: type[Role] | type[Group]) -> dict[str, str]:
 def invites(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, Invite]]:
     """One invite to read and write, keyed by id."""
     store = {ABC12: make_invite("invite-abc12", use_count=3)}
+    caller = make_user("alpha1", callsign="foxtrot6")
+
+    async def by_name(kind: type[User]) -> dict[str, User]:
+        _ = kind
+        return {"alpha1": caller}
 
     async def list_invites() -> list[Invite]:
         return list(store.values())
@@ -49,6 +54,7 @@ def invites(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, Invite]]:
         created = make_invite("invite-new", code=spec.code, use_count=spec.use_count)
         created.spec.role_refs = spec.role_refs
         created.spec.group_refs = spec.group_refs
+        created.spec.created_by_ref = spec.created_by_ref
         store[compact(uid("invite-new"))] = created
         return created
 
@@ -66,7 +72,8 @@ def invites(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, Invite]]:
     monkeypatch.setattr(views, "update_invite", update_invite)
     monkeypatch.setattr(views, "delete_invite", delete_invite)
     monkeypatch.setattr(views, "ids_by_name", _none_by_name)
-    app.dependency_overrides[jwt_user] = lambda: make_user("alpha1")
+    monkeypatch.setattr(views, "by_name", by_name)
+    app.dependency_overrides[jwt_user] = lambda: caller
     yield store
     app.dependency_overrides.clear()
 
@@ -119,6 +126,7 @@ def test_read_invites(invites: dict[str, Invite]) -> None:
             "used": 0,
             "validUntil": None,
             "createdAt": None,
+            "createdBy": None,
         }
     ]
 
@@ -129,6 +137,15 @@ def test_add_invite(invites: dict[str, Invite]) -> None:
     assert response.status_code == 201
     assert response.json()["code"] == "NEWCODE1"
     assert invites[compact(uid("invite-new"))].spec.use_count == 5
+
+
+def test_add_invite_records_its_creator(invites: dict[str, Invite]) -> None:
+    """The caller is stored on the invite and reported back by callsign."""
+    response = client.post("/api/v3/invites", json={})
+    assert response.status_code == 201
+    assert response.json()["createdBy"]["callsign"] == "foxtrot6"
+    created_by = invites[compact(uid("invite-new"))].spec.created_by_ref
+    assert created_by is not None and created_by.name == "alpha1"
 
 
 def test_add_invite_grants_roles_and_groups(invites: dict[str, Invite], granted: None) -> None:
