@@ -10,10 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { DisableGuidesButton } from "@/components/guides/DisableGuidesButton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-interface InviteCode {
-  invitecode: string;
-  active: boolean;
-}
+import { isActive, type Invite } from "@/api/invites";
 
 interface CreateInviteDialogProps {
   open: boolean;
@@ -73,8 +70,7 @@ export function CreateInviteDialog({
 interface ManageCodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedCode: string | null;
-  inviteCodes?: InviteCode[];
+  selectedInvite?: Invite;
   onToggleStatus: () => void;
   onDelete: () => void;
   isDeleting: boolean;
@@ -84,17 +80,14 @@ interface ManageCodeDialogProps {
 export function ManageCodeDialog({
   open,
   onOpenChange,
-  selectedCode,
-  inviteCodes,
+  selectedInvite,
   onToggleStatus,
   onDelete,
   isDeleting,
   isTogglingStatus,
 }: ManageCodeDialogProps) {
   const { t } = useTranslation();
-  const selectedInvite = inviteCodes?.find(
-    (c) => c.invitecode === selectedCode,
-  );
+  const selectedCode = selectedInvite?.code ?? null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -120,7 +113,7 @@ export function ManageCodeDialog({
             disabled={isTogglingStatus || isDeleting}
             data-testid="manage-code-toggle-button"
           >
-            {selectedInvite?.active
+            {selectedInvite && isActive(selectedInvite)
               ? t("addUsers.disableCode")
               : t("addUsers.enableCode")}
           </Button>
