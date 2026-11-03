@@ -3,8 +3,8 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { BookOpen, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Product } from "./productUtils";
 import { getProductIcon, getCleanProductTitle } from "./productUtils";
+import type { Product } from "@/api/integrations";
 
 interface ProductCardProps {
   product: Product;
@@ -24,7 +24,7 @@ export function ProductCard({
   return (
     <div
       data-testid="product-card"
-      data-product-shortname={product.shortname}
+      data-product-shortname={product.name}
       data-product-valid={isValidUser ? "true" : "false"}
       className={cn(
         "group flex flex-col border border-border rounded-2xl overflow-hidden transition-all duration-300",
@@ -40,7 +40,7 @@ export function ProductCard({
               {t("home.productCard.label")}
             </p>
             <h3 className="text-lg md:text-xl font-bold text-foreground leading-tight break-words">
-              {getCleanProductTitle(product.title, product.shortname)}
+              {getCleanProductTitle(product.title, product.name)}
             </h3>
           </div>
 
@@ -51,7 +51,7 @@ export function ProductCard({
           {product.icon && (
             <img
               src={product.icon}
-              alt={product.shortname}
+              alt={product.name}
               className="w-13 h-13 sm:w-20 sm:h-20 lg:w-23 lg:h-23 object-contain absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
             />
           )}
@@ -72,11 +72,11 @@ export function ProductCard({
             disabled={!isValidUser}
           >
             <span className="inline-flex items-center gap-2">
-              {product.component.type === "component" ||
-              product.component.type === "markdown" ? (
+              {product.component?.type === "component" ||
+              product.component?.type === "markdown" ? (
                 <>
                   <span className="shrink-0">
-                    {getProductIcon(product.shortname)}
+                    {getProductIcon(product.name)}
                   </span>
                   <span>{t("home.productCard.launch")}</span>
                 </>
