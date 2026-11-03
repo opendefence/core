@@ -1,5 +1,7 @@
 """User endpoints."""
 
+from secrets import compare_digest
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from lib_opendefence_core.models.v1alpha1 import Group, Role
@@ -17,7 +19,7 @@ from opendefence_core.api.lib.users import (
     revoke,
 )
 from opendefence_core.api.lookups import role_or_404, user_or_404
-from opendefence_core.api.routes.users.schema import RenameUserRequest, UserResponse
+from opendefence_core.api.routes.users.schema import ApproveUserRequest, RenameUserRequest, UserResponse
 from opendefence_core.api.schema import GroupRef, RoleRef
 
 # FIXME: switch to the mTLS user with the superadmin role
@@ -98,9 +100,12 @@ async def read_user_groups(user_id: ObjectId, effective: bool = False) -> list[G
 
 
 @router.post("/{user_id}/approve")
-async def approve_user(user_id: ObjectId) -> UserResponse:
+async def approve_user(user_id: ObjectId, request: ApproveUserRequest) -> UserResponse:
     """Approve the user"""
     user = await user_or_404(user_id)
+    held = user.spec.approval_code
+    if held is None or not compare_digest(held, request.approval_code):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Invalid approval code for this user.")
     return UserResponse.from_resource(await approve(user), await by_name(Role), await by_name(Group))
 
 
