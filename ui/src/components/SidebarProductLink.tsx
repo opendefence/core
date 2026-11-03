@@ -2,10 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { cn } from "cn";
 import { getCleanProductTitle } from "@/components/home/productUtils";
-import type { ProductDescription } from "@/hooks/api/useGetProductDescriptions";
+import type { Product } from "@/api/integrations";
 
 interface SidebarProductLinkProps {
-  product: ProductDescription;
+  product: Product;
   isActive: boolean;
   isMobile: boolean;
   onClose: () => void;
@@ -17,16 +17,16 @@ export function SidebarProductLink({
   isMobile,
   onClose,
 }: SidebarProductLinkProps) {
-  const title = getCleanProductTitle(product.title, product.shortname);
+  const title = getCleanProductTitle(product.title, product.name);
   const handleClick = () => {
     if (isMobile) onClose();
   };
 
-  if (product.component.type === "link") {
+  if (product.component?.type === "link") {
     return (
       <a
         data-testid="sidebar-product-link"
-        data-product-shortname={product.shortname}
+        data-product-shortname={product.name}
         data-product-external="true"
         href={product.component.ref}
         target="_blank"
@@ -43,9 +43,9 @@ export function SidebarProductLink({
   return (
     <Link
       data-testid="sidebar-product-link"
-      data-product-shortname={product.shortname}
+      data-product-shortname={product.name}
       to="/product/$shortname"
-      params={{ shortname: product.shortname }}
+      params={{ shortname: product.name }}
       onClick={handleClick}
       className={cn(
         "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
