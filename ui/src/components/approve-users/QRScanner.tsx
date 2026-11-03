@@ -15,8 +15,14 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import jsQR from "jsqr";
 
+/** The user the QR code names: the id acts, the callsign shows. */
+interface ScannedUser {
+  id: string;
+  callsign: string;
+}
+
 interface QRScannerProps {
-  onScanSuccess: (callsign: string, approvalCode: string) => void;
+  onScanSuccess: (user: ScannedUser, approvalCode: string) => void;
   onApprovalCodeScanned: (approvalCode: string) => void;
 }
 
@@ -51,11 +57,15 @@ export function QRScanner({
     if (code) {
       try {
         const url = new URL(code.data);
+        const userParam = url.searchParams.get("user");
         const callsignParam = url.searchParams.get("callsign");
         const approvalCodeParam = url.searchParams.get("approvalcode");
 
-        if (callsignParam && approvalCodeParam) {
-          onScanSuccess(callsignParam, approvalCodeParam);
+        if (userParam && callsignParam && approvalCodeParam) {
+          onScanSuccess(
+            { id: userParam, callsign: callsignParam },
+            approvalCodeParam,
+          );
           setIsScannerOpen(false);
           toast.success(t("approveUsers.qrScannedSuccessfully"));
         } else {
