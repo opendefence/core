@@ -9,6 +9,7 @@ import {
   Users,
   Shield,
   ShieldCheck,
+  Network,
   FileText,
   type LucideIcon,
 } from "lucide-react";
@@ -151,6 +152,12 @@ function AdminToolsPage() {
           titleKey: "common.manageRoles",
           descKey: "adminTools.manageRolesDesc",
           action: { type: "navigate", to: "/manage-roles" },
+        },
+        {
+          icon: Network,
+          titleKey: "common.manageGroups",
+          descKey: "adminTools.manageGroupsDesc",
+          action: { type: "navigate", to: "/manage-groups" },
         },
       ],
     },

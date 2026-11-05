@@ -109,6 +109,7 @@ function RootLayout() {
         "/approve-users",
         "/manage-users",
         "/manage-roles",
+        "/manage-groups",
         "/add-users",
         "/admin-tools",
       ];

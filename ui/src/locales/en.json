@@ -8,6 +8,7 @@
     "approveUsers": "Approve Users",
     "manageUsers": "Manage Users",
     "manageRoles": "Manage Roles",
+    "manageGroups": "Manage Groups",
     "addUsers": "Add Users",
     "admin": "Admin",
     "user": "User",
@@ -565,6 +566,27 @@
       "cannotTakeLast": "At least one administrator must remain"
     }
   },
+  "manageGroups": {
+    "title": "Manage Groups",
+    "description": "A group holds users and grants roles to them. A member of a group is a member of every group above it.",
+    "forbidden": "403 Forbidden: Admin access required",
+    "noGroups": "No groups yet.",
+    "selectGroup": "Select a group to see it.",
+    "detail": {
+      "parent": "Parent",
+      "root": "None. This is a top-level group.",
+      "roles": "Roles granted",
+      "noRoles": "This group grants no roles.",
+      "rolesReach": "Every member of this group and of the groups below it holds these roles.",
+      "inherited": "Roles from groups above",
+      "fromGroup": "from {{group}}",
+      "managers": "Managers",
+      "noManagers": "No managers."
+    },
+    "messages": {
+      "noCallsign": "No callsign found. Please log in."
+    }
+  },
   "pickers": {
     "filterUsers": "Filter users",
     "loading": "Loading...",
@@ -1056,6 +1078,7 @@
     "approveUsersDesc": "Review and approve new user registrations",
     "manageUsersDesc": "Manage user roles and permissions",
     "manageRolesDesc": "Create roles and give them to users",
+    "manageGroupsDesc": "Build the group hierarchy and grant roles through it",
     "addUsersDesc": "Create and manage invite codes for new users",
     "takServerTitle": "Takserver",
     "takServerDesc": "Manage Takserver configuration",

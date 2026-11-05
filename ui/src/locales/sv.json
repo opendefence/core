@@ -8,6 +8,7 @@
     "approveUsers": "Godkänn användare",
     "manageUsers": "Hantera användare",
     "manageRoles": "Hantera roller",
+    "manageGroups": "Hantera grupper",
     "addUsers": "Lägg till användare",
     "admin": "Admin",
     "user": "Användare",
@@ -565,6 +566,27 @@
       "cannotTakeLast": "Minst en administratör måste finnas kvar"
     }
   },
+  "manageGroups": {
+    "title": "Hantera grupper",
+    "description": "En grupp håller användare och ger dem roller. En medlem i en grupp är medlem i varje grupp ovanför.",
+    "forbidden": "403 Förbjudet: Adminbehörighet krävs",
+    "noGroups": "Inga grupper ännu.",
+    "selectGroup": "Välj en grupp för att se den.",
+    "detail": {
+      "parent": "Överordnad grupp",
+      "root": "Ingen. Detta är en grupp på översta nivån.",
+      "roles": "Roller som ges",
+      "noRoles": "Den här gruppen ger inga roller.",
+      "rolesReach": "Alla medlemmar i den här gruppen och i grupperna under den har dessa roller.",
+      "inherited": "Roller från grupper ovanför",
+      "fromGroup": "från {{group}}",
+      "managers": "Ansvariga",
+      "noManagers": "Inga ansvariga."
+    },
+    "messages": {
+      "noCallsign": "Ingen anropssignal hittades. Logga in."
+    }
+  },
   "pickers": {
     "filterUsers": "Filtrera användare",
     "loading": "Laddar...",
@@ -1056,6 +1078,7 @@
     "approveUsersDesc": "Granska och godkänn nya användare",
     "manageUsersDesc": "Hantera användarroller och behörigheter",
     "manageRolesDesc": "Skapa roller och ge dem till användare",
+    "manageGroupsDesc": "Bygg grupphierarkin och ge roller genom den",
     "addUsersDesc": "Skapa och hantera inbjudningskoder",
     "takServerTitle": "Takserver",
     "takServerDesc": "Hantera Takserver-konfiguration",

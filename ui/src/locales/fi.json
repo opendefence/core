@@ -8,6 +8,7 @@
     "approveUsers": "Hyväksy käyttäjiä",
     "manageUsers": "Hallitse käyttäjiä",
     "manageRoles": "Hallitse rooleja",
+    "manageGroups": "Hallitse ryhmiä",
     "addUsers": "Lisää käyttäjiä",
     "admin": "Ylläpitäjä",
     "user": "Käyttäjä",
@@ -565,6 +566,27 @@
       "cannotTakeLast": "Vähintään yhden ylläpitäjän on säilyttävä"
     }
   },
+  "manageGroups": {
+    "title": "Hallitse ryhmiä",
+    "description": "Ryhmä sisältää käyttäjiä ja antaa heille rooleja. Ryhmän jäsen on myös jokaisen yläpuolisen ryhmän jäsen.",
+    "forbidden": "403 Kielletty: Ylläpito-oikeudet vaaditaan",
+    "noGroups": "Ei vielä ryhmiä.",
+    "selectGroup": "Valitse ryhmä nähdäksesi sen tiedot.",
+    "detail": {
+      "parent": "Yläryhmä",
+      "root": "Ei yläryhmää. Tämä on ylimmän tason ryhmä.",
+      "roles": "Annetut roolit",
+      "noRoles": "Tämä ryhmä ei anna rooleja.",
+      "rolesReach": "Jokainen tämän ryhmän ja sen alaryhmien jäsen saa nämä roolit.",
+      "inherited": "Roolit yläryhmistä",
+      "fromGroup": "ryhmästä {{group}}",
+      "managers": "Vastuuhenkilöt",
+      "noManagers": "Ei vastuuhenkilöitä."
+    },
+    "messages": {
+      "noCallsign": "Kutsutunnusta ei löytynyt. Kirjaudu sisään."
+    }
+  },
   "pickers": {
     "filterUsers": "Suodata käyttäjiä",
     "loading": "Ladataan...",
@@ -1056,6 +1078,7 @@
     "approveUsersDesc": "Tarkastele ja hyväksy uusia käyttäjiä",
     "manageUsersDesc": "Hallitse käyttäjärooleja ja käyttöoikeuksia",
     "manageRolesDesc": "Luo rooleja ja anna niitä käyttäjille",
+    "manageGroupsDesc": "Rakenna ryhmähierarkia ja anna rooleja sen kautta",
     "addUsersDesc": "Luo ja hallitse kutsukoodeja",
     "takServerTitle": "Takserverin hallinta",
     "takServerDesc": "Hallinnoi Takserverin asetuksia",
