@@ -9,6 +9,7 @@ import {
   ManageRoleDialog,
   RoleList,
 } from "@/components/manage-roles";
+import { UserPicker } from "@/components/pickers/UserPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRoleManagement } from "@/hooks/useRoleManagement";
@@ -24,10 +25,16 @@ function ManageRolesPage() {
     setFilterText,
     createOpen,
     setCreateOpen,
+    pickerOpen,
+    setPickerOpen,
     selectedRole,
     openRole,
     closeRole,
     roles,
+    holders,
+    isLoadingHolders,
+    grantedBy,
+    isChanging,
     isLoading,
     userTypeLoading,
     allowed,
@@ -35,6 +42,8 @@ function ManageRolesPage() {
     isDeleting,
     createRole,
     deleteRole,
+    giveRole,
+    takeRole,
   } = useRoleManagement();
 
   if (!userTypeLoading && !allowed) {
@@ -103,11 +112,28 @@ function ManageRolesPage() {
       )}
 
       <ManageRoleDialog
-        open={selectedRole !== undefined}
+        open={selectedRole !== undefined && !pickerOpen}
         onOpenChange={(open) => (open ? undefined : closeRole())}
         role={selectedRole}
+        holders={holders}
+        isLoadingHolders={isLoadingHolders}
+        grantedBy={grantedBy}
+        onAddHolder={() => setPickerOpen(true)}
+        onRemoveHolder={takeRole}
+        isChanging={isChanging}
         onDelete={deleteRole}
         isDeleting={isDeleting}
+      />
+
+      <UserPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        title={t("manageRoles.detail.add")}
+        description={t("manageRoles.detail.addDescription", {
+          role: selectedRole?.displayName,
+        })}
+        exclude={holders.map((holder) => holder.id)}
+        onPick={giveRole}
       />
     </div>
   );

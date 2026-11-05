@@ -11,6 +11,25 @@ export function isAdmin(user: User): boolean {
   return user.effectiveRoles.some((role) => role.name === SUPERADMIN_ROLE);
 }
 
+/** Whether the user is the one the caller is signed in as. */
+export function isSelf(
+  user: { callsign: string },
+  callsign: string | null,
+): boolean {
+  return user.callsign === callsign;
+}
+
+/**
+ * Whether the user is the only administrator left. The deployment must never
+ * lose its last one, so the caller refuses the change rather than test it.
+ */
+export function isLastAdmin(
+  admins: { id: string }[],
+  user: { id: string },
+): boolean {
+  return admins.length <= 1 && admins.some((admin) => admin.id === user.id);
+}
+
 /** Users in one state, or all of them. Given an interval, keeps the list fresh. */
 export function useUsers(state?: UserState, pollMs?: number) {
   return useQuery({

@@ -536,6 +536,16 @@
       "nameInvalid": "Use lower-case letters, numbers and hyphens. Start and end with a letter or a number.",
       "submit": "Create"
     },
+    "detail": {
+      "holders": "Held directly by {{count}}",
+      "loadingHolders": "Loading the holders...",
+      "noHolders": "Nobody holds this role directly.",
+      "add": "Give the role to a user",
+      "addDescription": "The user holds {{role}} directly after this.",
+      "remove": "Take the role away",
+      "grantedBy": "Granted by groups",
+      "throughGroups": "Members of these groups hold the role too. They are not listed above."
+    },
     "manage": {
       "namePermanent": "A role cannot be renamed. Delete it and create a new one.",
       "managedKept": "An integration owns this role, so the platform keeps it.",
@@ -547,8 +557,19 @@
       "created": "Role {{role}} created",
       "createError": "Failed to create the role: {{error}}",
       "deleted": "Role {{role}} deleted",
-      "deleteError": "Failed to delete the role: {{error}}"
+      "deleteError": "Failed to delete the role: {{error}}",
+      "given": "Role given",
+      "giveError": "Failed to give the role: {{error}}",
+      "taken": "Role taken away",
+      "takeError": "Failed to take the role away: {{error}}",
+      "cannotTakeOwn": "You cannot take superadmin away from yourself",
+      "cannotTakeLast": "At least one administrator must remain"
     }
+  },
+  "pickers": {
+    "filterUsers": "Filter users",
+    "loading": "Loading...",
+    "noUsers": "No users to choose."
   },
   "mtlsInstall": {
     "title": "Download & Install Your Key",

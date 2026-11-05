@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { cn } from "cn";
 import { useTranslation } from "react-i18next";
+import type { Group } from "@/api/groups";
 import {
   isProtected,
   NAME_MAX,
   NAME_PATTERN,
   SUPERADMIN_ROLE,
+  type Member,
   type Role,
 } from "@/api/roles";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { RoleDetail } from "./RoleDetail";
 
 interface CreateRoleDialogProps {
   open: boolean;
@@ -114,6 +118,12 @@ interface ManageRoleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   role?: Role;
+  holders: Member[];
+  isLoadingHolders: boolean;
+  grantedBy: Group[];
+  onAddHolder: () => void;
+  onRemoveHolder: (userId: string) => void;
+  isChanging: boolean;
   onDelete: () => void;
   isDeleting: boolean;
 }
@@ -122,6 +132,12 @@ export function ManageRoleDialog({
   open,
   onOpenChange,
   role,
+  holders,
+  isLoadingHolders,
+  grantedBy,
+  onAddHolder,
+  onRemoveHolder,
+  isChanging,
   onDelete,
   isDeleting,
 }: ManageRoleDialogProps) {
@@ -141,16 +157,28 @@ export function ManageRoleDialog({
             <span className="font-mono text-foreground">{role?.name}</span>
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 pt-2 text-sm text-muted-foreground">
-          <p>{t("manageRoles.manage.namePermanent")}</p>
-          {kept && (
-            <p data-testid="manage-role-protected">
-              {role?.name === SUPERADMIN_ROLE
-                ? t("manageRoles.manage.superadminKept")
-                : t("manageRoles.manage.managedKept")}
-            </p>
-          )}
-        </div>
+        <ScrollArea className="max-h-[50vh]">
+          <div className="space-y-4 pt-2 pr-2">
+            <RoleDetail
+              holders={holders}
+              isLoadingHolders={isLoadingHolders}
+              grantedBy={grantedBy}
+              onAdd={onAddHolder}
+              onRemove={onRemoveHolder}
+              isChanging={isChanging}
+            />
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>{t("manageRoles.manage.namePermanent")}</p>
+              {kept && (
+                <p data-testid="manage-role-protected">
+                  {role?.name === SUPERADMIN_ROLE
+                    ? t("manageRoles.manage.superadminKept")
+                    : t("manageRoles.manage.managedKept")}
+                </p>
+              )}
+            </div>
+          </div>
+        </ScrollArea>
         <div className="flex flex-col gap-3 pt-4">
           <Button
             variant="destructive"
