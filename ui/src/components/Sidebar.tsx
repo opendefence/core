@@ -201,6 +201,18 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
               >
                 {t("common.manageRoles")}
               </Link>
+              <Link
+                data-testid="sidebar-nav-manage-groups"
+                to="/manage-groups"
+                onClick={() => isMobile && onClose()}
+                className={cn(
+                  "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
+                  location.pathname === "/manage-groups" &&
+                    "bg-sidebar-accent text-sidebar-foreground font-medium",
+                )}
+              >
+                {t("common.manageGroups")}
+              </Link>
             </div>
           </div>
         )}
