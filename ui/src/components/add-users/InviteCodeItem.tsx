@@ -2,7 +2,9 @@ import type React from "react";
 import { MoreVertical } from "lucide-react";
 import { cn } from "cn";
 import { useTranslation } from "react-i18next";
+import { useGroups } from "@/api/groups";
 import { isActive, type Invite } from "@/api/invites";
+import { useRoles } from "@/api/roles";
 
 const DATE = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -29,6 +31,17 @@ export function InviteCodeItem({
 }: InviteCodeItemProps) {
   const { t } = useTranslation();
   const active = isActive(invite);
+  const { data: groups } = useGroups();
+  const { data: roles } = useRoles();
+
+  const named = (ids: string[], known: { id: string; displayName: string }[]) =>
+    ids
+      .map((id) => known.find((entry) => entry.id === id)?.displayName)
+      .filter((name) => name !== undefined);
+  const assigned = [
+    ...named(invite.groupIds, groups ?? []),
+    ...named(invite.roleIds, roles ?? []),
+  ];
 
   const handleClick = (e: React.MouseEvent) => {
     if (bulkMode) {
@@ -74,6 +87,14 @@ export function InviteCodeItem({
               {t(`addUsers.${active ? "active" : "inactive"}`)}
             </span>
           </div>
+          {assigned.length > 0 && (
+            <p
+              className="text-xs text-muted-foreground mt-2"
+              data-testid="invite-code-assignments"
+            >
+              {t("addUsers.assignments.gives", { names: assigned.join(", ") })}
+            </p>
+          )}
           {invite.createdAt && (
             <p className="text-xs text-muted-foreground mt-2">
               {t(invite.createdBy ? "addUsers.createdBy" : "addUsers.created", {
