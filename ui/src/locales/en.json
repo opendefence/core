@@ -591,7 +591,16 @@
       "changed": "Group changed",
       "changeError": "Failed to change the group: {{error}}",
       "deleted": "Group deleted",
-      "deleteError": "Failed to delete the group: {{error}}"
+      "deleteError": "Failed to delete the group: {{error}}",
+      "memberAdded": "Member added",
+      "memberRemoved": "Member removed",
+      "memberError": "Failed to change the members: {{error}}",
+      "roleGranted": "Role granted",
+      "roleRevoked": "Role no longer granted",
+      "roleError": "Failed to change the roles: {{error}}",
+      "managerAdded": "Manager added",
+      "managerRemoved": "Manager removed",
+      "managerError": "Failed to change the managers: {{error}}"
     },
     "cancel": "Cancel",
     "creating": "Creating...",
@@ -625,6 +634,26 @@
       "members": "its members",
       "managers": "its managers",
       "roles": "the roles it grants"
+    },
+    "members": {
+      "title": "Members ({{count}})",
+      "none": "No members yet.",
+      "add": "Add a member",
+      "addDescription": "The user becomes a member of {{group}} and of every group above it.",
+      "remove": "Remove the member",
+      "showEffective": "Show members from groups below",
+      "fromGroup": "from {{group}}"
+    },
+    "roles": {
+      "add": "Grant a role",
+      "addDescription": "{{group}} grants the role to all its members.",
+      "remove": "Stop granting the role"
+    },
+    "managers": {
+      "add": "Add a manager",
+      "addDescription": "The user is named a manager of {{group}}. This does not make them a member.",
+      "remove": "Remove the manager",
+      "noAuthority": "A manager designation is recorded only. No endpoint checks it yet."
     }
   },
   "pickers": {
@@ -632,7 +661,9 @@
     "loading": "Loading...",
     "noUsers": "No users to choose.",
     "filterGroups": "Filter groups",
-    "noGroups": "No groups to choose."
+    "noGroups": "No groups to choose.",
+    "filterRoles": "Filter roles",
+    "noRoles": "No roles to choose."
   },
   "mtlsInstall": {
     "title": "Download & Install Your Key",

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { api, reason, type Options } from "./client";
 import type { components } from "./schema";
 
@@ -28,9 +28,8 @@ export function useGroups() {
   });
 }
 
-/** Users that name the group directly. Members of groups below are not listed. */
-export function useGroupMembers(groupId: string | undefined) {
-  return useQuery({
+function membersQuery(groupId: string | undefined) {
+  return {
     queryKey: ["groups", groupId, "members"],
     queryFn: async () => {
       const { data, error } = await api.GET(
@@ -41,6 +40,24 @@ export function useGroupMembers(groupId: string | undefined) {
       return data;
     },
     enabled: groupId !== undefined,
+  };
+}
+
+/** Users that name the group directly. Members of groups below are not listed. */
+export function useGroupMembers(groupId: string | undefined) {
+  return useQuery(membersQuery(groupId));
+}
+
+/**
+ * Direct members of several groups at once. The API has no effective-member
+ * endpoint, so the caller asks each group below for its own members.
+ */
+export function useMembersOf(groupIds: string[], enabled: boolean) {
+  return useQueries({
+    queries: groupIds.map((groupId) => ({
+      ...membersQuery(groupId),
+      enabled,
+    })),
   });
 }
 
@@ -92,6 +109,100 @@ export function useDeleteGroup(options?: Options<void, string>) {
         params: { path: { group_id: groupId } },
       });
       if (error) throw new Error(reason(error, "Failed to delete the group"));
+    },
+    ...options,
+  });
+}
+
+interface GroupUser {
+  groupId: string;
+  userId: string;
+}
+
+interface GroupRole {
+  groupId: string;
+  roleId: string;
+}
+
+/** Put the user in the group. Groups above it follow from the hierarchy. */
+export function useAddGroupMember(options?: Options<void, GroupUser>) {
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: GroupUser) => {
+      const { error } = await api.PUT(
+        "/api/v3/groups/{group_id}/members/{user_id}",
+        { params: { path: { group_id: groupId, user_id: userId } } },
+      );
+      if (error) throw new Error(reason(error, "Failed to add the member"));
+    },
+    ...options,
+  });
+}
+
+/** Take the user out of the group. Other memberships stay as they are. */
+export function useRemoveGroupMember(options?: Options<void, GroupUser>) {
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: GroupUser) => {
+      const { error } = await api.DELETE(
+        "/api/v3/groups/{group_id}/members/{user_id}",
+        { params: { path: { group_id: groupId, user_id: userId } } },
+      );
+      if (error) throw new Error(reason(error, "Failed to remove the member"));
+    },
+    ...options,
+  });
+}
+
+/** Make the group grant the role to every member of it and of the groups below. */
+export function useGrantGroupRole(options?: Options<void, GroupRole>) {
+  return useMutation({
+    mutationFn: async ({ groupId, roleId }: GroupRole) => {
+      const { error } = await api.PUT(
+        "/api/v3/groups/{group_id}/roles/{role_id}",
+        { params: { path: { group_id: groupId, role_id: roleId } } },
+      );
+      if (error) throw new Error(reason(error, "Failed to grant the role"));
+    },
+    ...options,
+  });
+}
+
+/** Stop the group granting the role. A user may still hold it another way. */
+export function useRevokeGroupRole(options?: Options<void, GroupRole>) {
+  return useMutation({
+    mutationFn: async ({ groupId, roleId }: GroupRole) => {
+      const { error } = await api.DELETE(
+        "/api/v3/groups/{group_id}/roles/{role_id}",
+        { params: { path: { group_id: groupId, role_id: roleId } } },
+      );
+      if (error) throw new Error(reason(error, "Failed to revoke the role"));
+    },
+    ...options,
+  });
+}
+
+/** Name the user a manager of the group. This does not make them a member. */
+export function useAddGroupManager(options?: Options<void, GroupUser>) {
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: GroupUser) => {
+      const { error } = await api.PUT(
+        "/api/v3/groups/{group_id}/managers/{user_id}",
+        { params: { path: { group_id: groupId, user_id: userId } } },
+      );
+      if (error) throw new Error(reason(error, "Failed to add the manager"));
+    },
+    ...options,
+  });
+}
+
+/** Stop the user managing the group. */
+export function useRemoveGroupManager(options?: Options<void, GroupUser>) {
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: GroupUser) => {
+      const { error } = await api.DELETE(
+        "/api/v3/groups/{group_id}/managers/{user_id}",
+        { params: { path: { group_id: groupId, user_id: userId } } },
+      );
+      if (error) throw new Error(reason(error, "Failed to remove the manager"));
     },
     ...options,
   });
