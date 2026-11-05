@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
   isActive,
+  UNLIMITED,
   useCreateInvite,
   useDeleteInvite,
   useInvites,
@@ -111,7 +112,8 @@ export function useInviteCodeManagement() {
     isDeleting: remove.isPending,
     isTogglingStatus: setActive.isPending,
 
-    handleCreateInvite: () => create.mutate(),
+    handleCreateInvite: (roleIds: string[], groupIds: string[]) =>
+      create.mutate({ useCount: UNLIMITED, roleIds, groupIds }),
 
     handleDeleteCode: async () => {
       const invite = byId(selectedId);

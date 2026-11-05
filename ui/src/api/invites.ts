@@ -5,7 +5,7 @@ import type { components } from "./schema";
 export type Invite = components["schemas"]["InviteResponse"];
 
 /** Any number of redemptions. */
-const UNLIMITED = -1;
+export const UNLIMITED = -1;
 
 /** Mirrors the server's rule in api/lib/invites.py. */
 export function isActive(invite: Invite, now: number = Date.now()): boolean {
@@ -29,12 +29,21 @@ export function useInvites(pollMs?: number) {
   });
 }
 
-/** Create an invite with a server-generated code. */
-export function useCreateInvite(options?: Options<Invite, void>) {
+/** Groups and roles the redeeming user gets, and how often the code works. */
+export interface NewInvite {
+  useCount: number;
+  roleIds: string[];
+  groupIds: string[];
+}
+
+/**
+ * Create an invite with a server-generated code.
+ */
+export function useCreateInvite(options?: Options<Invite, NewInvite>) {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (invite: NewInvite) => {
       const { data, error } = await api.POST("/api/v3/invites", {
-        body: { useCount: UNLIMITED },
+        body: invite,
       });
       if (error) throw new Error("Failed to create the invite");
       return data;

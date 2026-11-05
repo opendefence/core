@@ -294,6 +294,13 @@
       "activateError": "Kunde inte aktivera kod: {{error}}",
       "forbiddenError": "403 Förbjudet: Adminbehörighet krävs",
       "noCallsignError": "Ingen anropssignal hittades. Logga in."
+    },
+    "assignments": {
+      "groups": "Grupper",
+      "noGroups": "Inga grupper ännu.",
+      "roles": "Roller",
+      "noRoles": "Inga roller ännu.",
+      "gives": "Ger: {{names}}"
     }
   },
   "approveUser": {
