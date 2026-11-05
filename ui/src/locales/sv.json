@@ -535,6 +535,16 @@
       "nameInvalid": "Använd små bokstäver, siffror och bindestreck. Börja och sluta med en bokstav eller siffra.",
       "submit": "Skapa"
     },
+    "detail": {
+      "holders": "Direkt hos {{count}}",
+      "loadingHolders": "Laddar innehavare...",
+      "noHolders": "Ingen har den här rollen direkt.",
+      "add": "Ge rollen till en användare",
+      "addDescription": "Användaren har {{role}} direkt efter detta.",
+      "remove": "Ta bort rollen",
+      "grantedBy": "Grupper som ger rollen",
+      "throughGroups": "Medlemmar i dessa grupper har också rollen. De visas inte ovan."
+    },
     "manage": {
       "namePermanent": "En roll kan inte byta namn. Ta bort den och skapa en ny.",
       "managedKept": "En integration äger den här rollen, så plattformen behåller den.",
@@ -546,8 +556,19 @@
       "created": "Rollen {{role}} skapades",
       "createError": "Kunde inte skapa rollen: {{error}}",
       "deleted": "Rollen {{role}} togs bort",
-      "deleteError": "Kunde inte ta bort rollen: {{error}}"
+      "deleteError": "Kunde inte ta bort rollen: {{error}}",
+      "given": "Rollen gavs",
+      "giveError": "Kunde inte ge rollen: {{error}}",
+      "taken": "Rollen togs bort",
+      "takeError": "Kunde inte ta bort rollen: {{error}}",
+      "cannotTakeOwn": "Du kan inte ta bort superadmin från dig själv",
+      "cannotTakeLast": "Minst en administratör måste finnas kvar"
     }
+  },
+  "pickers": {
+    "filterUsers": "Filtrera användare",
+    "loading": "Laddar...",
+    "noUsers": "Inga användare att välja."
   },
   "mtlsInstall": {
     "title": "Ladda ner och installera din nyckel",

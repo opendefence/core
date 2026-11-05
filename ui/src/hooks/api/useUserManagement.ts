@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { SUPERADMIN_ROLE, useRoleId } from "@/api/roles";
 import {
   isAdmin,
+  isLastAdmin,
+  isSelf,
   useGiveUserRole,
   useRevokeUser,
   useTakeUserRole,
@@ -90,7 +92,7 @@ export function useUserManagement({
   const administrators = users?.filter(isAdmin) || [];
   const fighters = users?.filter((user) => !isAdmin(user)) || [];
 
-  const isCurrentUser = (user: User) => user.callsign === currentCallsign;
+  const isCurrentUser = (user: User) => isSelf(user, currentCallsign);
 
   const hasAdminSelected = administrators.some((admin) =>
     selectedUsers.includes(admin.id),
@@ -140,7 +142,7 @@ export function useUserManagement({
       return;
     }
 
-    if (isAdmin(selectedUser) && administrators.length <= 1) {
+    if (isLastAdmin(administrators, selectedUser)) {
       toast.error(t("manageUsers.messages.cannotDeleteLastAdmin"));
       return;
     }

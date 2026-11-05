@@ -4,6 +4,9 @@ import type { components } from "./schema";
 
 export type Role = components["schemas"]["RoleResponse"];
 
+/** A user as the role endpoints name them. */
+export type Member = components["schemas"]["UserSummary"];
+
 /** Should match naming.SUPERADMIN_ROLE. */
 export const SUPERADMIN_ROLE = "superadmin";
 
@@ -38,6 +41,21 @@ export function useRoles() {
 export function useRoleId(name: string): string | undefined {
   const { data } = useRoles();
   return data?.find((role) => role.name === name)?.id;
+}
+
+/** Users that hold the role directly. A group may grant it to more. */
+export function useRoleMembers(roleId: string | undefined) {
+  return useQuery({
+    queryKey: ["roles", roleId, "members"],
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/v3/roles/{role_id}/members", {
+        params: { path: { role_id: roleId ?? "" } },
+      });
+      if (error) throw new Error("Failed to load the holders of the role");
+      return data;
+    },
+    enabled: roleId !== undefined,
+  });
 }
 
 interface NewRole {
