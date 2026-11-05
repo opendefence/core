@@ -1,9 +1,5 @@
-import {
-  useMutation,
-  useQuery,
-  type UseMutationOptions,
-} from "@tanstack/react-query";
-import { api } from "./client";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { api, reason, type Options } from "./client";
 import { SUPERADMIN_ROLE } from "./roles";
 import type { components } from "./schema";
 
@@ -13,17 +9,6 @@ export type UserState = components["schemas"]["UserState"];
 /** Whether the user holds the superadmin role, however they came by it. */
 export function isAdmin(user: User): boolean {
   return user.effectiveRoles.some((role) => role.name === SUPERADMIN_ROLE);
-}
-
-type Options<TData, TVars> = Omit<
-  UseMutationOptions<TData, Error, TVars>,
-  "mutationFn"
->;
-
-/** The server's own reason, when it sent a plain one. */
-function reason(error: unknown, fallback: string): string {
-  const detail = (error as { detail?: unknown } | undefined)?.detail;
-  return typeof detail === "string" ? detail : fallback;
 }
 
 /** Users in one state, or all of them. Given an interval, keeps the list fresh. */

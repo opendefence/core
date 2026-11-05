@@ -77,7 +77,12 @@ function RootLayout() {
 
   useEffect(() => {
     if (!userTypeLoading && isValidUser) {
-      const adminPaths = ["/approve-users", "/manage-users", "/add-users"];
+      const adminPaths = [
+        "/approve-users",
+        "/manage-users",
+        "/manage-roles",
+        "/add-users",
+      ];
       const isAdminPath = adminPaths.some((path) =>
         location.pathname.startsWith(path),
       );
