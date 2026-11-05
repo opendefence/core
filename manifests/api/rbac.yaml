@@ -14,13 +14,22 @@ metadata:
 rules:
   - apiGroups: [platform.opendefence.fi]
     resources: [invites]
-    verbs: [list]
+    verbs: [get, list, create, update, delete]
   - apiGroups: [platform.opendefence.fi]
     resources: [invites/status]
     verbs: [update]
   - apiGroups: [platform.opendefence.fi]
     resources: [users]
-    verbs: [get, create, patch]
+    verbs: [get, list, create, update, patch]
+  - apiGroups: [platform.opendefence.fi]
+    resources: [roles]
+    verbs: [list, create, delete]
+  - apiGroups: [platform.opendefence.fi]
+    resources: [groups]
+    verbs: [list, create, update, delete]
+  - apiGroups: [platform.opendefence.fi]
+    resources: [integrations]
+    verbs: [list]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

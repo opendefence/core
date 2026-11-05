@@ -11,7 +11,7 @@ import yaml
 from opendefence_core.k8s_operator.render import CRDS_PATH, IMAGE, OPERATOR_PATH, render
 from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, PUBLIC_CERT_NAMESPACE, SYSTEM_NAMESPACE
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _documents(path: Path) -> list[dict[str, Any]]:
@@ -53,6 +53,7 @@ def test_crds() -> None:
     }
     schema = crds["users.platform.opendefence.fi"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]
     assert "x-kubernetes-validations" not in schema
+    assert "callsign" in schema["properties"]["spec"]["properties"]
 
 
 def test_operator_deployment_is_hardened() -> None:
@@ -128,15 +129,25 @@ def test_operator_rbac() -> None:
 
 
 def test_webhooks_have_ca_injected() -> None:
-    """cert-manager injects the webhook CA; Group writes and User deletes are validated."""
+    """cert-manager injects the webhook CA; Group writes, User callsigns and deletes are validated."""
     webhook = _one(_kustomized(), "ValidatingWebhookConfiguration")
     annotations = webhook["metadata"]["annotations"]
     assert annotations["cert-manager.io/inject-ca-from"] == f"{SYSTEM_NAMESPACE}/{OPERATOR_TLS_SECRET}"
     assert all("caBundle" not in hook["clientConfig"] for hook in webhook["webhooks"])
-    policies = {hook["rules"][0]["resources"][0]: hook["rules"][0] for hook in webhook["webhooks"]}
-    assert set(policies) == {"groups", "users"}
-    assert set(policies["groups"]["operations"]) == {"CREATE", "UPDATE", "DELETE"}
-    assert policies["users"]["operations"] == ["DELETE"]
+    policies = {
+        (hook["rules"][0]["resources"][0], frozenset(hook["rules"][0]["operations"])) for hook in webhook["webhooks"]
+    }
+    assert policies == {
+        ("groups", frozenset({"CREATE", "UPDATE", "DELETE"})),
+        ("users", frozenset({"CREATE", "UPDATE"})),
+        ("users", frozenset({"DELETE"})),
+    }
+
+
+def test_api_runs_the_operator_image() -> None:
+    """The API Deployment pins the same image as the operator; bump-my-version updates both."""
+    deployment = (ROOT / "manifests" / "api" / "deployment.yaml").read_text()
+    assert re.findall(r"image: (\S+)", deployment) == [IMAGE]
 
 
 def test_domain_value_fits_the_certificate_common_name() -> None:

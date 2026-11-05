@@ -54,6 +54,11 @@ class SigningKey:
 _signing_key = SigningKey()
 
 
+def load_key() -> None:
+    """Load the signing key now, raising if it is missing or unusable."""
+    _signing_key.current()
+
+
 def _load(path: Path) -> EllipticCurvePrivateKey:
     key = load_pem_private_key(path.read_bytes(), password=None)
     if not isinstance(key, EllipticCurvePrivateKey):
