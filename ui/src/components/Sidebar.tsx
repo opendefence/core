@@ -56,6 +56,7 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
   const isUserManagementPage = [
     "/approve-users",
     "/manage-users",
+    "/manage-roles",
     "/add-users",
   ].includes(currentPath);
 
@@ -262,6 +263,18 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
                   )}
                 >
                   {t("common.approveUsers")}
+                </Link>
+                <Link
+                  data-testid="sidebar-nav-manage-roles"
+                  to="/manage-roles"
+                  onClick={() => isMobile && onClose()}
+                  className={cn(
+                    "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
+                    location.pathname === "/manage-roles" &&
+                      "bg-sidebar-accent text-sidebar-foreground font-medium",
+                  )}
+                >
+                  {t("common.manageRoles")}
                 </Link>
               </div>
             )}
