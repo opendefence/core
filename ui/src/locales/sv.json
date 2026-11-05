@@ -591,7 +591,16 @@
       "changed": "Gruppen ändrades",
       "changeError": "Kunde inte ändra gruppen: {{error}}",
       "deleted": "Gruppen togs bort",
-      "deleteError": "Kunde inte ta bort gruppen: {{error}}"
+      "deleteError": "Kunde inte ta bort gruppen: {{error}}",
+      "memberAdded": "Medlemmen lades till",
+      "memberRemoved": "Medlemmen togs bort",
+      "memberError": "Kunde inte ändra medlemmarna: {{error}}",
+      "roleGranted": "Rollen gavs",
+      "roleRevoked": "Rollen ges inte längre",
+      "roleError": "Kunde inte ändra rollerna: {{error}}",
+      "managerAdded": "Den ansvariga lades till",
+      "managerRemoved": "Den ansvariga togs bort",
+      "managerError": "Kunde inte ändra de ansvariga: {{error}}"
     },
     "cancel": "Avbryt",
     "creating": "Skapar...",
@@ -625,6 +634,26 @@
       "members": "dess medlemmar",
       "managers": "dess ansvariga",
       "roles": "rollerna den ger"
+    },
+    "members": {
+      "title": "Medlemmar ({{count}})",
+      "none": "Inga medlemmar ännu.",
+      "add": "Lägg till medlem",
+      "addDescription": "Användaren blir medlem i {{group}} och i varje grupp ovanför.",
+      "remove": "Ta bort medlemmen",
+      "showEffective": "Visa medlemmar från grupper under",
+      "fromGroup": "från {{group}}"
+    },
+    "roles": {
+      "add": "Ge en roll",
+      "addDescription": "{{group}} ger rollen till alla sina medlemmar.",
+      "remove": "Sluta ge rollen"
+    },
+    "managers": {
+      "add": "Lägg till ansvarig",
+      "addDescription": "Användaren blir ansvarig för {{group}}. Det gör dem inte till medlem.",
+      "remove": "Ta bort den ansvariga",
+      "noAuthority": "En ansvarig registreras bara. Ingen endpoint kontrollerar det ännu."
     }
   },
   "pickers": {
@@ -632,7 +661,9 @@
     "loading": "Laddar...",
     "noUsers": "Inga användare att välja.",
     "filterGroups": "Filtrera grupper",
-    "noGroups": "Inga grupper att välja."
+    "noGroups": "Inga grupper att välja.",
+    "filterRoles": "Filtrera roller",
+    "noRoles": "Inga roller att välja."
   },
   "mtlsInstall": {
     "title": "Ladda ner och installera din nyckel",

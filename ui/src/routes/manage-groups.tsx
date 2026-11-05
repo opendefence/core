@@ -8,10 +8,15 @@ import { Forbidden } from "@/components/Forbidden";
 import {
   CreateGroupDialog,
   GroupDetail,
+  GroupManagers,
+  GroupMembers,
+  GroupRoles,
   GroupTree,
   RenameGroupDialog,
 } from "@/components/manage-groups";
 import { GroupPicker } from "@/components/pickers/GroupPicker";
+import { RolePicker } from "@/components/pickers/RolePicker";
+import { UserPicker } from "@/components/pickers/UserPicker";
 import { Button } from "@/components/ui/button";
 import { useGroupManagement } from "@/hooks/useGroupManagement";
 
@@ -47,6 +52,24 @@ function ManageGroupsPage() {
     moveGroup,
     askDelete,
     deleteGroup,
+    members,
+    fromBelow,
+    showEffective,
+    setShowEffective,
+    memberPickerOpen,
+    setMemberPickerOpen,
+    rolePickerOpen,
+    setRolePickerOpen,
+    managerPickerOpen,
+    setManagerPickerOpen,
+    rolePickerExclude,
+    isLinking,
+    addMember,
+    removeMember,
+    grantRole,
+    revokeRole,
+    addManager,
+    removeManager,
   } = useGroupManagement();
 
   if (!userTypeLoading && !allowed) {
@@ -99,7 +122,7 @@ function ManageGroupsPage() {
             onSelect={selectGroup}
           />
         </div>
-        <div className="p-5 bg-card border-2 border-border rounded-xl">
+        <div className="p-5 bg-card border-2 border-border rounded-xl space-y-5">
           <GroupDetail
             group={selectedGroup}
             parent={parent}
@@ -109,6 +132,31 @@ function ManageGroupsPage() {
             onDelete={askDelete}
             isBusy={isChanging || isDeleting}
           />
+          {selectedGroup && (
+            <>
+              <GroupMembers
+                members={members}
+                fromBelow={fromBelow}
+                showEffective={showEffective}
+                onToggleEffective={setShowEffective}
+                onAdd={() => setMemberPickerOpen(true)}
+                onRemove={removeMember}
+                isChanging={isLinking}
+              />
+              <GroupRoles
+                roles={selectedGroup.roles}
+                onAdd={() => setRolePickerOpen(true)}
+                onRemove={revokeRole}
+                isChanging={isLinking}
+              />
+              <GroupManagers
+                managers={selectedGroup.managers}
+                onAdd={() => setManagerPickerOpen(true)}
+                onRemove={removeManager}
+                isChanging={isLinking}
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -144,6 +192,39 @@ function ManageGroupsPage() {
         allowNone
         noneLabel={t("manageGroups.move.toRoot")}
         onPick={moveGroup}
+      />
+
+      <UserPicker
+        open={memberPickerOpen}
+        onOpenChange={setMemberPickerOpen}
+        title={t("manageGroups.members.add")}
+        description={t("manageGroups.members.addDescription", {
+          group: selectedGroup?.displayName,
+        })}
+        exclude={members.map((member) => member.id)}
+        onPick={addMember}
+      />
+
+      <RolePicker
+        open={rolePickerOpen}
+        onOpenChange={setRolePickerOpen}
+        title={t("manageGroups.roles.add")}
+        description={t("manageGroups.roles.addDescription", {
+          group: selectedGroup?.displayName,
+        })}
+        exclude={rolePickerExclude}
+        onPick={grantRole}
+      />
+
+      <UserPicker
+        open={managerPickerOpen}
+        onOpenChange={setManagerPickerOpen}
+        title={t("manageGroups.managers.add")}
+        description={t("manageGroups.managers.addDescription", {
+          group: selectedGroup?.displayName,
+        })}
+        exclude={selectedGroup?.managers.map((manager) => manager.id) ?? []}
+        onPick={addManager}
       />
 
       <SimpleConfirmationModal
