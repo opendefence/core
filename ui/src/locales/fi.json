@@ -584,13 +584,54 @@
       "noManagers": "Ei vastuuhenkilöitä."
     },
     "messages": {
-      "noCallsign": "Kutsutunnusta ei löytynyt. Kirjaudu sisään."
+      "noCallsign": "Kutsutunnusta ei löytynyt. Kirjaudu sisään.",
+      "created": "Ryhmä {{group}} luotu",
+      "createError": "Ryhmän luonti epäonnistui: {{error}}",
+      "changed": "Ryhmä muutettu",
+      "changeError": "Ryhmän muutos epäonnistui: {{error}}",
+      "deleted": "Ryhmä poistettu",
+      "deleteError": "Ryhmän poisto epäonnistui: {{error}}"
+    },
+    "cancel": "Peruuta",
+    "creating": "Luodaan...",
+    "create": {
+      "title": "Luo ryhmä",
+      "description": "Nimi on pysyvä. Vain näyttönimeä voi muuttaa myöhemmin.",
+      "displayNameLabel": "Näyttönimi",
+      "nameLabel": "Nimi",
+      "nameHelp": "Pieniä kirjaimia, numeroita ja väliviivoja. Enintään 63 merkkiä.",
+      "nameInvalid": "Käytä pieniä kirjaimia, numeroita ja väliviivoja. Aloita ja lopeta kirjaimella tai numerolla.",
+      "atRoot": "Luo ylimmän tason ryhmäksi",
+      "under": "Uusi ryhmä tulee ryhmän {{group}} alle.",
+      "topLevel": "Uudella ryhmällä ei ole yläryhmää.",
+      "submit": "Luo"
+    },
+    "rename": {
+      "title": "Nimeä uudelleen",
+      "description": "Nimi {{name}} säilyy ennallaan. Vain näyttönimi muuttuu.",
+      "submit": "Nimeä uudelleen"
+    },
+    "move": {
+      "title": "Siirrä",
+      "description": "Valitse ryhmä, joka sisältää ryhmän {{group}}.",
+      "toRoot": "Ei yläryhmää. Tee siitä ylimmän tason ryhmä."
+    },
+    "delete": {
+      "title": "Poista",
+      "description": "Ryhmä {{group}} poistetaan. Tätä ei voi perua.",
+      "blocked": "Poista ensin: {{reasons}}",
+      "children": "sen alaryhmät",
+      "members": "sen jäsenet",
+      "managers": "sen vastuuhenkilöt",
+      "roles": "sen antamat roolit"
     }
   },
   "pickers": {
     "filterUsers": "Suodata käyttäjiä",
     "loading": "Ladataan...",
-    "noUsers": "Ei valittavia käyttäjiä."
+    "noUsers": "Ei valittavia käyttäjiä.",
+    "filterGroups": "Suodata ryhmiä",
+    "noGroups": "Ei valittavia ryhmiä."
   },
   "mtlsInstall": {
     "title": "Lataa ja asenna avain",

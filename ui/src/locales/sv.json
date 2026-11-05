@@ -584,13 +584,54 @@
       "noManagers": "Inga ansvariga."
     },
     "messages": {
-      "noCallsign": "Ingen anropssignal hittades. Logga in."
+      "noCallsign": "Ingen anropssignal hittades. Logga in.",
+      "created": "Gruppen {{group}} skapades",
+      "createError": "Kunde inte skapa gruppen: {{error}}",
+      "changed": "Gruppen ändrades",
+      "changeError": "Kunde inte ändra gruppen: {{error}}",
+      "deleted": "Gruppen togs bort",
+      "deleteError": "Kunde inte ta bort gruppen: {{error}}"
+    },
+    "cancel": "Avbryt",
+    "creating": "Skapar...",
+    "create": {
+      "title": "Skapa grupp",
+      "description": "Namnet är permanent. Bara visningsnamnet kan ändras senare.",
+      "displayNameLabel": "Visningsnamn",
+      "nameLabel": "Namn",
+      "nameHelp": "Små bokstäver, siffror och bindestreck. Högst 63 tecken.",
+      "nameInvalid": "Använd små bokstäver, siffror och bindestreck. Börja och sluta med en bokstav eller siffra.",
+      "atRoot": "Skapa som grupp på översta nivån",
+      "under": "Den nya gruppen hamnar under {{group}}.",
+      "topLevel": "Den nya gruppen har ingen överordnad grupp.",
+      "submit": "Skapa"
+    },
+    "rename": {
+      "title": "Byt visningsnamn",
+      "description": "Namnet {{name}} är oförändrat. Bara visningsnamnet ändras.",
+      "submit": "Spara"
+    },
+    "move": {
+      "title": "Flytta",
+      "description": "Välj gruppen som håller {{group}}.",
+      "toRoot": "Ingen överordnad grupp. Gör den till en grupp på översta nivån."
+    },
+    "delete": {
+      "title": "Ta bort",
+      "description": "{{group}} tas bort. Detta kan inte ångras.",
+      "blocked": "Rensa först: {{reasons}}",
+      "children": "grupperna under den",
+      "members": "dess medlemmar",
+      "managers": "dess ansvariga",
+      "roles": "rollerna den ger"
     }
   },
   "pickers": {
     "filterUsers": "Filtrera användare",
     "loading": "Laddar...",
-    "noUsers": "Inga användare att välja."
+    "noUsers": "Inga användare att välja.",
+    "filterGroups": "Filtrera grupper",
+    "noGroups": "Inga grupper att välja."
   },
   "mtlsInstall": {
     "title": "Ladda ner och installera din nyckel",
