@@ -294,6 +294,13 @@
       "activateError": "Failed to activate invite code: {{error}}",
       "forbiddenError": "403 Forbidden: Admin access required",
       "noCallsignError": "No callsign found. Please log in."
+    },
+    "assignments": {
+      "groups": "Groups",
+      "noGroups": "No groups yet.",
+      "roles": "Roles",
+      "noRoles": "No roles yet.",
+      "gives": "Gives: {{names}}"
     }
   },
   "approveUser": {

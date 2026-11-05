@@ -107,11 +107,13 @@ function AddUsersPage() {
         ))}
       </div>
 
-      <CreateInviteDialog
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
-        onConfirm={handleCreateInvite}
-      />
+      {createModalOpen && (
+        <CreateInviteDialog
+          open
+          onOpenChange={setCreateModalOpen}
+          onConfirm={handleCreateInvite}
+        />
+      )}
 
       <WalkthroughDialog
         open={walkthroughOpen}
