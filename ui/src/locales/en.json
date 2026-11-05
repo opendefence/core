@@ -585,13 +585,54 @@
       "noManagers": "No managers."
     },
     "messages": {
-      "noCallsign": "No callsign found. Please log in."
+      "noCallsign": "No callsign found. Please log in.",
+      "created": "Group {{group}} created",
+      "createError": "Failed to create the group: {{error}}",
+      "changed": "Group changed",
+      "changeError": "Failed to change the group: {{error}}",
+      "deleted": "Group deleted",
+      "deleteError": "Failed to delete the group: {{error}}"
+    },
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "create": {
+      "title": "Create Group",
+      "description": "The name is permanent. Only the display name can change later.",
+      "displayNameLabel": "Display name",
+      "nameLabel": "Name",
+      "nameHelp": "Lower-case letters, numbers and hyphens. 63 characters at most.",
+      "nameInvalid": "Use lower-case letters, numbers and hyphens. Start and end with a letter or a number.",
+      "atRoot": "Create as a top-level group",
+      "under": "The new group goes under {{group}}.",
+      "topLevel": "The new group has no parent.",
+      "submit": "Create"
+    },
+    "rename": {
+      "title": "Rename",
+      "description": "The name {{name}} stays as it is. Only the display name changes.",
+      "submit": "Rename"
+    },
+    "move": {
+      "title": "Move",
+      "description": "Choose the group that holds {{group}}.",
+      "toRoot": "No parent. Make it a top-level group."
+    },
+    "delete": {
+      "title": "Delete",
+      "description": "{{group}} is deleted. This cannot be undone.",
+      "blocked": "Clear this first: {{reasons}}",
+      "children": "the groups below it",
+      "members": "its members",
+      "managers": "its managers",
+      "roles": "the roles it grants"
     }
   },
   "pickers": {
     "filterUsers": "Filter users",
     "loading": "Loading...",
-    "noUsers": "No users to choose."
+    "noUsers": "No users to choose.",
+    "filterGroups": "Filter groups",
+    "noGroups": "No groups to choose."
   },
   "mtlsInstall": {
     "title": "Download & Install Your Key",

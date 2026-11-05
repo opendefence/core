@@ -10,12 +10,6 @@ export type Member = components["schemas"]["UserSummary"];
 /** Should match naming.SUPERADMIN_ROLE. */
 export const SUPERADMIN_ROLE = "superadmin";
 
-/** Names the platform accepts, from models.v1alpha1.integration.ROLE_NAME_PATTERN. */
-export const NAME_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
-
-/** Longest name a Kubernetes resource may carry. */
-export const NAME_MAX = 63;
-
 /**
  * Whether the platform keeps the role. An integration owns a managed role, and
  * deleting superadmin would leave nobody able to administer the deployment.

@@ -1,14 +1,27 @@
 import { useTranslation } from "react-i18next";
 import type { Group } from "@/api/groups";
+import { Button } from "@/components/ui/button";
 import type { Inherited } from "@/hooks/useGroupManagement";
 
 interface GroupDetailProps {
   group?: Group;
   parent?: Group;
   inherited: Inherited[];
+  onRename: () => void;
+  onMove: () => void;
+  onDelete: () => void;
+  isBusy: boolean;
 }
 
-export function GroupDetail({ group, parent, inherited }: GroupDetailProps) {
+export function GroupDetail({
+  group,
+  parent,
+  inherited,
+  onRename,
+  onMove,
+  onDelete,
+  isBusy,
+}: GroupDetailProps) {
   const { t } = useTranslation();
 
   if (!group) {
@@ -31,6 +44,36 @@ export function GroupDetail({ group, parent, inherited }: GroupDetailProps) {
       <div>
         <h2 className="text-xl font-bold">{group.displayName}</h2>
         <p className="font-mono text-xs text-muted-foreground">{group.name}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRename}
+          disabled={isBusy}
+          data-testid="group-rename-button"
+        >
+          {t("manageGroups.rename.title")}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onMove}
+          disabled={isBusy}
+          data-testid="group-move-button"
+        >
+          {t("manageGroups.move.title")}
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={onDelete}
+          disabled={isBusy}
+          data-testid="group-delete-button"
+        >
+          {t("manageGroups.delete.title")}
+        </Button>
       </div>
 
       <Section title={t("manageGroups.detail.parent")}>
