@@ -294,6 +294,13 @@
       "activateError": "Koodin käyttöönotto epäonnistui: {{error}}",
       "forbiddenError": "403 Kielletty: Ylläpito-oikeudet vaaditaan",
       "noCallsignError": "Kutsutunnusta ei löytynyt. Kirjaudu sisään."
+    },
+    "assignments": {
+      "groups": "Ryhmät",
+      "noGroups": "Ei vielä ryhmiä.",
+      "roles": "Roolit",
+      "noRoles": "Ei vielä rooleja.",
+      "gives": "Antaa: {{names}}"
     }
   },
   "approveUser": {
