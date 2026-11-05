@@ -536,6 +536,16 @@
       "nameInvalid": "Käytä pieniä kirjaimia, numeroita ja väliviivoja. Aloita ja lopeta kirjaimella tai numerolla.",
       "submit": "Luo"
     },
+    "detail": {
+      "holders": "Suoraan käyttäjillä: {{count}}",
+      "loadingHolders": "Ladataan haltijoita...",
+      "noHolders": "Kenelläkään ei ole tätä roolia suoraan.",
+      "add": "Anna rooli käyttäjälle",
+      "addDescription": "Käyttäjällä on tämän jälkeen rooli {{role}} suoraan.",
+      "remove": "Ota rooli pois",
+      "grantedBy": "Ryhmät, jotka antavat roolin",
+      "throughGroups": "Myös näiden ryhmien jäsenillä on rooli. He eivät näy yllä olevassa listassa."
+    },
     "manage": {
       "namePermanent": "Roolia ei voi nimetä uudelleen. Poista se ja luo uusi.",
       "managedKept": "Integraatio omistaa tämän roolin, joten alusta säilyttää sen.",
@@ -547,8 +557,19 @@
       "created": "Rooli {{role}} luotu",
       "createError": "Roolin luonti epäonnistui: {{error}}",
       "deleted": "Rooli {{role}} poistettu",
-      "deleteError": "Roolin poisto epäonnistui: {{error}}"
+      "deleteError": "Roolin poisto epäonnistui: {{error}}",
+      "given": "Rooli annettu",
+      "giveError": "Roolin antaminen epäonnistui: {{error}}",
+      "taken": "Rooli otettu pois",
+      "takeError": "Roolin poistaminen epäonnistui: {{error}}",
+      "cannotTakeOwn": "Et voi ottaa superadmin-roolia itseltäsi",
+      "cannotTakeLast": "Vähintään yhden ylläpitäjän on säilyttävä"
     }
+  },
+  "pickers": {
+    "filterUsers": "Suodata käyttäjiä",
+    "loading": "Ladataan...",
+    "noUsers": "Ei valittavia käyttäjiä."
   },
   "mtlsInstall": {
     "title": "Lataa ja asenna avain",
