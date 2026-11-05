@@ -4,7 +4,7 @@ import {
   type UseMutationOptions,
 } from "@tanstack/react-query";
 import { api } from "./client";
-import { SUPERADMIN_ROLE, useRoleId } from "./roles";
+import { SUPERADMIN_ROLE } from "./roles";
 import type { components } from "./schema";
 
 export type User = components["schemas"]["UserResponse"];
@@ -64,17 +64,21 @@ export function useApproveUser(options?: Options<User, Approval>) {
   });
 }
 
-/** The operator defines the superadmin role, so it is missing only while the roles load. */
+interface RoleChange {
+  userId: string;
+  /** Unknown only while the roles load; the mutation then fails with a reason. */
+  roleId: string | undefined;
+}
+
 function roleOrThrow(roleId: string | undefined): string {
-  if (!roleId) throw new Error("The superadmin role is unknown");
+  if (!roleId) throw new Error("The role is unknown");
   return roleId;
 }
 
-/** Make the user an administrator. */
-export function usePromoteUser(options?: Options<User, string>) {
-  const roleId = useRoleId(SUPERADMIN_ROLE);
+/** Give the role to the user directly. A group may already grant it. */
+export function useGiveUserRole(options?: Options<User, RoleChange>) {
   return useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ userId, roleId }: RoleChange) => {
       const { data, error } = await api.PUT(
         "/api/v3/users/{user_id}/roles/{role_id}",
         {
@@ -83,18 +87,17 @@ export function usePromoteUser(options?: Options<User, string>) {
           },
         },
       );
-      if (error) throw new Error(reason(error, "Failed to promote the user"));
+      if (error) throw new Error(reason(error, "Failed to give the role"));
       return data;
     },
     ...options,
   });
 }
 
-/** Take the administrator role back. A group may still grant it. */
-export function useDemoteUser(options?: Options<void, string>) {
-  const roleId = useRoleId(SUPERADMIN_ROLE);
+/** Take the direct role away. A group may still grant it. */
+export function useTakeUserRole(options?: Options<void, RoleChange>) {
   return useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ userId, roleId }: RoleChange) => {
       const { error } = await api.DELETE(
         "/api/v3/users/{user_id}/roles/{role_id}",
         {
@@ -103,7 +106,7 @@ export function useDemoteUser(options?: Options<void, string>) {
           },
         },
       );
-      if (error) throw new Error(reason(error, "Failed to demote the user"));
+      if (error) throw new Error(reason(error, "Failed to take the role away"));
     },
     ...options,
   });
