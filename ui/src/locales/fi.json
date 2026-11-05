@@ -590,7 +590,16 @@
       "changed": "Ryhmä muutettu",
       "changeError": "Ryhmän muutos epäonnistui: {{error}}",
       "deleted": "Ryhmä poistettu",
-      "deleteError": "Ryhmän poisto epäonnistui: {{error}}"
+      "deleteError": "Ryhmän poisto epäonnistui: {{error}}",
+      "memberAdded": "Jäsen lisätty",
+      "memberRemoved": "Jäsen poistettu",
+      "memberError": "Jäsenten muutos epäonnistui: {{error}}",
+      "roleGranted": "Rooli annettu",
+      "roleRevoked": "Roolia ei enää anneta",
+      "roleError": "Roolien muutos epäonnistui: {{error}}",
+      "managerAdded": "Vastuuhenkilö lisätty",
+      "managerRemoved": "Vastuuhenkilö poistettu",
+      "managerError": "Vastuuhenkilöiden muutos epäonnistui: {{error}}"
     },
     "cancel": "Peruuta",
     "creating": "Luodaan...",
@@ -624,6 +633,26 @@
       "members": "sen jäsenet",
       "managers": "sen vastuuhenkilöt",
       "roles": "sen antamat roolit"
+    },
+    "members": {
+      "title": "Jäsenet ({{count}})",
+      "none": "Ei vielä jäseniä.",
+      "add": "Lisää jäsen",
+      "addDescription": "Käyttäjästä tulee ryhmän {{group}} ja jokaisen yläryhmän jäsen.",
+      "remove": "Poista jäsen",
+      "showEffective": "Näytä alaryhmien jäsenet",
+      "fromGroup": "ryhmästä {{group}}"
+    },
+    "roles": {
+      "add": "Anna rooli",
+      "addDescription": "Ryhmä {{group}} antaa roolin kaikille jäsenilleen.",
+      "remove": "Lopeta roolin antaminen"
+    },
+    "managers": {
+      "add": "Lisää vastuuhenkilö",
+      "addDescription": "Käyttäjä nimetään ryhmän {{group}} vastuuhenkilöksi. Tämä ei tee hänestä jäsentä.",
+      "remove": "Poista vastuuhenkilö",
+      "noAuthority": "Vastuuhenkilö vain merkitään. Mikään rajapinta ei vielä tarkista sitä."
     }
   },
   "pickers": {
@@ -631,7 +660,9 @@
     "loading": "Ladataan...",
     "noUsers": "Ei valittavia käyttäjiä.",
     "filterGroups": "Suodata ryhmiä",
-    "noGroups": "Ei valittavia ryhmiä."
+    "noGroups": "Ei valittavia ryhmiä.",
+    "filterRoles": "Suodata rooleja",
+    "noRoles": "Ei valittavia rooleja."
   },
   "mtlsInstall": {
     "title": "Lataa ja asenna avain",

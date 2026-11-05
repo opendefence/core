@@ -82,25 +82,6 @@ export function GroupDetail({
         </p>
       </Section>
 
-      <Section title={t("manageGroups.detail.roles")}>
-        {group.roles.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("manageGroups.detail.noRoles")}
-          </p>
-        ) : (
-          <ul className="text-sm space-y-1" data-testid="group-roles">
-            {group.roles.map((role) => (
-              <li key={role.id} data-role-name={role.name}>
-                {role.displayName}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="text-xs text-muted-foreground">
-          {t("manageGroups.detail.rolesReach")}
-        </p>
-      </Section>
-
       {inherited.length > 0 && (
         <Section title={t("manageGroups.detail.inherited")}>
           <ul className="text-sm space-y-1" data-testid="group-inherited-roles">
@@ -118,22 +99,6 @@ export function GroupDetail({
           </ul>
         </Section>
       )}
-
-      <Section title={t("manageGroups.detail.managers")}>
-        {group.managers.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("manageGroups.detail.noManagers")}
-          </p>
-        ) : (
-          <ul className="text-sm space-y-1" data-testid="group-managers">
-            {group.managers.map((manager) => (
-              <li key={manager.id} data-callsign={manager.callsign}>
-                {manager.callsign}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
     </div>
   );
 }
