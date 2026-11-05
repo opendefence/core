@@ -5,13 +5,21 @@ import {
   ancestorsOf,
   descendantsOf,
   toTree,
+  useAddGroupManager,
+  useAddGroupMember,
   useCreateGroup,
   useDeleteGroup,
+  useGrantGroupRole,
   useGroupMembers,
   useGroups,
+  useMembersOf,
+  useRemoveGroupManager,
+  useRemoveGroupMember,
+  useRevokeGroupRole,
   useUpdateGroup,
   type Group,
 } from "@/api/groups";
+import type { FromBelow } from "@/components/manage-groups";
 import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
 
 /** Roles an ancestor grants to every member of the selected group. */
@@ -33,15 +41,30 @@ export function useGroupManagement() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [memberPickerOpen, setMemberPickerOpen] = useState(false);
+  const [rolePickerOpen, setRolePickerOpen] = useState(false);
+  const [managerPickerOpen, setManagerPickerOpen] = useState(false);
+  const [showEffective, setShowEffective] = useState(false);
 
   const { data: groups, isLoading, refetch } = useGroups();
   const selectedGroup = groups?.find((group) => group.id === selectedId);
-  const { data: members } = useGroupMembers(selectedGroup?.id);
+  const { data: members, refetch: refetchMembers } = useGroupMembers(
+    selectedGroup?.id,
+  );
 
   const ancestors =
     selectedGroup && groups ? ancestorsOf(selectedGroup, groups) : [];
   const descendants =
     selectedGroup && groups ? descendantsOf(selectedGroup, groups) : [];
+
+  // One request per group below, so it waits until the caller asks for them.
+  const below = useMembersOf(
+    descendants.map((group) => group.id),
+    showEffective && selectedGroup !== undefined,
+  );
+  const fromBelow: FromBelow[] = descendants.flatMap((from, index) =>
+    (below[index]?.data ?? []).map((member) => ({ member, from })),
+  );
 
   const failed = (key: string) => (error: Error) =>
     toast.error(t(key, { error: error.message }));
@@ -76,6 +99,40 @@ export function useGroupManagement() {
       refetch();
     },
     onError: failed("manageGroups.messages.deleteError"),
+  });
+
+  const changed = (key: string) => () => {
+    toast.success(t(key));
+    setMemberPickerOpen(false);
+    setRolePickerOpen(false);
+    setManagerPickerOpen(false);
+    refetch();
+    refetchMembers();
+  };
+
+  const addMember = useAddGroupMember({
+    onSuccess: changed("manageGroups.messages.memberAdded"),
+    onError: failed("manageGroups.messages.memberError"),
+  });
+  const removeMember = useRemoveGroupMember({
+    onSuccess: changed("manageGroups.messages.memberRemoved"),
+    onError: failed("manageGroups.messages.memberError"),
+  });
+  const grantRole = useGrantGroupRole({
+    onSuccess: changed("manageGroups.messages.roleGranted"),
+    onError: failed("manageGroups.messages.roleError"),
+  });
+  const revokeRole = useRevokeGroupRole({
+    onSuccess: changed("manageGroups.messages.roleRevoked"),
+    onError: failed("manageGroups.messages.roleError"),
+  });
+  const addManager = useAddGroupManager({
+    onSuccess: changed("manageGroups.messages.managerAdded"),
+    onError: failed("manageGroups.messages.managerError"),
+  });
+  const removeManager = useRemoveGroupManager({
+    onSuccess: changed("manageGroups.messages.managerRemoved"),
+    onError: failed("manageGroups.messages.managerError"),
   });
 
   /**
@@ -152,6 +209,55 @@ export function useGroupManagement() {
     deleteGroup: () => {
       if (!selectedGroup) return;
       remove.mutate(selectedGroup.id);
+    },
+
+    members: members ?? [],
+    fromBelow,
+    showEffective,
+    setShowEffective,
+
+    memberPickerOpen,
+    setMemberPickerOpen,
+    rolePickerOpen,
+    setRolePickerOpen,
+    managerPickerOpen,
+    setManagerPickerOpen,
+
+    rolePickerExclude: selectedGroup?.roles.map((role) => role.id) ?? [],
+
+    isLinking:
+      addMember.isPending ||
+      removeMember.isPending ||
+      grantRole.isPending ||
+      revokeRole.isPending ||
+      addManager.isPending ||
+      removeManager.isPending,
+
+    addMember: (userId: string) => {
+      if (!selectedGroup) return;
+      addMember.mutate({ groupId: selectedGroup.id, userId });
+    },
+    removeMember: (userId: string) => {
+      if (!selectedGroup) return;
+      removeMember.mutate({ groupId: selectedGroup.id, userId });
+    },
+
+    grantRole: (roleId: string) => {
+      if (!selectedGroup) return;
+      grantRole.mutate({ groupId: selectedGroup.id, roleId });
+    },
+    revokeRole: (roleId: string) => {
+      if (!selectedGroup) return;
+      revokeRole.mutate({ groupId: selectedGroup.id, roleId });
+    },
+
+    addManager: (userId: string) => {
+      if (!selectedGroup) return;
+      addManager.mutate({ groupId: selectedGroup.id, userId });
+    },
+    removeManager: (userId: string) => {
+      if (!selectedGroup) return;
+      removeManager.mutate({ groupId: selectedGroup.id, userId });
     },
   };
 }
