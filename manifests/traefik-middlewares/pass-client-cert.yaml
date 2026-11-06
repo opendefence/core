@@ -1,0 +1,10 @@
+# Sets X-Forwarded-Tls-Client-Cert to the verified client certificate chain.
+# Use it after strip-identity-headers, so a client cannot send its own value.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: pass-client-cert
+  namespace: traefik-system
+spec:
+  passTLSClientCert:
+    pem: true
