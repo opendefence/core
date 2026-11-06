@@ -1,0 +1,11 @@
+# Traefik reads clientAuth secrets from the TLSOption namespace, and base keeps the user CA there
+apiVersion: traefik.io/v1alpha1
+kind: TLSOption
+metadata:
+  name: core-mtls
+  namespace: cert-manager
+spec:
+  clientAuth:
+    secretNames:
+      - public-root-secret
+    clientAuthType: RequireAndVerifyClientCert

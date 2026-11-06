@@ -8,6 +8,7 @@ spec:
   secretName: core-tls # pragma: allowlist secret
   dnsNames:
     - {{ .Values.domain | quote }}
+    - {{ printf "app.%s" .Values.domain | quote }}
   privateKey:
     algorithm: ECDSA
     size: 256
