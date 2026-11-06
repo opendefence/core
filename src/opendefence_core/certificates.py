@@ -1,6 +1,7 @@
 """User certificate rules shared by the operator and the REST API."""
 
 import hashlib
+import json
 from datetime import datetime
 from uuid import UUID
 
@@ -9,7 +10,7 @@ from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
-from lib_opendefence_core.models.v1alpha1 import User
+from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, User
 from opendefence_core.config import get_core_config
 
 APPROVAL_ANNOTATION = "platform.opendefence.fi/certificate-approval"
@@ -65,3 +66,19 @@ def check_csr(pem: bytes, common_name: str, uri: str) -> x509.CertificateSigning
     if [extension.value for extension in extensions] != [wanted]:
         raise ValueError(f"Certificate request must contain only the subjectAltName URI {uri}")
     return csr
+
+
+def accepted_entry(user: User, serial: int, at: datetime) -> dict[str, str] | None:
+    """The user's accepted credential with this serial, if the user is not revoked and it is valid at `at`.
+
+    Keyed by serial so an OCSP responder, which never sees the certificate, can use it too.
+    """
+    if user.spec.revoked_at is not None or user.metadata is None:
+        return None
+    record = json.loads((user.metadata.annotations or {}).get(ACCEPTED_CREDENTIALS_ANNOTATION, '{"accepted":[]}'))
+    for entry in record["accepted"]:
+        if entry["serial"] == format(serial, "x") and datetime.fromisoformat(
+            entry["notBefore"]
+        ) <= at < datetime.fromisoformat(entry["notAfter"]):
+            return entry
+    return None

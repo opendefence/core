@@ -19,7 +19,13 @@ from cryptography.x509.oid import NameOID
 from pydantic import ValidationError
 
 from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, CERTIFICATE_READY_CONDITION, User
-from opendefence_core.certificates import APPROVAL_ANNOTATION, certificate_identity, check_csr, wants_certificate
+from opendefence_core.certificates import (
+    APPROVAL_ANNOTATION,
+    accepted_entry,
+    certificate_identity,
+    check_csr,
+    wants_certificate,
+)
 from opendefence_core.config import Config
 from opendefence_core.k8s_operator import config as operator_config
 from opendefence_core.k8s_operator.controllers._certificates import (
@@ -568,3 +574,38 @@ async def test_only_fresh_certificate_approval_can_replace(change: str) -> None:
     await _reconcile(ctx)
     assert ctx.ensured == []
     assert ctx.conditions[-1][2] == "FreshApprovalRequired"
+
+
+NOW = datetime(2026, 11, 5, 12, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("case", "accepted"),
+    [
+        ("accepted", True),
+        ("revoked", False),
+        ("other-serial", False),
+        ("empty", False),
+        ("no-annotation", False),
+        ("not-yet-valid", False),
+        ("at-not-after", False),
+    ],
+)
+def test_accepted_entry(case: str, accepted: bool) -> None:
+    """Only the published serial of an unrevoked user is accepted, inside notBefore <= now < notAfter."""
+    user = make_user(revoked_at=NOW if case == "revoked" else None)
+    assert user.metadata is not None
+    entry = {
+        "fingerprintSha256": "ab" * 32,
+        "serial": "1234",
+        "issuerId": "sha256:" + "cd" * 32,
+        "notBefore": (NOW + timedelta(seconds=1) if case == "not-yet-valid" else NOW - timedelta(days=1)).isoformat(),
+        "notAfter": (NOW if case == "at-not-after" else NOW + timedelta(days=1)).isoformat(),
+    }
+    if case != "no-annotation":
+        accepted_list: list[dict[str, str]] = [] if case == "empty" else [entry]
+        user.metadata.annotations = {
+            ACCEPTED_CREDENTIALS_ANNOTATION: json.dumps({"version": 1, "accepted": accepted_list})
+        }
+    serial = 0x1235 if case == "other-serial" else 0x1234
+    assert accepted_entry(user, serial, NOW) == (entry if accepted else None)

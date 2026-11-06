@@ -1,10 +1,14 @@
 """Builders for platform resources in tests."""
 
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from uuid import NAMESPACE_DNS, uuid5
 
 from cloudcoil.apimachinery import ObjectMeta, OwnerReference
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.x509.oid import NameOID
 
 from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
@@ -82,6 +86,24 @@ def make_user(
             certificate_approved_at=certificate_approved_at,
             revoked_at=revoked_at,
         ),
+    )
+
+
+def make_client_certificate(common_name: str, uri: str, *, serial: int = 0x1234) -> x509.Certificate:
+    """Self-signed client certificate whose only SAN is the URI, valid from an hour ago for a day."""
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+    start = datetime.now(UTC) - timedelta(hours=1)
+    return (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(serial)
+        .not_valid_before(start)
+        .not_valid_after(start + timedelta(days=1))
+        .add_extension(x509.SubjectAlternativeName([x509.UniformResourceIdentifier(uri)]), critical=False)
+        .sign(key, hashes.SHA256())
     )
 
 
