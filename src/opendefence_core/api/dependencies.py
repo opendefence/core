@@ -5,12 +5,14 @@ from typing import Annotated
 import jwt
 from cloudcoil.errors import ResourceNotFound
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 
 from lib_opendefence_core.models.v1alpha1 import User
 from opendefence_core.api.lib.jwt import decode
+from opendefence_core.api.lib.mtls import CLIENT_CERT_HEADER, certificate_user, leaf_certificate
 
 bearer = HTTPBearer(auto_error=False)
+client_certificate = APIKeyHeader(name=CLIENT_CERT_HEADER, auto_error=False)
 
 
 async def _user_from_token(token: str) -> User | None:
@@ -34,3 +36,20 @@ async def jwt_user(credentials: Annotated[HTTPAuthorizationCredentials | None, D
 
 
 JWTUser = Annotated[User, Depends(jwt_user)]
+
+
+async def mtls_user(header: Annotated[str | None, Depends(client_certificate)]) -> User:
+    """User whose client certificate was passed from the proxy; 401 unless that certificate is still accepted."""
+    if not header:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    try:
+        leaf = leaf_certificate(header)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED) from exc
+    user = await certificate_user(leaf)
+    if user is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    return user
+
+
+MTLSUser = Annotated[User, Depends(mtls_user)]
