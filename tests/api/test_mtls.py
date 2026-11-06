@@ -8,11 +8,14 @@ import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
-from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, User
+from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, Group, Role, User
 from opendefence_core.api import dependencies
+from opendefence_core.api.app import app
+from opendefence_core.api.lib.uids import compact
 from opendefence_core.certificates import certificate_identity
-from tests.factories import make_client_certificate, make_user
+from tests.factories import make_client_certificate, make_user, uid
 from tests.fakes import FakeList
 
 
@@ -84,3 +87,27 @@ async def test_mtls_user_rejects(users: list[User], case: str) -> None:
     with pytest.raises(HTTPException) as raised:
         await dependencies.mtls_user(header)
     assert raised.value.status_code == 401
+
+
+def test_me_with_a_client_certificate(users: list[User], monkeypatch: pytest.MonkeyPatch) -> None:
+    """GET /users/me answers for the certificate's user; a valid token without a certificate is 401."""
+
+    async def empty(cls: type, **kwargs: object) -> FakeList[Group]:
+        _ = cls, kwargs
+        return FakeList([])
+
+    monkeypatch.setattr(Group, "async_list", classmethod(empty))
+    monkeypatch.setattr(Role, "async_list", classmethod(empty))
+    user = make_user("user-alpha", callsign="alpha1")
+    certificate = _certificate(user)
+    _accept(user, certificate)
+    users.append(user)
+    client = TestClient(app)
+    response = client.get("/api/v3/users/me", headers={"X-Forwarded-Tls-Client-Cert": _header(certificate)})
+    assert response.status_code == 200
+    assert (response.json()["id"], response.json()["callsign"]) == (compact(uid("user-alpha")), "alpha1")
+    app.dependency_overrides[dependencies.jwt_user] = lambda: user
+    try:
+        assert client.get("/api/v3/users/me").status_code == 401
+    finally:
+        app.dependency_overrides.clear()
