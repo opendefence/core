@@ -14,6 +14,7 @@ The client generates the key pair, and the server never holds a private key.
 5. The operator consumes the approval and creates the CertificateRequest `user-<resource-name>`
    in `opendefence-public-certs`. cert-manager signs it with `public-issuer`.
 6. `GET /api/v3/certificates/chain.pem` returns the leaf certificate and the CA.
+7. `GET /api/v3/users/me` with the client certificate returns the caller.
 
 ## API
 
