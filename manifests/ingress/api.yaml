@@ -8,7 +8,16 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: Host(`{{ .Values.domain }}`) && PathPrefix(`/api`)
+      # Public and enrollment routes only; everything else is on app.<domain>
+      match: >-
+        Host(`{{ .Values.domain }}`) && (
+        Path(`/api/v3/health`) ||
+        Path(`/api/v3/enrollment`) ||
+        Path(`/api/v3/enrollment/check`) ||
+        Path(`/api/v3/certificates/csr`) ||
+        Path(`/api/v3/certificates/chain.pem`) ||
+        Path(`/api/docs`) ||
+        Path(`/api/openapi.json`))
       middlewares:
         - name: strip-identity-headers
           namespace: traefik-system

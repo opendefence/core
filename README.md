@@ -46,7 +46,7 @@ base's local registry, and port-forwards the API to `localhost:8000`. Changes
 under `src/` are synced into the API container, which reloads; the operator is
 rebuilt and restarted. Changes to `pyproject.toml` or `uv.lock` rebuild both.
 
-The API is also served through Traefik at
+Traefik serves the public and enrollment routes at
 `https://local-dev.opendefence.fi/api/` (the name resolves to 127.0.0.1), with
 interactive docs at `/api/docs`. The certificate comes from base's local CA;
 trust it in your browser or OS once:
@@ -109,6 +109,8 @@ under `/api/v3`:
 | `POST /certificates/csr`      | Store the caller's CSR for signing (JWT)                                      |
 | `GET /certificates/chain.pem` | The caller's issued certificate chain (JWT)                                   |
 
+`<domain>` serves only the routes above and the API docs. Other paths return `404` there.
+`/api/docs` on `<domain>` lists only those routes. On `app.<domain>` it lists all routes.
 Every other route needs a client certificate and is served on `app.<domain>`.
 `GET /users/me` and `/integrations` accept any accepted certificate.
 `/users`, `/groups`, `/invites`, and `/roles` also need the `superadmin` role, held directly or through a group.
