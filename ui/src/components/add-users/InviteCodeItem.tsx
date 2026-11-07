@@ -38,10 +38,8 @@ export function InviteCodeItem({
     ids
       .map((id) => known.find((entry) => entry.id === id)?.displayName)
       .filter((name) => name !== undefined);
-  const assigned = [
-    ...named(invite.groupIds, groups ?? []),
-    ...named(invite.roleIds, roles ?? []),
-  ];
+  const assignedGroups = named(invite.groupIds, groups ?? []);
+  const assignedRoles = named(invite.roleIds, roles ?? []);
 
   const handleClick = (e: React.MouseEvent) => {
     if (bulkMode) {
@@ -87,14 +85,25 @@ export function InviteCodeItem({
               {t(`addUsers.${active ? "active" : "inactive"}`)}
             </span>
           </div>
-          {assigned.length > 0 && (
-            <p
-              className="text-xs text-muted-foreground mt-2"
-              data-testid="invite-code-assignments"
-            >
-              {t("addUsers.assignments.gives", { names: assigned.join(", ") })}
-            </p>
-          )}
+          <div
+            className="text-xs text-muted-foreground"
+            data-testid="invite-code-assignments"
+          >
+            {assignedGroups.length > 0 && (
+              <p className="mt-2" data-testid="invite-code-groups">
+                {t("addUsers.assignments.givesGroups", {
+                  names: assignedGroups.join(", "),
+                })}
+              </p>
+            )}
+            {assignedRoles.length > 0 && (
+              <p className="mt-2" data-testid="invite-code-roles">
+                {t("addUsers.assignments.givesRoles", {
+                  names: assignedRoles.join(", "),
+                })}
+              </p>
+            )}
+          </div>
           {invite.createdAt && (
             <p className="text-xs text-muted-foreground mt-2">
               {t(invite.createdBy ? "addUsers.createdBy" : "addUsers.created", {

@@ -300,7 +300,8 @@
       "noGroups": "Inga grupper ännu.",
       "roles": "Roller",
       "noRoles": "Inga roller ännu.",
-      "gives": "Ger: {{names}}"
+      "givesGroups": "Grupper: {{names}}",
+      "givesRoles": "Roller: {{names}}"
     }
   },
   "approveUser": {

@@ -300,7 +300,8 @@
       "noGroups": "Ei vielä ryhmiä.",
       "roles": "Roolit",
       "noRoles": "Ei vielä rooleja.",
-      "gives": "Antaa: {{names}}"
+      "givesGroups": "Ryhmät: {{names}}",
+      "givesRoles": "Roolit: {{names}}"
     }
   },
   "approveUser": {
