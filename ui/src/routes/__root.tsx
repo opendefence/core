@@ -3,6 +3,7 @@
 import {
   createRootRoute,
   Outlet,
+  redirect,
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
@@ -16,13 +17,33 @@ import { Sidebar } from "@/components/Sidebar";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useDeployment } from "@/api/health";
 import { appUrl, isAppOrigin } from "@/lib/origins";
 import { readStore } from "@/lib/safeStorage";
+import { readToken } from "@/api/token";
 import { useIsTablet } from "@/hooks/use-tablet";
+
+const ENROLLMENT_PATHS = [
+  "/login",
+  "/callsign-setup",
+  "/waiting-room",
+  "/mtls-install",
+  "/error",
+];
 
 export const Route = createRootRoute({
   component: RootLayoutWrapper,
+  beforeLoad: ({ location }) => {
+    if (isAppOrigin() || ENROLLMENT_PATHS.includes(location.pathname)) return;
+
+    const callsign = readStore("callsign");
+    if (callsign && readStore(`cert_downloaded:${callsign}`) === "true") {
+      // A separate origin, so the router cannot take us there.
+      window.location.href = withGuidePreference(
+        appUrl(window.location.hostname),
+      );
+    }
+    throw redirect({ to: readToken() ? "/mtls-install" : "/login" });
+  },
 });
 
 function RootLayoutWrapper() {
@@ -42,13 +63,7 @@ function RootLayout() {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
 
-  const {
-    userType,
-    isLoading: userTypeLoading,
-    isValidUser,
-    callsign,
-  } = useUserType();
-  const { domain } = useDeployment();
+  const { userType, isLoading: userTypeLoading, isValidUser } = useUserType();
 
   const toggleSidebar = (open: boolean) => {
     setSidebarOpen(open);
@@ -58,47 +73,14 @@ function RootLayout() {
   };
 
   useEffect(() => {
-    if (
-      !userTypeLoading &&
-      isValidUser &&
-      !isAppOrigin() &&
-      domain &&
-      location.pathname === "/"
-    ) {
-      const certDownloaded =
-        readStore(`cert_downloaded:${callsign}`) === "true";
-
-      if (!certDownloaded) {
-        navigate({ to: "/mtls-install" });
-        return;
-      }
-
-      // app.* is a separate origin with its own localStorage, so carry the
-      // guide choice across rather than losing it on the hop.
-      window.location.href = withGuidePreference(appUrl(domain));
-      return;
-    }
-  }, [
-    userTypeLoading,
-    isValidUser,
-    callsign,
-    domain,
-    location.pathname,
-    navigate,
-  ]);
-
-  useEffect(() => {
     if (isMobile || isTablet) {
       setSidebarOpen(false);
     }
   }, [location.pathname, isMobile, isTablet]);
 
+  // The enrollment pages, plus the approval deep link, render without chrome.
   const isAuthPage =
-    location.pathname === "/login" ||
-    location.pathname === "/waiting-room" ||
-    location.pathname === "/mtls-install" ||
-    location.pathname === "/callsign-setup" ||
-    location.pathname === "/error" ||
+    ENROLLMENT_PATHS.includes(location.pathname) ||
     location.pathname === "/approve-user";
 
   const isProductPage = location.pathname.startsWith("/product/");
@@ -122,6 +104,13 @@ function RootLayout() {
     }
   }, [userType, userTypeLoading, isValidUser, location.pathname, navigate, t]);
 
+  // Only reachable on app.*
+  useEffect(() => {
+    if (!userTypeLoading && !isValidUser && !isAuthPage) {
+      navigate({ to: "/login" });
+    }
+  }, [userTypeLoading, isValidUser, isAuthPage, navigate]);
+
   if (isAuthPage) {
     return <Outlet />;
   }
@@ -138,7 +127,6 @@ function RootLayout() {
   }
 
   if (!isValidUser) {
-    navigate({ to: "/login" });
     return null;
   }
 
