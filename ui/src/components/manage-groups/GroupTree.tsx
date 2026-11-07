@@ -15,7 +15,7 @@ export function GroupTree({ tree, selectedId, onSelect }: GroupTreeProps) {
   if (tree.length === 0) {
     return (
       <p
-        className="text-sm text-muted-foreground"
+        className="flex flex-1 items-center justify-center text-sm text-muted-foreground"
         data-testid="group-tree-empty"
       >
         {t("manageGroups.noGroups")}
@@ -55,8 +55,8 @@ function Branch({ node, depth, selectedId, onSelect }: BranchProps) {
         onClick={() => onSelect(group.id)}
         style={{ paddingLeft: `${depth * 16 + 12}px` }}
         className={cn(
-          "w-full text-left pr-3 py-2 rounded-lg transition-colors hover:bg-accent/60",
-          selected && "bg-accent font-medium",
+          "w-full text-left pr-3 py-2 rounded-lg border border-transparent transition-colors hover:bg-accent/60",
+          selected && "border-primary/60 bg-accent font-medium",
         )}
         data-testid="group-tree-node"
         data-group-name={group.name}
