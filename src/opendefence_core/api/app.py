@@ -3,7 +3,9 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from opendefence_core import __version__
 from opendefence_core.api.config import get_api_config
@@ -30,8 +32,8 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
 app = FastAPI(
     title="opendefence-core",
     version=__version__,
-    docs_url="/api/docs",
-    openapi_url="/api/openapi.json",
+    docs_url=None,
+    openapi_url=None,
     redoc_url=None,
     lifespan=lifespan,
 )
@@ -49,3 +51,32 @@ app.include_router(v3)
 
 # Outside /api, so Traefik never serves them
 app.include_router(probes_router)
+
+# The routes Traefik serves on <domain>; everything else is only on app.<domain>
+PUBLIC_ROUTES = {("GET", "/api/v3/health"), ("POST", "/api/v3/enrollment/check"), ("POST", "/api/v3/enrollment")}
+JWT_ROUTES = {
+    ("GET", "/api/v3/enrollment"),
+    ("POST", "/api/v3/certificates/csr"),
+    ("GET", "/api/v3/certificates/chain.pem"),
+}
+
+
+@app.get("/api/openapi.json", include_in_schema=False)
+async def openapi(request: Request) -> JSONResponse:
+    """The OpenAPI document; on <domain>, only the routes served there."""
+    schema = app.openapi()
+    if request.url.hostname != get_core_config().domain:
+        return JSONResponse(schema)
+    served = PUBLIC_ROUTES | JWT_ROUTES
+    paths = {
+        path: kept
+        for path, operations in schema["paths"].items()
+        if (kept := {method: op for method, op in operations.items() if (method.upper(), path) in served})
+    }
+    return JSONResponse({**schema, "paths": paths})
+
+
+@app.get("/api/docs", include_in_schema=False)
+async def docs() -> HTMLResponse:
+    """Swagger UI for the OpenAPI document of the requested host."""
+    return get_swagger_ui_html(openapi_url="/api/openapi.json", title=app.title)

@@ -14,6 +14,7 @@ The client generates the key pair, and the server never holds a private key.
 5. The operator consumes the approval and creates the CertificateRequest `user-<resource-name>`
    in `opendefence-public-certs`. cert-manager signs it with `public-issuer`.
 6. `GET /api/v3/certificates/chain.pem` returns the leaf certificate and the CA.
+7. `GET https://app.<domain>/api/v3/users/me` with the client certificate returns the caller.
 
 ## API
 
@@ -31,6 +32,28 @@ The client generates the key pair, and the server never holds a private key.
 The body is `{"csr": "<PEM>"}`. A valid CSR has an ECDSA P-256 key, a valid signature, the subject
 `CN=<certificateCommonName>`, and one extension: a subjectAltName with the URI `<certificateUri>`.
 The limit is 8192 characters.
+
+## Client certificate authentication
+
+`app.<domain>` requires a client certificate signed by `public-issuer`. Traefik verifies it
+with the TLSOption `core-mtls` against `public-root-secret` in `cert-manager`.
+Base creates that secret only with `issuer.type: ca`. With `acme`, `app.<domain>` accepts no certificate.
+
+The IngressRoute `core-api-mtls` applies the middlewares in this order:
+
+1. `strip-identity-headers` removes identity headers that the client sends.
+2. `pass-client-cert` sets `X-Forwarded-Tls-Client-Cert` to the verified chain.
+3. `hsts` sets HSTS.
+
+The API reads the URI SAN from the leaf certificate and finds the User with that UID.
+The API accepts the certificate only if its serial and fingerprint are in the accepted credentials,
+inside the validity window, and the User is not revoked. Otherwise the API returns `401`.
+`<domain>` does not ask for a client certificate. Enrollment browsers do not see a certificate prompt.
+
+The API trusts `X-Forwarded-Tls-Client-Cert` only because Traefik sets it after the TLS handshake.
+The Linkerd policy in `manifests/api/server.yaml` lets only Traefik's ServiceAccount call `core-api`.
+Other callers get `403`. The kubelet probes `/healthz` and `/readyz` stay allowed.
+`kubectl port-forward` does not go through the policy. It needs cluster RBAC, so use it only for development.
 
 ## Approval
 

@@ -4,7 +4,7 @@ from cloudcoil.errors import ResourceConflict
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from lib_opendefence_core.models.v1alpha1 import Group, Role, User
-from opendefence_core.api.dependencies import JWTUser, jwt_user
+from opendefence_core.api.dependencies import SuperadminUser, superadmin_user
 from opendefence_core.api.lib.invites import (
     create_invite,
     delete_invite,
@@ -16,8 +16,7 @@ from opendefence_core.api.lib.uids import ObjectId, by_name, ids_by_name
 from opendefence_core.api.lookups import group_or_404, invite_or_404, role_or_404
 from opendefence_core.api.routes.invites.schema import CreateInviteRequest, InviteResponse, UpdateInviteRequest
 
-# FIXME: switch to the mTLS user with the superadmin role
-router = APIRouter(prefix="/invites", tags=["invites"], dependencies=[Depends(jwt_user)])
+router = APIRouter(prefix="/invites", tags=["invites"], dependencies=[Depends(superadmin_user)])
 
 
 @router.get("")
@@ -29,7 +28,7 @@ async def read_invites() -> list[InviteResponse]:
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def add_invite(request: CreateInviteRequest, caller: JWTUser) -> InviteResponse:
+async def add_invite(request: CreateInviteRequest, caller: SuperadminUser) -> InviteResponse:
     """Create an invite with a generated code."""
     role_names = [(await role_or_404(role_id)).name or "" for role_id in request.role_ids]
     group_names = [(await group_or_404(group_id)).name or "" for group_id in request.group_ids]

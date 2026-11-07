@@ -4,13 +4,18 @@ from typing import Annotated
 
 import jwt
 from cloudcoil.errors import ResourceNotFound
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from lib_opendefence_core.models.v1alpha1 import User
+from lib_opendefence_core.models.v1alpha1 import Group, User
 from opendefence_core.api.lib.jwt import decode
+from opendefence_core.api.lib.mtls import CLIENT_CERT_HEADER, certificate_user, leaf_certificate
+from opendefence_core.api.lib.roles import effective_roles
+from opendefence_core.api.lib.uids import by_name
+from opendefence_core.naming import SUPERADMIN_ROLE
 
 bearer = HTTPBearer(auto_error=False)
+ClientCertificateHeader = Annotated[str | None, Header(alias=CLIENT_CERT_HEADER, include_in_schema=False)]
 
 
 async def _user_from_token(token: str) -> User | None:
@@ -34,3 +39,30 @@ async def jwt_user(credentials: Annotated[HTTPAuthorizationCredentials | None, D
 
 
 JWTUser = Annotated[User, Depends(jwt_user)]
+
+
+async def mtls_user(header: ClientCertificateHeader = None) -> User:
+    """User whose client certificate was passed from the proxy; 401 unless that certificate is still accepted."""
+    if not header:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    try:
+        leaf = leaf_certificate(header)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED) from exc
+    user = await certificate_user(leaf)
+    if user is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    return user
+
+
+MTLSUser = Annotated[User, Depends(mtls_user)]
+
+
+async def superadmin_user(user: MTLSUser) -> User:
+    """Certificate user who holds the superadmin role, directly or through a group; 403 otherwise."""
+    if SUPERADMIN_ROLE not in effective_roles(user, await by_name(Group)):
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+    return user
+
+
+SuperadminUser = Annotated[User, Depends(superadmin_user)]

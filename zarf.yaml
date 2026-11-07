@@ -35,6 +35,7 @@ components:
         files:
           - manifests/traefik-middlewares/hsts.yaml
           - manifests/traefik-middlewares/strip-identity-headers.yaml
+          - manifests/traefik-middlewares/pass-client-cert.yaml
   - name: operator
     required: true
     manifests:
@@ -60,6 +61,7 @@ components:
           - manifests/api/jwt-key.yaml
           - manifests/api/deployment.yaml
           - manifests/api/service.yaml
+          - manifests/api/server.yaml
     healthChecks:
       - apiVersion: cert-manager.io/v1
         kind: Certificate
@@ -78,6 +80,8 @@ components:
           - manifests/ingress/certificate.yaml
           - manifests/ingress/tlsstore.yaml
           - manifests/ingress/api.yaml
+          - manifests/ingress/tlsoption.yaml
+          - manifests/ingress/api-mtls.yaml
     healthChecks:
       - apiVersion: cert-manager.io/v1
         kind: Certificate

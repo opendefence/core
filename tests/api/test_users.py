@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.api.app import app
-from opendefence_core.api.dependencies import jwt_user
+from opendefence_core.api.dependencies import mtls_user, superadmin_user
 from opendefence_core.api.lib.uids import compact
 from tests.factories import make_group, make_role, make_user, uid
 from tests.fakes import FakeList
@@ -63,7 +63,7 @@ def users(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[User]]:
     monkeypatch.setattr(Role, "async_list", classmethod(role_list))
     monkeypatch.setattr(User, "async_list", classmethod(async_list))
     monkeypatch.setattr(User, "async_update", async_update)
-    app.dependency_overrides[jwt_user] = lambda: active
+    app.dependency_overrides[superadmin_user] = app.dependency_overrides[mtls_user] = lambda: active
     yield store
     app.dependency_overrides.clear()
 

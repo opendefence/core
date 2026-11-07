@@ -46,7 +46,7 @@ base's local registry, and port-forwards the API to `localhost:8000`. Changes
 under `src/` are synced into the API container, which reloads; the operator is
 rebuilt and restarted. Changes to `pyproject.toml` or `uv.lock` rebuild both.
 
-The API is also served through Traefik at
+Traefik serves the public and enrollment routes at
 `https://local-dev.opendefence.fi/api/` (the name resolves to 127.0.0.1), with
 interactive docs at `/api/docs`. The certificate comes from base's local CA;
 trust it in your browser or OS once:
@@ -54,6 +54,15 @@ trust it in your browser or OS once:
 ```sh
 task base:export-ca > public-root-ca.pem
 curl --cacert public-root-ca.pem https://local-dev.opendefence.fi/api/v3/health
+```
+
+`https://app.local-dev.opendefence.fi/api/` serves the same API and requires a user
+client certificate. The name does not resolve yet. Pass `--resolve` to curl:
+
+```sh
+curl --cacert public-root-ca.pem --cert user.pem --key user.key \
+  --resolve app.local-dev.opendefence.fi:443:127.0.0.1 \
+  https://app.local-dev.opendefence.fi/api/v3/users/me
 ```
 
 Try the platform objects with the examples:
@@ -99,6 +108,14 @@ under `/api/v3`:
 | `GET /enrollment`             | The caller's enrollment status, approval code, and certificate identity (JWT) |
 | `POST /certificates/csr`      | Store the caller's CSR for signing (JWT)                                      |
 | `GET /certificates/chain.pem` | The caller's issued certificate chain (JWT)                                   |
+
+`<domain>` serves only the routes above and the API docs. Other paths return `404` there.
+`/api/docs` on `<domain>` lists only those routes. On `app.<domain>` it lists all routes.
+Every other route needs a client certificate and is served on `app.<domain>`.
+`GET /users/me` and `/integrations` accept any accepted certificate.
+`/users`, `/groups`, `/invites`, and `/roles` also need the `superadmin` role, held directly or through a group.
+Otherwise the API returns `403`. See
+[docs/certificates/README.md](docs/certificates/README.md#client-certificate-authentication).
 
 JWTs are ES256, signed with a cert-manager-generated key that the API reloads
 when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
@@ -191,10 +208,10 @@ defaults baked into the package, `values/values.schema.json` validates them,
 and `values/local-dev.yaml` is the development variant used by Tilt and the
 build tasks:
 
-| Value         | Default               | local-dev                  | Effect                                      |
-| ------------- | --------------------- | -------------------------- | ------------------------------------------- |
-| `domain`      | `opendefence.invalid` | `local-dev.opendefence.fi` | Public hostname, its certificate and route  |
-| `hsts.maxAge` | `31536000`            | `0`                        | HSTS max-age; `0` clears it in your browser |
+| Value         | Default               | local-dev                  | Effect                                                                       |
+| ------------- | --------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| `domain`      | `opendefence.invalid` | `local-dev.opendefence.fi` | Public hostnames `<domain>` and `app.<domain>`, their certificate and routes |
+| `hsts.maxAge` | `31536000`            | `0`                        | HSTS max-age; `0` clears it in your browser                                  |
 
 The default `domain` is a placeholder that every deployment must override:
 its certificate can't be issued, so a deployment that forgets it fails the

@@ -3,15 +3,14 @@
 from cloudcoil.errors import ResourceConflict
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from opendefence_core.api.dependencies import jwt_user
+from opendefence_core.api.dependencies import superadmin_user
 from opendefence_core.api.lib.roles import create_role, delete_role, holders, is_managed, list_roles, referrers
 from opendefence_core.api.lib.uids import ObjectId
 from opendefence_core.api.lookups import role_or_404
 from opendefence_core.api.routes.roles.schema import CreateRoleRequest, RoleResponse
 from opendefence_core.api.schema import UserSummary
 
-# FIXME: switch to the mTLS user with the superadmin role
-router = APIRouter(prefix="/roles", tags=["roles"], dependencies=[Depends(jwt_user)])
+router = APIRouter(prefix="/roles", tags=["roles"], dependencies=[Depends(superadmin_user)])
 
 MANAGED_MESSAGE = "An integration owns this role."
 

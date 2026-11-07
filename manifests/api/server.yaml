@@ -1,0 +1,28 @@
+# Only Traefik may call the API, because only Traefik may set X-Forwarded-Tls-Client-Cert.
+# kubelet probes stay allowed because no HTTPRoute targets this Server.
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: core-api
+  namespace: opendefence-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: core-api
+  port: http
+  proxyProtocol: HTTP/1
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: core-api-traefik
+  namespace: opendefence-system
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: core-api
+  requiredAuthenticationRefs:
+    - kind: ServiceAccount
+      name: traefik
+      namespace: traefik-system
