@@ -50,6 +50,11 @@ The API accepts the certificate only if its serial and fingerprint are in the ac
 inside the validity window, and the User is not revoked. Otherwise the API returns `401`.
 `<domain>` does not ask for a client certificate. Enrollment browsers do not see a certificate prompt.
 
+The API trusts `X-Forwarded-Tls-Client-Cert` only because Traefik sets it after the TLS handshake.
+The Linkerd policy in `manifests/api/server.yaml` lets only Traefik's ServiceAccount call `core-api`.
+Other callers get `403`. The kubelet probes `/healthz` and `/readyz` stay allowed.
+`kubectl port-forward` does not go through the policy. It needs cluster RBAC, so use it only for development.
+
 ## Approval
 
 `approvedAt` authorizes the first certificate.
