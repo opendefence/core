@@ -104,16 +104,3 @@ export const PLATFORM_INSTRUCTIONS: Record<string, PlatformInstructions> = {
     ],
   },
 };
-
-export function getMtlsUrl(): string {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-
-  let mtlsHostname = hostname;
-  if (!hostname.startsWith("mtls.")) {
-    mtlsHostname = `mtls.${hostname}`;
-  }
-
-  return `${protocol}//${mtlsHostname}${port ? `:${port}` : ""}/`;
-}

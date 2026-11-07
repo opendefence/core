@@ -4,14 +4,14 @@ import {
   getBrowserDownloadLinks,
 } from "@/utils/browserDetection";
 import { getOperatingSystem } from "@/components/mtls/platformUtils";
-import useHealthCheck from "@/hooks/helpers/useHealthcheck";
+import { useDeployment } from "@/api/health";
 import { getTheme } from "@/config/themes";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileGuard } from "./browser-guard/MobileGuard";
 import { DesktopGuard } from "./browser-guard/DesktopGuard";
 
 export function BrowserGuard({ children }: { children: React.ReactNode }) {
-  const { deployment } = useHealthCheck();
+  const { deployment } = useDeployment();
   const theme = getTheme();
   const isMobile = useIsMobile();
 
