@@ -36,7 +36,10 @@ export function CreateInviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="create-invite-dialog">
+      <DialogContent
+        className="sm:max-w-md flex flex-col"
+        data-testid="create-invite-dialog"
+      >
         <DialogHeader>
           <DialogTitle>{t("addUsers.createModalTitle")}</DialogTitle>
           <DialogDescription className="pt-4 space-y-3 text-sm leading-relaxed text-left">
@@ -53,7 +56,7 @@ export function CreateInviteDialog({
             </p>
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[45vh]">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="pr-2">
             <InviteAssignments
               roleIds={roleIds}

@@ -146,7 +146,7 @@ export function ManageRoleDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-md"
+        className="sm:max-w-md flex flex-col"
         data-testid="manage-role-dialog"
         data-role-name={role?.name ?? ""}
       >
@@ -156,7 +156,7 @@ export function ManageRoleDialog({
             <span className="font-mono text-foreground">{role?.name}</span>
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[50vh]">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="space-y-4 pt-2 pr-2">
             <RoleDetail
               holders={holders}
