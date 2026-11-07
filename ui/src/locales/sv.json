@@ -468,14 +468,25 @@
     },
     "userDialog": {
       "title": "Hantera användare",
-      "currentRole": "Nuvarande roll:",
       "goBack": "Tillbaka",
       "remove": "Ta bort",
       "removing": "Tar bort...",
       "promote": "Befordra",
       "promoting": "Befordrar...",
       "demote": "Degradera",
-      "demoting": "Degraderar..."
+      "demoting": "Degraderar...",
+      "state": "Status:",
+      "roles": "Roller",
+      "noRoles": "Inga roller ännu.",
+      "addRole": "Ge en roll",
+      "addRoleDescription": "{{callsign}} får rollen direkt.",
+      "removeRole": "Ta bort rollen",
+      "fromGroup": "från {{group}}",
+      "groups": "Grupper",
+      "noGroups": "Inga grupper ännu.",
+      "addGroup": "Lägg till i en grupp",
+      "addGroupDescription": "{{callsign}} blir medlem i gruppen och i alla grupper ovanför.",
+      "removeGroup": "Ta bort från gruppen"
     },
     "tooltips": {
       "cannotRemove": "Du kan inte ta bort dig själv",
@@ -523,7 +534,12 @@
     "selected": "{{count}} markerade",
     "promote": "Befordra",
     "demote": "Degradera",
-    "remove": "Ta bort"
+    "remove": "Ta bort",
+    "states": {
+      "pending": "Väntar",
+      "active": "Aktiv",
+      "revoked": "Återkallad"
+    }
   },
   "manageRoles": {
     "title": "Hantera roller",

@@ -44,6 +44,7 @@ function ManageUsersPage() {
     isLoading,
     selectedUser,
     openUser,
+    refetch,
     userDialogOpen,
     setUserDialogOpen,
     selectedUsers,
@@ -197,6 +198,7 @@ function ManageUsersPage() {
         user={selectedUser}
         open={userDialogOpen}
         onOpenChange={setUserDialogOpen}
+        onChanged={refetch}
         isAdmin={selectedUser ? isAdmin(selectedUser) : false}
         isCurrentUser={selectedUser ? isCurrentUser(selectedUser) : false}
         administratorsCount={administrators.length}
