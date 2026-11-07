@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { useGroups } from "@/api/groups";
 import { useRoles } from "@/api/roles";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface InviteAssignmentsProps {
   roleIds: string[];
@@ -80,7 +79,7 @@ function Checklist({
           {empty}
         </p>
       ) : (
-        <ScrollArea className="max-h-[140px] rounded-md border border-border">
+        <div className="rounded-md border border-border">
           <div className="p-2 space-y-1" data-testid={testid}>
             {entries.map((entry) => (
               <label
@@ -98,7 +97,7 @@ function Checklist({
               </label>
             ))}
           </div>
-        </ScrollArea>
+        </div>
       )}
     </div>
   );
