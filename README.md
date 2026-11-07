@@ -109,7 +109,10 @@ under `/api/v3`:
 | `POST /certificates/csr`      | Store the caller's CSR for signing (JWT)                                      |
 | `GET /certificates/chain.pem` | The caller's issued certificate chain (JWT)                                   |
 
-Routes that need a client certificate are served on `app.<domain>`. See
+Every other route needs a client certificate and is served on `app.<domain>`.
+`GET /users/me` and `/integrations` accept any accepted certificate.
+`/users`, `/groups`, `/invites`, and `/roles` also need the `superadmin` role, held directly or through a group.
+Otherwise the API returns `403`. See
 [docs/certificates/README.md](docs/certificates/README.md#client-certificate-authentication).
 
 JWTs are ES256, signed with a cert-manager-generated key that the API reloads

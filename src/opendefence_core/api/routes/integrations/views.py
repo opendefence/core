@@ -2,13 +2,13 @@
 
 from fastapi import APIRouter, Depends
 
-from opendefence_core.api.dependencies import jwt_user
+from opendefence_core.api.dependencies import mtls_user
 from opendefence_core.api.lib.integrations import list_integrations
 from opendefence_core.api.lib.uids import ObjectId
 from opendefence_core.api.lookups import integration_or_404
 from opendefence_core.api.routes.integrations.schema import FALLBACK_LANGUAGE, IntegrationResponse
 
-router = APIRouter(prefix="/integrations", tags=["integrations"], dependencies=[Depends(jwt_user)])
+router = APIRouter(prefix="/integrations", tags=["integrations"], dependencies=[Depends(mtls_user)])
 
 
 @router.get("")

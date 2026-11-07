@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from lib_opendefence_core.models.v1alpha1 import Group, Invite, InviteSpec, Role, User
 from opendefence_core.api import lookups
 from opendefence_core.api.app import app
-from opendefence_core.api.dependencies import jwt_user
+from opendefence_core.api.dependencies import superadmin_user
 from opendefence_core.api.lib.uids import compact, ids_by_name
 from opendefence_core.api.routes.invites import views
 from tests.factories import make_group, make_invite, make_role, make_user, uid
@@ -73,7 +73,7 @@ def invites(monkeypatch: pytest.MonkeyPatch) -> Iterator[dict[str, Invite]]:
     monkeypatch.setattr(views, "delete_invite", delete_invite)
     monkeypatch.setattr(views, "ids_by_name", _none_by_name)
     monkeypatch.setattr(views, "by_name", by_name)
-    app.dependency_overrides[jwt_user] = lambda: caller
+    app.dependency_overrides[superadmin_user] = lambda: caller
     yield store
     app.dependency_overrides.clear()
 
