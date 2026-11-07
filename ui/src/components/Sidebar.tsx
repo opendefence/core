@@ -37,10 +37,7 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
   const { callsign } = useUserType();
   const { data: products = [] } = useProducts(currentLanguage);
 
-  // Get current path with search params
   const currentPath = location.pathname;
-  const searchParams = new URLSearchParams(location.search);
-  const currentType = searchParams.get("type");
 
   // Check if we're on product pages
   const isProductPage = currentPath.startsWith("/product/");
@@ -48,33 +45,7 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
     ? currentPath.split("/")[2]
     : null;
 
-  // Check if we're on admin-tools with specific type
-  const isAdminToolsServices =
-    currentPath === "/admin-tools" && currentType === "services";
-  const isAdminToolsUsers =
-    currentPath === "/admin-tools" && currentType === "users";
-  const isUserManagementPage = [
-    "/approve-users",
-    "/manage-users",
-    "/add-users",
-  ].includes(currentPath);
-
-  // Auto-open dropdown when on admin-tools or related pages
-  const isAdminToolsSection =
-    currentPath === "/admin-tools" || isUserManagementPage;
-  const [userManagementOpen, setUserManagementOpen] = useState(
-    isAdminToolsSection || isAdminToolsUsers,
-  );
-
   const [deployappsOpen, setDeployappsOpen] = useState(isProductPage);
-
-  useEffect(() => {
-    if (!isAdminToolsSection && !isAdminToolsUsers) {
-      setUserManagementOpen(false);
-    } else {
-      setUserManagementOpen(true);
-    }
-  }, [currentPath, currentType, isAdminToolsSection, isAdminToolsUsers]);
 
   useEffect(() => {
     if (isProductPage) {
@@ -181,90 +152,44 @@ export function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
             <h3 className="text-xs font-semibold text-sidebar-foreground/50 mb-3 px-3 uppercase tracking-wider">
               {t("common.administrators")}
             </h3>
-            <Link
-              data-testid="sidebar-nav-admin-tools"
-              to="/admin-tools"
-              onClick={() => isMobile && onClose()}
-              className={cn(
-                "block px-3 py-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent/80 rounded-lg transition-colors font-medium",
-                (isAdminToolsServices ||
-                  (currentPath.endsWith("/admin-tools") && !currentType)) &&
-                  "bg-sidebar-accent text-sidebar-foreground",
-              )}
-            >
-              {t("adminTools.navLink")}
-            </Link>
-            <div
-              className={cn(
-                "flex items-center justify-between px-3 py-2.5 text-sm text-sidebar-foreground hover:bg-sidebar-accent/80 rounded-lg transition-colors font-medium",
-                (isAdminToolsUsers || isUserManagementPage) &&
-                  "bg-sidebar-accent text-sidebar-foreground",
-              )}
-            >
+            <div className="space-y-1">
               <Link
-                data-testid="sidebar-nav-user-management"
-                to="/admin-tools"
-                search={{ type: "users" }}
-                onClick={() => {
-                  if (isMobile) onClose();
-                }}
-                className="flex-1 text-left"
+                data-testid="sidebar-nav-manage-users"
+                to="/manage-users"
+                onClick={() => isMobile && onClose()}
+                className={cn(
+                  "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
+                  location.pathname === "/manage-users" &&
+                    "bg-sidebar-accent text-sidebar-foreground font-medium",
+                )}
               >
-                {t("common.userManagement")}
+                {t("common.manageUsers")}
               </Link>
-              <button
-                data-testid="sidebar-user-management-toggle"
-                onClick={() => setUserManagementOpen(!userManagementOpen)}
-                className="p-1 hover:bg-sidebar-accent rounded transition-colors"
+              <Link
+                data-testid="sidebar-nav-add-users"
+                to="/add-users"
+                onClick={() => isMobile && onClose()}
+                className={cn(
+                  "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
+                  location.pathname === "/add-users" &&
+                    "bg-sidebar-accent text-sidebar-foreground font-medium",
+                )}
               >
-                <ChevronDown
-                  className={cn(
-                    "w-4 h-4 transition-transform",
-                    userManagementOpen && "rotate-180",
-                  )}
-                />
-              </button>
+                {t("common.addUsers")}
+              </Link>
+              <Link
+                data-testid="sidebar-nav-approve-users"
+                to="/approve-users"
+                onClick={() => isMobile && onClose()}
+                className={cn(
+                  "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
+                  location.pathname === "/approve-users" &&
+                    "bg-sidebar-accent text-sidebar-foreground font-medium",
+                )}
+              >
+                {t("common.approveUsers")}
+              </Link>
             </div>
-            {userManagementOpen && (
-              <div className="ml-3 mt-1 space-y-1 border-l border-sidebar-border pl-3">
-                <Link
-                  data-testid="sidebar-nav-manage-users"
-                  to="/manage-users"
-                  onClick={() => isMobile && onClose()}
-                  className={cn(
-                    "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
-                    location.pathname === "/manage-users" &&
-                      "bg-sidebar-accent text-sidebar-foreground font-medium",
-                  )}
-                >
-                  {t("common.manageUsers")}
-                </Link>
-                <Link
-                  data-testid="sidebar-nav-add-users"
-                  to="/add-users"
-                  onClick={() => isMobile && onClose()}
-                  className={cn(
-                    "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
-                    location.pathname === "/add-users" &&
-                      "bg-sidebar-accent text-sidebar-foreground font-medium",
-                  )}
-                >
-                  {t("common.addUsers")}
-                </Link>
-                <Link
-                  data-testid="sidebar-nav-approve-users"
-                  to="/approve-users"
-                  onClick={() => isMobile && onClose()}
-                  className={cn(
-                    "block px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent/60 rounded-lg transition-colors",
-                    location.pathname === "/approve-users" &&
-                      "bg-sidebar-accent text-sidebar-foreground font-medium",
-                  )}
-                >
-                  {t("common.approveUsers")}
-                </Link>
-              </div>
-            )}
           </div>
         )}
         <div className="mt-auto pt-4 border-t border-sidebar-border space-y-4">
