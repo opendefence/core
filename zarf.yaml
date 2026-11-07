@@ -61,6 +61,7 @@ components:
           - manifests/api/jwt-key.yaml
           - manifests/api/deployment.yaml
           - manifests/api/service.yaml
+          - manifests/api/server.yaml
     healthChecks:
       - apiVersion: cert-manager.io/v1
         kind: Certificate
