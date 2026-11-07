@@ -53,6 +53,7 @@ function HomePage() {
 
   if (!userTypeLoading && !callsign) {
     navigate({ to: "/login" });
+    return null;
   }
 
   const handleProductClick = (product: Product) => {
