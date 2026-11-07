@@ -15,6 +15,7 @@ import type { User } from "@/api/users";
 
 interface UserManagementDialogProps {
   user: User | null;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
   isAdmin: boolean;
   isCurrentUser: boolean;
@@ -27,6 +28,7 @@ interface UserManagementDialogProps {
 
 export function UserManagementDialog({
   user,
+  open,
   onOpenChange,
   isAdmin,
   isCurrentUser,
@@ -42,7 +44,7 @@ export function UserManagementDialog({
   const canDemote = !isCurrentUser;
 
   return (
-    <Dialog open={!!user} onOpenChange={() => onOpenChange(false)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="user-management-dialog"
         data-user-callsign={user?.callsign ?? ""}

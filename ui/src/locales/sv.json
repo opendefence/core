@@ -499,7 +499,8 @@
       "cannotDemoteOwn": "Du kan inte degradera dig själv",
       "cannotDeleteOwn": "Du kan inte ta bort ditt eget konto",
       "cannotDeleteLastAdmin": "Kan inte ta bort sista administratören.",
-      "cannotSelectSelf": "Du kan inte välja ditt eget konto."
+      "cannotSelectSelf": "Du kan inte välja ditt eget konto.",
+      "bulkSuccess": "Uppdaterade {{count}} användare."
     },
     "bulkMode": "Markera flera",
     "exitBulkMode": "Avsluta massläge",

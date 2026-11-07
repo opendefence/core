@@ -499,7 +499,8 @@
       "cannotDemoteOwn": "Et voi alentaa omaa tiliäsi",
       "cannotDeleteOwn": "Et voi poistaa omaa tiliäsi",
       "cannotDeleteLastAdmin": "Et voi poistaa viimeistä ylläpitäjää.",
-      "cannotSelectSelf": "Et voi valita omaa tiliäsi massatoimintoihin."
+      "cannotSelectSelf": "Et voi valita omaa tiliäsi massatoimintoihin.",
+      "bulkSuccess": "Päivitettiin {{count}} käyttäjää."
     },
     "bulkMode": "Valitse useita",
     "exitBulkMode": "Poistu massatilasta",
