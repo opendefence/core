@@ -95,6 +95,7 @@ components:
           - manifests/ingress/ui.yaml
           - manifests/ingress/tlsoption.yaml
           - manifests/ingress/api-mtls.yaml
+          - manifests/ingress/ui-mtls.yaml
     healthChecks:
       - apiVersion: cert-manager.io/v1
         kind: Certificate
