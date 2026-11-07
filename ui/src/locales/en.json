@@ -47,18 +47,6 @@
     "error": "Error"
   },
   "modals": {
-    "keycloak": {
-      "title": "Keycloak Management Console",
-      "description": "Keycloak is the identity provider behind this deployment. Users sign in with their mTLS certificate, so the console is only for inspection and troubleshooting.",
-      "whatCanYouDo": "What can you do there?",
-      "inspectUsers": "Inspect user accounts and their role mappings",
-      "viewSessions": "View and end active sessions",
-      "manageClients": "Check the OIDC client settings of connected services",
-      "reviewEvents": "Review authentication and admin event logs",
-      "note": "Users, callsigns and roles are managed from Deploy App's user management. Changes made directly in Keycloak can be overwritten and may break sign-in.",
-      "cancelButton": "Cancel",
-      "openConsole": "Open Console"
-    },
     "mtls": {
       "title": "What is mTLS?",
       "description": "Mutual TLS (mTLS) authentication explained",
@@ -257,8 +245,8 @@
     "filterPlaceholder": "Filter Invite Codes",
     "active": "active",
     "inactive": "inactive",
+    "created": "Created on {{date}}",
     "createdBy": "{{creator}} created this code on {{date}}",
-    "createdByYou": "You created this code on {{date}}",
     "forbidden": "403 Forbidden: Admin access required",
     "noCallsign": "No callsign found. Please log in.",
     "createModalTitle": "Create New Invite Code",
@@ -456,7 +444,6 @@
     "noAdministrators": "No administrators yet.",
     "noFighters": "No fighters yet.",
     "you": "You",
-    "keycloakButton": "Open Keycloak Management Console",
     "walkthrough": {
       "title": "How to Manage Users",
       "description": "Quick guide to managing your team",
@@ -1007,17 +994,12 @@
   "adminTools": {
     "navLink": "Admin Tools",
     "title": "Admin Console",
-    "toolsDesc": "Administrator Tools",
     "description": "Manage your team, users, and external services from a central location.",
     "userManagementSection": "User Management",
     "userManagementDesc": "Approve new users, manage team roles, and control access to your services.",
-    "externalServicesSection": "External Services",
-    "externalServicesDesc": "Access and manage your tactical and battle-log servers.",
     "approveUsersDesc": "Review and approve new user registrations",
     "manageUsersDesc": "Manage user roles and permissions",
     "addUsersDesc": "Create and manage invite codes for new users",
-    "keycloakTitle": "Keycloak Management",
-    "keycloakDesc": "Identity administration and troubleshooting",
     "takServerTitle": "Takserver",
     "takServerDesc": "Manage Takserver configuration",
     "blServerTitle": "Battlelog Server",
@@ -1027,8 +1009,7 @@
     "helpTitle": "Quick Help",
     "help1": "User Management - Approve, promote, demote, or remove users",
     "help2": "Invite Codes - Generate and manage user invite codes",
-    "help3": "Keycloak - Advanced identity inspection and troubleshooting",
-    "help4": "External Services - Access Takserver and Battlelog servers"
+    "help3": "External Services - Access Takserver and Battlelog servers"
   },
   "guides": {
     "disableAutoOpen": "Do not show me guides automatically"

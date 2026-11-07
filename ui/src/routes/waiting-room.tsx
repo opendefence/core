@@ -31,7 +31,8 @@ function WaitingRoomPage() {
   const callsign = status?.callsign ?? "";
   const approveCode = status?.approvalCode ?? "";
 
-  const approvalUrl = `${appUrl(domain)}approve-user?callsign=${callsign}&approvalcode=${approveCode}`;
+  // The id names the user to the API, the callsign only names them to the admin.
+  const approvalUrl = `${appUrl(domain)}approve-user?user=${status?.id ?? ""}&callsign=${callsign}&approvalcode=${approveCode}`;
 
   useEffect(() => {
     if (!readToken()) navigate({ to: "/login" });

@@ -47,18 +47,6 @@
     "error": "Fel"
   },
   "modals": {
-    "keycloak": {
-      "title": "Keycloak-hanteringskonsol",
-      "description": "Keycloak är identitetsleverantören i den här miljön. Användarna autentiserar sig med sitt mTLS-certifikat, så konsolen är endast för granskning och felsökning.",
-      "whatCanYouDo": "Vad kan du göra där?",
-      "inspectUsers": "Granska användarkonton och deras roller",
-      "viewSessions": "Visa och avsluta aktiva sessioner",
-      "manageClients": "Kontrollera tjänsternas OIDC-klientinställningar",
-      "reviewEvents": "Granska loggar för autentisering och administration",
-      "note": "Användare, anropssignaler och roller hanteras via Deploy Apps användarhantering. Ändringar som görs direkt i Keycloak kan skrivas över och bryta inloggningen.",
-      "cancelButton": "Avbryt",
-      "openConsole": "Öppna konsol"
-    },
     "mtls": {
       "title": "Vad är mTLS?",
       "description": "Förklaring av Mutual TLS (mTLS)-autentisering",
@@ -257,8 +245,8 @@
     "filterPlaceholder": "Filtrera inbjudningskoder",
     "active": "aktiv",
     "inactive": "inaktiv",
+    "created": "Skapad den {{date}}",
     "createdBy": "{{creator}} skapade koden den {{date}}",
-    "createdByYou": "Du skapade koden den {{date}}",
     "forbidden": "403 Förbjudet: Adminbehörighet krävs",
     "noCallsign": "Ingen anropssignal hittades. Logga in.",
     "createModalTitle": "Skapa ny inbjudningskod",
@@ -456,7 +444,6 @@
     "noAdministrators": "Inga administratörer ännu.",
     "noFighters": "Inga krigare ännu.",
     "you": "Du",
-    "keycloakButton": "Öppna Keycloak-hanteringskonsol",
     "walkthrough": {
       "title": "Hur man hanterar användare",
       "description": "Snabbguide",
@@ -1007,17 +994,12 @@
   "adminTools": {
     "navLink": "Adminverktyg",
     "title": "Administrationskonsol",
-    "toolsDesc": "Adminverktyg",
     "description": "Hantera team, användare och externa tjänster från en central plats.",
     "userManagementSection": "Användarhantering",
     "userManagementDesc": "Godkänn nya användare och hantera roller.",
-    "externalServicesSection": "Externa tjänster",
-    "externalServicesDesc": "Få åtkomst till och hantera dina taktiska och battle-log-servrar.",
     "approveUsersDesc": "Granska och godkänn nya användare",
     "manageUsersDesc": "Hantera användarroller och behörigheter",
     "addUsersDesc": "Skapa och hantera inbjudningskoder",
-    "keycloakTitle": "Keycloak-hantering",
-    "keycloakDesc": "Identitetsadministration och felsökning",
     "takServerTitle": "Takserver",
     "takServerDesc": "Hantera Takserver-konfiguration",
     "blServerTitle": "Battle log-server",
@@ -1027,8 +1009,7 @@
     "helpTitle": "Snabbhjälp",
     "help1": "Användarhantering – godkänn, befordra, degradera, ta bort",
     "help2": "Inbjudningskoder – generera och hantera koder",
-    "help3": "Keycloak – granskning av identiteter och felsökning",
-    "help4": "Externa tjänster – åtkomst till TAK och BL"
+    "help3": "Externa tjänster – åtkomst till TAK och BL"
   },
   "guides": {
     "disableAutoOpen": "Visa inte guider automatiskt för mig"

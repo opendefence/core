@@ -1,15 +1,13 @@
 "use client";
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
-import { useEnrollmentList } from "@/hooks/api/useEnrollmentList";
-import { useApproveUser } from "@/hooks/api/useApproveUser";
-import { useRejectUser } from "@/hooks/api/useRejectUser";
-import { EnrollmentState } from "@/hooks/api/model/enrollmentState";
-import { useUserType } from "@/hooks/auth/useUserType";
+import { useApproveUser, useRevokeUser, useUsers } from "@/api/users";
+import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
+import { Forbidden } from "@/components/Forbidden";
 
 import {
   QRScanner,
@@ -22,43 +20,37 @@ export const Route = createFileRoute("/approve-users")({
   component: ApproveUsersPage,
 });
 
+/** The user being approved: the id acts, the callsign shows. */
+interface Waiting {
+  id: string;
+  callsign: string;
+}
+
 function ApproveUsersPage() {
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const [waitingUsersOpen, setWaitingUsersOpen] = useState(true);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Waiting | null>(null);
   const [approvalCode, setApprovalCode] = useState("");
 
-  const navigate = useNavigate();
   const { t } = useTranslation();
-  const { userType, isLoading: userTypeLoading, callsign } = useUserType();
-
-  useEffect(() => {
-    if (!userTypeLoading && !callsign) {
-      toast.error(t("approveUsers.noCallsignFound"));
-      navigate({ to: "/login" });
-    }
-  }, [callsign, userTypeLoading, navigate, t]);
-
-  useEffect(() => {
-    if (!userTypeLoading && userType !== "superadmin") {
-      toast.error(t("approveUsers.forbidden"));
-      navigate({ to: "/" });
-    }
-  }, [userType, userTypeLoading, navigate, t]);
+  const { isLoading: userTypeLoading, allowed } = useRequireSuperadmin({
+    noCallsign: "approveUsers.noCallsignFound",
+    forbidden: "approveUsers.forbidden",
+  });
 
   const {
-    data: enrollmentList,
+    data: waitingUsers = [],
     isLoading,
     refetch,
-  } = useEnrollmentList({
-    refetchInterval: 5000,
-  });
+  } = useUsers("pending", 5000);
 
   const approveUserMutation = useApproveUser({
     onSuccess: () => {
       toast.success(
-        t("approveUsers.userApprovedSuccessfully", { callsign: selectedUser }),
+        t("approveUsers.userApprovedSuccessfully", {
+          callsign: selectedUser?.callsign,
+        }),
       );
       setApproveDialogOpen(false);
       setApprovalCode("");
@@ -70,9 +62,11 @@ function ApproveUsersPage() {
     },
   });
 
-  const rejectUserMutation = useRejectUser({
+  const rejectUserMutation = useRevokeUser({
     onSuccess: () => {
-      toast.error(t("approveUsers.userRejected", { callsign: selectedUser }));
+      toast.error(
+        t("approveUsers.userRejected", { callsign: selectedUser?.callsign }),
+      );
       setApproveDialogOpen(false);
       setApprovalCode("");
       setSelectedUser(null);
@@ -83,11 +77,8 @@ function ApproveUsersPage() {
     },
   });
 
-  const waitingUsers =
-    enrollmentList?.filter((u) => u.state === EnrollmentState.PENDING) || [];
-
-  const handleApproveClick = (callsign: string) => {
-    setSelectedUser(callsign);
+  const handleApproveClick = (user: Waiting) => {
+    setSelectedUser(user);
     setApproveDialogOpen(true);
   };
 
@@ -97,16 +88,16 @@ function ApproveUsersPage() {
       return;
     }
     if (!selectedUser) return;
-    approveUserMutation.mutate({ callsign: selectedUser, approvalCode });
+    approveUserMutation.mutate({ userId: selectedUser.id, approvalCode });
   };
 
   const handleReject = () => {
     if (!selectedUser) return;
-    rejectUserMutation.mutate({ callsign: selectedUser });
+    rejectUserMutation.mutate(selectedUser.id);
   };
 
-  const handleQRScanSuccess = (callsign: string, code: string) => {
-    setSelectedUser(callsign);
+  const handleQRScanSuccess = (user: Waiting, code: string) => {
+    setSelectedUser(user);
     setApprovalCode(code);
     setApproveDialogOpen(true);
   };
@@ -115,15 +106,8 @@ function ApproveUsersPage() {
     setApprovalCode(code);
   };
 
-  if (!userTypeLoading && userType !== "superadmin") {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6 text-center py-12">
-        <h1 className="text-6xl font-bold text-destructive">403</h1>
-        <p className="text-xl text-muted-foreground">
-          {t("approveUsers.forbidden")}
-        </p>
-      </div>
-    );
+  if (!userTypeLoading && !allowed) {
+    return <Forbidden message={t("approveUsers.forbidden")} />;
   }
 
   if (isLoading || userTypeLoading) {
@@ -171,13 +155,13 @@ function ApproveUsersPage() {
       <ApproveUserDialog
         open={approveDialogOpen}
         onOpenChange={setApproveDialogOpen}
-        selectedUser={selectedUser}
+        selectedUser={selectedUser?.callsign ?? null}
         approvalCode={approvalCode}
         onApprovalCodeChange={setApprovalCode}
         onApprove={handleApprove}
         onReject={handleReject}
-        isApproving={approveUserMutation.isLoading}
-        isRejecting={rejectUserMutation.isLoading}
+        isApproving={approveUserMutation.isPending}
+        isRejecting={rejectUserMutation.isPending}
       />
     </div>
   );
