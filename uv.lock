@@ -568,7 +568,7 @@ wheels = [
 
 [[package]]
 name = "lib-opendefence-core"
-version = "0.4.0+261026"
+version = "0.4.1+261026"
 source = { editable = "src/lib_opendefence_core" }
 dependencies = [
     { name = "cloudcoil" },
@@ -606,7 +606,7 @@ wheels = [
 
 [[package]]
 name = "opendefence-core"
-version = "0.4.0+261026"
+version = "0.4.1+261026"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
