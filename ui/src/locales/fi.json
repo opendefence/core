@@ -8,6 +8,7 @@
     "approveUsers": "Hyväksy käyttäjiä",
     "manageUsers": "Hallitse käyttäjiä",
     "manageRoles": "Hallitse rooleja",
+    "manageGroups": "Hallitse ryhmiä",
     "addUsers": "Lisää käyttäjiä",
     "admin": "Ylläpitäjä",
     "user": "Käyttäjä",
@@ -293,6 +294,13 @@
       "activateError": "Koodin käyttöönotto epäonnistui: {{error}}",
       "forbiddenError": "403 Kielletty: Ylläpito-oikeudet vaaditaan",
       "noCallsignError": "Kutsutunnusta ei löytynyt. Kirjaudu sisään."
+    },
+    "assignments": {
+      "groups": "Ryhmät",
+      "noGroups": "Ei vielä ryhmiä.",
+      "roles": "Roolit",
+      "noRoles": "Ei vielä rooleja.",
+      "gives": "Antaa: {{names}}"
     }
   },
   "approveUser": {
@@ -565,10 +573,103 @@
       "cannotTakeLast": "Vähintään yhden ylläpitäjän on säilyttävä"
     }
   },
+  "manageGroups": {
+    "title": "Hallitse ryhmiä",
+    "description": "Ryhmä sisältää käyttäjiä ja antaa heille rooleja. Ryhmän jäsen on myös jokaisen yläpuolisen ryhmän jäsen.",
+    "forbidden": "403 Kielletty: Ylläpito-oikeudet vaaditaan",
+    "noGroups": "Ei vielä ryhmiä.",
+    "selectGroup": "Valitse ryhmä nähdäksesi sen tiedot.",
+    "detail": {
+      "parent": "Yläryhmä",
+      "root": "Ei yläryhmää. Tämä on ylimmän tason ryhmä.",
+      "roles": "Annetut roolit",
+      "noRoles": "Tämä ryhmä ei anna rooleja.",
+      "rolesReach": "Jokainen tämän ryhmän ja sen alaryhmien jäsen saa nämä roolit.",
+      "inherited": "Roolit yläryhmistä",
+      "fromGroup": "ryhmästä {{group}}",
+      "managers": "Vastuuhenkilöt",
+      "noManagers": "Ei vastuuhenkilöitä."
+    },
+    "messages": {
+      "noCallsign": "Kutsutunnusta ei löytynyt. Kirjaudu sisään.",
+      "created": "Ryhmä {{group}} luotu",
+      "createError": "Ryhmän luonti epäonnistui: {{error}}",
+      "changed": "Ryhmä muutettu",
+      "changeError": "Ryhmän muutos epäonnistui: {{error}}",
+      "deleted": "Ryhmä poistettu",
+      "deleteError": "Ryhmän poisto epäonnistui: {{error}}",
+      "memberAdded": "Jäsen lisätty",
+      "memberRemoved": "Jäsen poistettu",
+      "memberError": "Jäsenten muutos epäonnistui: {{error}}",
+      "roleGranted": "Rooli annettu",
+      "roleRevoked": "Roolia ei enää anneta",
+      "roleError": "Roolien muutos epäonnistui: {{error}}",
+      "managerAdded": "Vastuuhenkilö lisätty",
+      "managerRemoved": "Vastuuhenkilö poistettu",
+      "managerError": "Vastuuhenkilöiden muutos epäonnistui: {{error}}"
+    },
+    "cancel": "Peruuta",
+    "creating": "Luodaan...",
+    "create": {
+      "title": "Luo ryhmä",
+      "description": "Nimi on pysyvä. Vain näyttönimeä voi muuttaa myöhemmin.",
+      "displayNameLabel": "Näyttönimi",
+      "nameLabel": "Nimi",
+      "nameHelp": "Pieniä kirjaimia, numeroita ja väliviivoja. Enintään 63 merkkiä.",
+      "nameInvalid": "Käytä pieniä kirjaimia, numeroita ja väliviivoja. Aloita ja lopeta kirjaimella tai numerolla.",
+      "atRoot": "Luo ylimmän tason ryhmäksi",
+      "under": "Uusi ryhmä tulee ryhmän {{group}} alle.",
+      "topLevel": "Uudella ryhmällä ei ole yläryhmää.",
+      "submit": "Luo"
+    },
+    "rename": {
+      "title": "Nimeä uudelleen",
+      "description": "Nimi {{name}} säilyy ennallaan. Vain näyttönimi muuttuu.",
+      "submit": "Nimeä uudelleen"
+    },
+    "move": {
+      "title": "Siirrä",
+      "description": "Valitse ryhmä, joka sisältää ryhmän {{group}}.",
+      "toRoot": "Ei yläryhmää. Tee siitä ylimmän tason ryhmä."
+    },
+    "delete": {
+      "title": "Poista",
+      "description": "Ryhmä {{group}} poistetaan. Tätä ei voi perua.",
+      "blocked": "Poista ensin: {{reasons}}",
+      "children": "sen alaryhmät",
+      "members": "sen jäsenet",
+      "managers": "sen vastuuhenkilöt",
+      "roles": "sen antamat roolit"
+    },
+    "members": {
+      "title": "Jäsenet ({{count}})",
+      "none": "Ei vielä jäseniä.",
+      "add": "Lisää jäsen",
+      "addDescription": "Käyttäjästä tulee ryhmän {{group}} ja jokaisen yläryhmän jäsen.",
+      "remove": "Poista jäsen",
+      "showEffective": "Näytä alaryhmien jäsenet",
+      "fromGroup": "ryhmästä {{group}}"
+    },
+    "roles": {
+      "add": "Anna rooli",
+      "addDescription": "Ryhmä {{group}} antaa roolin kaikille jäsenilleen.",
+      "remove": "Lopeta roolin antaminen"
+    },
+    "managers": {
+      "add": "Lisää vastuuhenkilö",
+      "addDescription": "Käyttäjä nimetään ryhmän {{group}} vastuuhenkilöksi. Tämä ei tee hänestä jäsentä.",
+      "remove": "Poista vastuuhenkilö",
+      "noAuthority": "Vastuuhenkilö vain merkitään. Mikään rajapinta ei vielä tarkista sitä."
+    }
+  },
   "pickers": {
     "filterUsers": "Suodata käyttäjiä",
     "loading": "Ladataan...",
-    "noUsers": "Ei valittavia käyttäjiä."
+    "noUsers": "Ei valittavia käyttäjiä.",
+    "filterGroups": "Suodata ryhmiä",
+    "noGroups": "Ei valittavia ryhmiä.",
+    "filterRoles": "Suodata rooleja",
+    "noRoles": "Ei valittavia rooleja."
   },
   "mtlsInstall": {
     "title": "Lataa ja asenna avain",
@@ -1056,6 +1157,7 @@
     "approveUsersDesc": "Tarkastele ja hyväksy uusia käyttäjiä",
     "manageUsersDesc": "Hallitse käyttäjärooleja ja käyttöoikeuksia",
     "manageRolesDesc": "Luo rooleja ja anna niitä käyttäjille",
+    "manageGroupsDesc": "Rakenna ryhmähierarkia ja anna rooleja sen kautta",
     "addUsersDesc": "Luo ja hallitse kutsukoodeja",
     "takServerTitle": "Takserverin hallinta",
     "takServerDesc": "Hallinnoi Takserverin asetuksia",

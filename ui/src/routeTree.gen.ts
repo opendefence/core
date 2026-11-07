@@ -17,6 +17,7 @@ import { Route as ApproveUsersRouteImport } from './routes/approve-users'
 import { Route as CallsignSetupRouteImport } from './routes/callsign-setup'
 import { Route as ErrorRouteImport } from './routes/error'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ManageGroupsRouteImport } from './routes/manage-groups'
 import { Route as ManageRolesRouteImport } from './routes/manage-roles'
 import { Route as ManageUsersRouteImport } from './routes/manage-users'
 import { Route as MtlsInstallRouteImport } from './routes/mtls-install'
@@ -64,6 +65,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManageGroupsRoute = ManageGroupsRouteImport.update({
+  id: '/manage-groups',
+  path: '/manage-groups',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManageRolesRoute = ManageRolesRouteImport.update({
   id: '/manage-roles',
   path: '/manage-roles',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/callsign-setup': typeof CallsignSetupRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
+  '/manage-groups': typeof ManageGroupsRoute
   '/manage-roles': typeof ManageRolesRoute
   '/manage-users': typeof ManageUsersRoute
   '/mtls-install': typeof MtlsInstallRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/callsign-setup': typeof CallsignSetupRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
+  '/manage-groups': typeof ManageGroupsRoute
   '/manage-roles': typeof ManageRolesRoute
   '/manage-users': typeof ManageUsersRoute
   '/mtls-install': typeof MtlsInstallRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/callsign-setup': typeof CallsignSetupRoute
   '/error': typeof ErrorRoute
   '/login': typeof LoginRoute
+  '/manage-groups': typeof ManageGroupsRoute
   '/manage-roles': typeof ManageRolesRoute
   '/manage-users': typeof ManageUsersRoute
   '/mtls-install': typeof MtlsInstallRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/callsign-setup'
     | '/error'
     | '/login'
+    | '/manage-groups'
     | '/manage-roles'
     | '/manage-users'
     | '/mtls-install'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/callsign-setup'
     | '/error'
     | '/login'
+    | '/manage-groups'
     | '/manage-roles'
     | '/manage-users'
     | '/mtls-install'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/callsign-setup'
     | '/error'
     | '/login'
+    | '/manage-groups'
     | '/manage-roles'
     | '/manage-users'
     | '/mtls-install'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   CallsignSetupRoute: typeof CallsignSetupRoute
   ErrorRoute: typeof ErrorRoute
   LoginRoute: typeof LoginRoute
+  ManageGroupsRoute: typeof ManageGroupsRoute
   ManageRolesRoute: typeof ManageRolesRoute
   ManageUsersRoute: typeof ManageUsersRoute
   MtlsInstallRoute: typeof MtlsInstallRoute
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manage-groups': {
+      id: '/manage-groups'
+      path: '/manage-groups'
+      fullPath: '/manage-groups'
+      preLoaderRoute: typeof ManageGroupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/manage-roles': {
       id: '/manage-roles'
       path: '/manage-roles'
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   CallsignSetupRoute: CallsignSetupRoute,
   ErrorRoute: ErrorRoute,
   LoginRoute: LoginRoute,
+  ManageGroupsRoute: ManageGroupsRoute,
   ManageRolesRoute: ManageRolesRoute,
   ManageUsersRoute: ManageUsersRoute,
   MtlsInstallRoute: MtlsInstallRoute,

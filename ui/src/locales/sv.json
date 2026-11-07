@@ -8,6 +8,7 @@
     "approveUsers": "Godkänn användare",
     "manageUsers": "Hantera användare",
     "manageRoles": "Hantera roller",
+    "manageGroups": "Hantera grupper",
     "addUsers": "Lägg till användare",
     "admin": "Admin",
     "user": "Användare",
@@ -293,6 +294,13 @@
       "activateError": "Kunde inte aktivera kod: {{error}}",
       "forbiddenError": "403 Förbjudet: Adminbehörighet krävs",
       "noCallsignError": "Ingen anropssignal hittades. Logga in."
+    },
+    "assignments": {
+      "groups": "Grupper",
+      "noGroups": "Inga grupper ännu.",
+      "roles": "Roller",
+      "noRoles": "Inga roller ännu.",
+      "gives": "Ger: {{names}}"
     }
   },
   "approveUser": {
@@ -565,10 +573,103 @@
       "cannotTakeLast": "Minst en administratör måste finnas kvar"
     }
   },
+  "manageGroups": {
+    "title": "Hantera grupper",
+    "description": "En grupp håller användare och ger dem roller. En medlem i en grupp är medlem i varje grupp ovanför.",
+    "forbidden": "403 Förbjudet: Adminbehörighet krävs",
+    "noGroups": "Inga grupper ännu.",
+    "selectGroup": "Välj en grupp för att se den.",
+    "detail": {
+      "parent": "Överordnad grupp",
+      "root": "Ingen. Detta är en grupp på översta nivån.",
+      "roles": "Roller som ges",
+      "noRoles": "Den här gruppen ger inga roller.",
+      "rolesReach": "Alla medlemmar i den här gruppen och i grupperna under den har dessa roller.",
+      "inherited": "Roller från grupper ovanför",
+      "fromGroup": "från {{group}}",
+      "managers": "Ansvariga",
+      "noManagers": "Inga ansvariga."
+    },
+    "messages": {
+      "noCallsign": "Ingen anropssignal hittades. Logga in.",
+      "created": "Gruppen {{group}} skapades",
+      "createError": "Kunde inte skapa gruppen: {{error}}",
+      "changed": "Gruppen ändrades",
+      "changeError": "Kunde inte ändra gruppen: {{error}}",
+      "deleted": "Gruppen togs bort",
+      "deleteError": "Kunde inte ta bort gruppen: {{error}}",
+      "memberAdded": "Medlemmen lades till",
+      "memberRemoved": "Medlemmen togs bort",
+      "memberError": "Kunde inte ändra medlemmarna: {{error}}",
+      "roleGranted": "Rollen gavs",
+      "roleRevoked": "Rollen ges inte längre",
+      "roleError": "Kunde inte ändra rollerna: {{error}}",
+      "managerAdded": "Den ansvariga lades till",
+      "managerRemoved": "Den ansvariga togs bort",
+      "managerError": "Kunde inte ändra de ansvariga: {{error}}"
+    },
+    "cancel": "Avbryt",
+    "creating": "Skapar...",
+    "create": {
+      "title": "Skapa grupp",
+      "description": "Namnet är permanent. Bara visningsnamnet kan ändras senare.",
+      "displayNameLabel": "Visningsnamn",
+      "nameLabel": "Namn",
+      "nameHelp": "Små bokstäver, siffror och bindestreck. Högst 63 tecken.",
+      "nameInvalid": "Använd små bokstäver, siffror och bindestreck. Börja och sluta med en bokstav eller siffra.",
+      "atRoot": "Skapa som grupp på översta nivån",
+      "under": "Den nya gruppen hamnar under {{group}}.",
+      "topLevel": "Den nya gruppen har ingen överordnad grupp.",
+      "submit": "Skapa"
+    },
+    "rename": {
+      "title": "Byt visningsnamn",
+      "description": "Namnet {{name}} är oförändrat. Bara visningsnamnet ändras.",
+      "submit": "Spara"
+    },
+    "move": {
+      "title": "Flytta",
+      "description": "Välj gruppen som håller {{group}}.",
+      "toRoot": "Ingen överordnad grupp. Gör den till en grupp på översta nivån."
+    },
+    "delete": {
+      "title": "Ta bort",
+      "description": "{{group}} tas bort. Detta kan inte ångras.",
+      "blocked": "Rensa först: {{reasons}}",
+      "children": "grupperna under den",
+      "members": "dess medlemmar",
+      "managers": "dess ansvariga",
+      "roles": "rollerna den ger"
+    },
+    "members": {
+      "title": "Medlemmar ({{count}})",
+      "none": "Inga medlemmar ännu.",
+      "add": "Lägg till medlem",
+      "addDescription": "Användaren blir medlem i {{group}} och i varje grupp ovanför.",
+      "remove": "Ta bort medlemmen",
+      "showEffective": "Visa medlemmar från grupper under",
+      "fromGroup": "från {{group}}"
+    },
+    "roles": {
+      "add": "Ge en roll",
+      "addDescription": "{{group}} ger rollen till alla sina medlemmar.",
+      "remove": "Sluta ge rollen"
+    },
+    "managers": {
+      "add": "Lägg till ansvarig",
+      "addDescription": "Användaren blir ansvarig för {{group}}. Det gör dem inte till medlem.",
+      "remove": "Ta bort den ansvariga",
+      "noAuthority": "En ansvarig registreras bara. Ingen endpoint kontrollerar det ännu."
+    }
+  },
   "pickers": {
     "filterUsers": "Filtrera användare",
     "loading": "Laddar...",
-    "noUsers": "Inga användare att välja."
+    "noUsers": "Inga användare att välja.",
+    "filterGroups": "Filtrera grupper",
+    "noGroups": "Inga grupper att välja.",
+    "filterRoles": "Filtrera roller",
+    "noRoles": "Inga roller att välja."
   },
   "mtlsInstall": {
     "title": "Ladda ner och installera din nyckel",
@@ -1056,6 +1157,7 @@
     "approveUsersDesc": "Granska och godkänn nya användare",
     "manageUsersDesc": "Hantera användarroller och behörigheter",
     "manageRolesDesc": "Skapa roller och ge dem till användare",
+    "manageGroupsDesc": "Bygg grupphierarkin och ge roller genom den",
     "addUsersDesc": "Skapa och hantera inbjudningskoder",
     "takServerTitle": "Takserver",
     "takServerDesc": "Hantera Takserver-konfiguration",

@@ -8,6 +8,7 @@
     "approveUsers": "Approve Users",
     "manageUsers": "Manage Users",
     "manageRoles": "Manage Roles",
+    "manageGroups": "Manage Groups",
     "addUsers": "Add Users",
     "admin": "Admin",
     "user": "User",
@@ -293,6 +294,13 @@
       "activateError": "Failed to activate invite code: {{error}}",
       "forbiddenError": "403 Forbidden: Admin access required",
       "noCallsignError": "No callsign found. Please log in."
+    },
+    "assignments": {
+      "groups": "Groups",
+      "noGroups": "No groups yet.",
+      "roles": "Roles",
+      "noRoles": "No roles yet.",
+      "gives": "Gives: {{names}}"
     }
   },
   "approveUser": {
@@ -565,10 +573,103 @@
       "cannotTakeLast": "At least one administrator must remain"
     }
   },
+  "manageGroups": {
+    "title": "Manage Groups",
+    "description": "A group holds users and grants roles to them. A member of a group is a member of every group above it.",
+    "forbidden": "403 Forbidden: Admin access required",
+    "noGroups": "No groups yet.",
+    "selectGroup": "Select a group to see it.",
+    "detail": {
+      "parent": "Parent",
+      "root": "None. This is a top-level group.",
+      "roles": "Roles granted",
+      "noRoles": "This group grants no roles.",
+      "rolesReach": "Every member of this group and of the groups below it holds these roles.",
+      "inherited": "Roles from groups above",
+      "fromGroup": "from {{group}}",
+      "managers": "Managers",
+      "noManagers": "No managers."
+    },
+    "messages": {
+      "noCallsign": "No callsign found. Please log in.",
+      "created": "Group {{group}} created",
+      "createError": "Failed to create the group: {{error}}",
+      "changed": "Group changed",
+      "changeError": "Failed to change the group: {{error}}",
+      "deleted": "Group deleted",
+      "deleteError": "Failed to delete the group: {{error}}",
+      "memberAdded": "Member added",
+      "memberRemoved": "Member removed",
+      "memberError": "Failed to change the members: {{error}}",
+      "roleGranted": "Role granted",
+      "roleRevoked": "Role no longer granted",
+      "roleError": "Failed to change the roles: {{error}}",
+      "managerAdded": "Manager added",
+      "managerRemoved": "Manager removed",
+      "managerError": "Failed to change the managers: {{error}}"
+    },
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "create": {
+      "title": "Create Group",
+      "description": "The name is permanent. Only the display name can change later.",
+      "displayNameLabel": "Display name",
+      "nameLabel": "Name",
+      "nameHelp": "Lower-case letters, numbers and hyphens. 63 characters at most.",
+      "nameInvalid": "Use lower-case letters, numbers and hyphens. Start and end with a letter or a number.",
+      "atRoot": "Create as a top-level group",
+      "under": "The new group goes under {{group}}.",
+      "topLevel": "The new group has no parent.",
+      "submit": "Create"
+    },
+    "rename": {
+      "title": "Rename",
+      "description": "The name {{name}} stays as it is. Only the display name changes.",
+      "submit": "Rename"
+    },
+    "move": {
+      "title": "Move",
+      "description": "Choose the group that holds {{group}}.",
+      "toRoot": "No parent. Make it a top-level group."
+    },
+    "delete": {
+      "title": "Delete",
+      "description": "{{group}} is deleted. This cannot be undone.",
+      "blocked": "Clear this first: {{reasons}}",
+      "children": "the groups below it",
+      "members": "its members",
+      "managers": "its managers",
+      "roles": "the roles it grants"
+    },
+    "members": {
+      "title": "Members ({{count}})",
+      "none": "No members yet.",
+      "add": "Add a member",
+      "addDescription": "The user becomes a member of {{group}} and of every group above it.",
+      "remove": "Remove the member",
+      "showEffective": "Show members from groups below",
+      "fromGroup": "from {{group}}"
+    },
+    "roles": {
+      "add": "Grant a role",
+      "addDescription": "{{group}} grants the role to all its members.",
+      "remove": "Stop granting the role"
+    },
+    "managers": {
+      "add": "Add a manager",
+      "addDescription": "The user is named a manager of {{group}}. This does not make them a member.",
+      "remove": "Remove the manager",
+      "noAuthority": "A manager designation is recorded only. No endpoint checks it yet."
+    }
+  },
   "pickers": {
     "filterUsers": "Filter users",
     "loading": "Loading...",
-    "noUsers": "No users to choose."
+    "noUsers": "No users to choose.",
+    "filterGroups": "Filter groups",
+    "noGroups": "No groups to choose.",
+    "filterRoles": "Filter roles",
+    "noRoles": "No roles to choose."
   },
   "mtlsInstall": {
     "title": "Download & Install Your Key",
@@ -1056,6 +1157,7 @@
     "approveUsersDesc": "Review and approve new user registrations",
     "manageUsersDesc": "Manage user roles and permissions",
     "manageRolesDesc": "Create roles and give them to users",
+    "manageGroupsDesc": "Build the group hierarchy and grant roles through it",
     "addUsersDesc": "Create and manage invite codes for new users",
     "takServerTitle": "Takserver",
     "takServerDesc": "Manage Takserver configuration",

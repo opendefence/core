@@ -2,10 +2,9 @@ import { useState } from "react";
 import { cn } from "cn";
 import { useTranslation } from "react-i18next";
 import type { Group } from "@/api/groups";
+import { NAME_MAX, NAME_PATTERN } from "@/api/names";
 import {
   isProtected,
-  NAME_MAX,
-  NAME_PATTERN,
   SUPERADMIN_ROLE,
   type Member,
   type Role,
