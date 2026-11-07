@@ -5,16 +5,7 @@ import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
 import { Forbidden } from "@/components/Forbidden";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
-import {
-  Users,
-  Shield,
-  FileText,
-  Server,
-  KeyRound,
-  type LucideIcon,
-} from "lucide-react";
-import { KeycloakManageModal } from "@/components/KeycloakManageModal";
+import { Users, Shield, FileText, type LucideIcon } from "lucide-react";
 
 type AdminToolsSearch = {
   type?: "users" | "services" | "all";
@@ -40,8 +31,7 @@ interface MenuItem {
   description?: string;
   action:
     | { type: "navigate"; to: string; search?: Record<string, unknown> }
-    | { type: "external"; url: string }
-    | { type: "modal"; modal: string };
+    | { type: "external"; url: string };
 }
 
 interface MenuSection {
@@ -114,7 +104,6 @@ function AdminToolsPage() {
     forbidden: "adminTools.forbiddenAdminAccess",
   });
   const { type } = Route.useSearch();
-  const [keycloakModalOpen, setKeycloakModalOpen] = useState(false);
 
   const typeSelectorItems: MenuItem[] = [
     {
@@ -125,16 +114,6 @@ function AdminToolsPage() {
         type: "navigate",
         to: "/admin-tools",
         search: { type: "users" },
-      },
-    },
-    {
-      icon: Server,
-      titleKey: "adminTools.externalServicesSection",
-      descKey: "adminTools.externalServicesDesc",
-      action: {
-        type: "navigate",
-        to: "/admin-tools",
-        search: { type: "services" },
       },
     },
   ];
@@ -163,31 +142,15 @@ function AdminToolsPage() {
         },
       ],
     },
-    {
-      titleKey: "adminTools.toolsDesc",
-      items: [
-        {
-          icon: KeyRound,
-          titleKey: "adminTools.keycloakTitle",
-          descKey: "adminTools.keycloakDesc",
-          action: { type: "modal", modal: "keycloak" },
-        },
-      ],
-    },
   ];
 
   const handleAction = (item: MenuItem) => {
     if (item.action.type === "navigate") {
       navigate({ to: item.action.to, search: item.action.search });
-    } else if (item.action.type === "modal") {
-      if (item.action.modal === "keycloak") {
-        setKeycloakModalOpen(true);
-      }
     }
   };
 
   const showUserTools = type === "users" || type === "all";
-  const showServiceTools = type === "services" || type === "all";
   const showTypeSelector = !type;
 
   if (!userTypeLoading && !allowed) {
@@ -242,9 +205,7 @@ function AdminToolsPage() {
     );
   }
 
-  const visibleSections = menuSections.filter((_, index) =>
-    index === 0 ? showUserTools : showServiceTools,
-  );
+  const visibleSections = showUserTools ? menuSections : [];
 
   return (
     <div
@@ -276,11 +237,6 @@ function AdminToolsPage() {
           </div>
         ))}
       </div>
-
-      <KeycloakManageModal
-        open={keycloakModalOpen}
-        onOpenChange={setKeycloakModalOpen}
-      />
     </div>
   );
 }
