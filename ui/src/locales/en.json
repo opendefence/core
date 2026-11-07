@@ -499,7 +499,8 @@
       "cannotDemoteOwn": "You cannot demote your own account",
       "cannotDeleteOwn": "You cannot delete your own account",
       "cannotDeleteLastAdmin": "Cannot delete the last admin. At least one admin must exist.",
-      "cannotSelectSelf": "You cannot select your own account for bulk actions."
+      "cannotSelectSelf": "You cannot select your own account for bulk actions.",
+      "bulkSuccess": "Updated {{count}} user(s)."
     },
     "bulkMode": "Select Multiple",
     "exitBulkMode": "Exit Bulk Mode",

@@ -19,6 +19,7 @@ export function useUserManagement({
 }: UseUserManagementOptions) {
   const { t } = useTranslation();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkAction, setBulkAction] = useState<
@@ -41,7 +42,7 @@ export function useUserManagement({
         }),
       );
       setPromoteConfirmOpen(false);
-      setTimeout(() => setSelectedUser(null), 150);
+      setUserDialogOpen(false);
       refetch();
     },
     onError: (error) => {
@@ -57,7 +58,7 @@ export function useUserManagement({
         t("manageUsers.messages.demoted", { callsign: selectedUser?.callsign }),
       );
       setDemoteConfirmOpen(false);
-      setTimeout(() => setSelectedUser(null), 150);
+      setUserDialogOpen(false);
       refetch();
     },
     onError: (error) => {
@@ -73,7 +74,7 @@ export function useUserManagement({
         t("manageUsers.messages.removed", { callsign: selectedUser?.callsign }),
       );
       setDeleteConfirmOpen(false);
-      setTimeout(() => setSelectedUser(null), 150);
+      setUserDialogOpen(false);
       refetch();
     },
     onError: (error) => {
@@ -174,12 +175,18 @@ export function useUserManagement({
         await deleteUserMutation.mutateAsync(userId);
       }
     }
-    toast.success(t(`manageUsers.messages.bulk${bulkAction}Success`));
+    toast.success(
+      t("manageUsers.messages.bulkSuccess", { count: selectedUsers.length }),
+    );
     setSelectedUsers([]);
     setBulkMode(false);
     setBulkConfirmOpen(false);
-    setBulkAction(null);
     refetch();
+  };
+
+  const openUser = (user: User) => {
+    setSelectedUser(user);
+    setUserDialogOpen(true);
   };
 
   const toggleBulkMode = () => {
@@ -196,7 +203,9 @@ export function useUserManagement({
 
     // Selection state
     selectedUser,
-    setSelectedUser,
+    openUser,
+    userDialogOpen,
+    setUserDialogOpen,
     selectedUsers,
     bulkMode,
     bulkAction,
