@@ -43,7 +43,9 @@ function ManageUsersPage() {
     fighters,
     isLoading,
     selectedUser,
-    setSelectedUser,
+    openUser,
+    userDialogOpen,
+    setUserDialogOpen,
     selectedUsers,
     bulkMode,
     bulkAction,
@@ -168,7 +170,7 @@ function ManageUsersPage() {
         bulkMode={bulkMode}
         selectedUsers={selectedUsers}
         currentCallsign={callsign}
-        onUserClick={setSelectedUser}
+        onUserClick={openUser}
         onUserSelect={toggleUserSelection}
       />
 
@@ -182,7 +184,7 @@ function ManageUsersPage() {
         bulkMode={bulkMode}
         selectedUsers={selectedUsers}
         currentCallsign={callsign}
-        onUserClick={setSelectedUser}
+        onUserClick={openUser}
         onUserSelect={toggleUserSelection}
       />
 
@@ -193,7 +195,8 @@ function ManageUsersPage() {
 
       <UserManagementDialog
         user={selectedUser}
-        onOpenChange={() => setSelectedUser(null)}
+        open={userDialogOpen}
+        onOpenChange={setUserDialogOpen}
         isAdmin={selectedUser ? isAdmin(selectedUser) : false}
         isCurrentUser={selectedUser ? isCurrentUser(selectedUser) : false}
         administratorsCount={administrators.length}
@@ -239,14 +242,14 @@ function ManageUsersPage() {
       <TypeConfirmationModal
         open={bulkConfirmOpen}
         onOpenChange={setBulkConfirmOpen}
-        title={t(
-          `manageUsers.confirmModals.bulk${bulkAction}.title`,
-          "Confirm Action",
-        )}
-        description={t(
-          `manageUsers.confirmModals.bulk${bulkAction}.description`,
-          "Are you sure?",
-        )}
+        title={t("manageUsers.bulkConfirm.title")}
+        description={
+          bulkAction
+            ? t(`manageUsers.bulkConfirm.${bulkAction}Description`, {
+                count: selectedUsers.length,
+              })
+            : ""
+        }
         onConfirm={confirmBulkAction}
         isLoading={false}
       />
