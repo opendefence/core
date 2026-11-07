@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useCheckCode } from "@/hooks/api/useCheckCode";
+import { useCheckCode } from "@/api/enrollment";
 import { LoginGuide } from "@/components/guides";
 
 // generate_code uses [A-Z0-9]: 8 for an invite, 16 for an admin invite.
@@ -42,22 +42,28 @@ export function LoginForm({ mtlsUrl, initialCode }: LoginFormProps) {
 
   const code = useWatch({ control, name: "code" });
 
-  const { mutate: checkCode, isLoading } = useCheckCode({
-    onSuccess: (data, checked) => {
-      if (data.isAdminCodeValid || data.isEnrollmentCodeValid) {
-        navigate({ to: "/callsign-setup", search: { code: checked } });
-      } else {
-        setError("code", { message: t("login.codeNotValid") });
-      }
-    },
-    onError: () => setError("code", { message: t("login.codeInvalid") }),
-  });
+  const { mutate: checkCode, isPending } = useCheckCode();
+
+  const check = useCallback(
+    (code: string) =>
+      checkCode(code, {
+        onSuccess: (valid) => {
+          if (valid) {
+            navigate({ to: "/callsign-setup", search: { code } });
+          } else {
+            setError("code", { message: t("login.codeNotValid") });
+          }
+        },
+        onError: () => setError("code", { message: t("login.codeInvalid") }),
+      }),
+    [checkCode, navigate, setError, t],
+  );
 
   useEffect(() => {
-    if (initialCode) checkCode(initialCode.toUpperCase());
-  }, [initialCode, checkCode]);
+    if (initialCode) check(initialCode.toUpperCase());
+  }, [initialCode, check]);
 
-  const onSubmit = handleSubmit(({ code }) => checkCode(code.toUpperCase()));
+  const onSubmit = handleSubmit(({ code }) => check(code.toUpperCase()));
 
   return (
     <>
@@ -116,7 +122,7 @@ export function LoginForm({ mtlsUrl, initialCode }: LoginFormProps) {
                 autoComplete="off"
                 placeholder={t("login.codePlaceholder")}
                 className="font-mono h-12 text-base uppercase"
-                disabled={isLoading}
+                disabled={isPending}
                 data-testid="login-code-input"
                 {...register("code", {
                   required: t("login.codeRequired"),
@@ -140,10 +146,10 @@ export function LoginForm({ mtlsUrl, initialCode }: LoginFormProps) {
               type="submit"
               variant={"outline"}
               className="w-full h-14 bg-primary-light hover:bg-primary-light/90 text-base font-semibold"
-              disabled={!code || isLoading}
+              disabled={!code || isPending}
               data-testid="login-submit-button"
             >
-              {isLoading ? (
+              {isPending ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   {t("login.verifying")}

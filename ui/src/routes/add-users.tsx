@@ -57,7 +57,7 @@ function AddUsersPage() {
     toggleBulkMode,
   } = useInviteCodeManagement();
 
-  if (!userTypeLoading && userType !== "admin") {
+  if (!userTypeLoading && userType !== "superadmin") {
     return (
       <div className="max-w-4xl mx-auto space-y-6 text-center py-12">
         <h1 className="text-6xl font-bold text-destructive">403</h1>

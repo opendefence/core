@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "cn";
 
 interface DialogPreviewProps {
-  callsign: string;
+  password: string;
   caption: string;
 }
 
@@ -16,13 +16,13 @@ interface DialogPreviewProps {
  * Only the password and the two OKs are real words. Everything else is a grey
  * bar so users don't try to read it or tap it as if it were a real control.
  */
-export function DialogPreview({ callsign, caption }: DialogPreviewProps) {
+export function DialogPreview({ password, caption }: DialogPreviewProps) {
   const { t } = useTranslation();
 
   return (
     <figure
-      data-testid="mtls-callsign-display"
-      data-callsign={callsign}
+      data-testid="mtls-password-preview"
+      data-password={password}
       className="flex flex-col items-center gap-5"
     >
       <div
@@ -36,7 +36,7 @@ export function DialogPreview({ callsign, caption }: DialogPreviewProps) {
             {t("mtlsInstall.password")}
           </p>
           <p className="truncate border-b-2 border-primary-light pb-1 font-mono text-2xl font-bold tracking-wider">
-            {callsign}
+            {password}
           </p>
         </Sketch>
 
