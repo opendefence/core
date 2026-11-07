@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AddUsersRouteImport } from './routes/add-users'
-import { Route as AdminToolsRouteImport } from './routes/admin-tools'
 import { Route as ApproveUserRouteImport } from './routes/approve-user'
 import { Route as ApproveUsersRouteImport } from './routes/approve-users'
 import { Route as CallsignSetupRouteImport } from './routes/callsign-setup'
@@ -31,11 +30,6 @@ const IndexRoute = IndexRouteImport.update({
 const AddUsersRoute = AddUsersRouteImport.update({
   id: '/add-users',
   path: '/add-users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminToolsRoute = AdminToolsRouteImport.update({
-  id: '/admin-tools',
-  path: '/admin-tools',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApproveUserRoute = ApproveUserRouteImport.update({
@@ -92,7 +86,6 @@ const ProductShortnameSplatRoute = ProductShortnameSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/add-users': typeof AddUsersRoute
-  '/admin-tools': typeof AdminToolsRoute
   '/approve-user': typeof ApproveUserRoute
   '/approve-users': typeof ApproveUsersRoute
   '/callsign-setup': typeof CallsignSetupRoute
@@ -107,7 +100,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/add-users': typeof AddUsersRoute
-  '/admin-tools': typeof AdminToolsRoute
   '/approve-user': typeof ApproveUserRoute
   '/approve-users': typeof ApproveUsersRoute
   '/callsign-setup': typeof CallsignSetupRoute
@@ -123,7 +115,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/add-users': typeof AddUsersRoute
-  '/admin-tools': typeof AdminToolsRoute
   '/approve-user': typeof ApproveUserRoute
   '/approve-users': typeof ApproveUsersRoute
   '/callsign-setup': typeof CallsignSetupRoute
@@ -140,7 +131,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/add-users'
-    | '/admin-tools'
     | '/approve-user'
     | '/approve-users'
     | '/callsign-setup'
@@ -155,7 +145,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/add-users'
-    | '/admin-tools'
     | '/approve-user'
     | '/approve-users'
     | '/callsign-setup'
@@ -170,7 +159,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/add-users'
-    | '/admin-tools'
     | '/approve-user'
     | '/approve-users'
     | '/callsign-setup'
@@ -186,7 +174,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AddUsersRoute: typeof AddUsersRoute
-  AdminToolsRoute: typeof AdminToolsRoute
   ApproveUserRoute: typeof ApproveUserRoute
   ApproveUsersRoute: typeof ApproveUsersRoute
   CallsignSetupRoute: typeof CallsignSetupRoute
@@ -213,13 +200,6 @@ declare module '@tanstack/react-router' {
       path: '/add-users'
       fullPath: '/add-users'
       preLoaderRoute: typeof AddUsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-tools': {
-      id: '/admin-tools'
-      path: '/admin-tools'
-      fullPath: '/admin-tools'
-      preLoaderRoute: typeof AdminToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/approve-user': {
@@ -298,7 +278,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddUsersRoute: AddUsersRoute,
-  AdminToolsRoute: AdminToolsRoute,
   ApproveUserRoute: ApproveUserRoute,
   ApproveUsersRoute: ApproveUsersRoute,
   CallsignSetupRoute: CallsignSetupRoute,

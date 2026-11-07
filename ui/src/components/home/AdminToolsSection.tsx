@@ -22,7 +22,7 @@ export function AdminToolsSection({ onNavigate }: AdminToolsSectionProps) {
           className="w-full sm:w-auto h-12 px-6 flex items-center justify-center gap-2 text-base font-semibold"
         >
           <Settings className="w-5 h-5" />
-          {t("adminTools.navLink")}
+          {t("common.userManagement")}
         </Button>
       </div>
     </div>
