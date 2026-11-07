@@ -90,7 +90,7 @@ function HomePage() {
 
         {userType === "superadmin" && (
           <AdminToolsSection
-            onNavigate={() => navigate({ to: "/admin-tools" })}
+            onNavigate={() => navigate({ to: "/manage-users" })}
           />
         )}
       </div>

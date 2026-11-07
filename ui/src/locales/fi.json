@@ -991,26 +991,6 @@
     },
     "or": "tai"
   },
-  "adminTools": {
-    "navLink": "Ylläpitotyökalut",
-    "title": "Ylläpitäjän konsoli",
-    "description": "Hallitse tiimiäsi, käyttäjiä ja ulkoisia palveluita keskitetysti.",
-    "userManagementSection": "Käyttäjähallinta",
-    "userManagementDesc": "Hyväksy uusia käyttäjiä, hallinnoi rooleja ja hallitse pääsyoikeuksia.",
-    "approveUsersDesc": "Tarkastele ja hyväksy uusia käyttäjiä",
-    "manageUsersDesc": "Hallitse käyttäjärooleja ja käyttöoikeuksia",
-    "addUsersDesc": "Luo ja hallitse kutsukoodeja",
-    "takServerTitle": "Takserverin hallinta",
-    "takServerDesc": "Hallinnoi Takserverin asetuksia",
-    "blServerTitle": "Battlelogin hallinta",
-    "blServerDesc": "Hallinnoi Battlelogin palveluita",
-    "openExternal": "Avaa ulkoinen",
-    "access": "Avaa",
-    "helpTitle": "Pikaopas",
-    "help1": "Käyttäjähallinta – hyväksy, ylennä, alenna tai poista käyttäjiä",
-    "help2": "Kutsukoodit – luo ja hallitse käyttäjäkoodeja",
-    "help3": "Ulkoiset palvelut – käytä TAK- ja BL-palvelimia"
-  },
   "guides": {
     "disableAutoOpen": "Älä näytä minulle ohjeita automaattisesti"
   }

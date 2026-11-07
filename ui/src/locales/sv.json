@@ -991,26 +991,6 @@
     },
     "or": "eller"
   },
-  "adminTools": {
-    "navLink": "Adminverktyg",
-    "title": "Administrationskonsol",
-    "description": "Hantera team, användare och externa tjänster från en central plats.",
-    "userManagementSection": "Användarhantering",
-    "userManagementDesc": "Godkänn nya användare och hantera roller.",
-    "approveUsersDesc": "Granska och godkänn nya användare",
-    "manageUsersDesc": "Hantera användarroller och behörigheter",
-    "addUsersDesc": "Skapa och hantera inbjudningskoder",
-    "takServerTitle": "Takserver",
-    "takServerDesc": "Hantera Takserver-konfiguration",
-    "blServerTitle": "Battle log-server",
-    "blServerDesc": "Hantera konfiguration",
-    "openExternal": "Öppna extern",
-    "access": "Öppna",
-    "helpTitle": "Snabbhjälp",
-    "help1": "Användarhantering – godkänn, befordra, degradera, ta bort",
-    "help2": "Inbjudningskoder – generera och hantera koder",
-    "help3": "Externa tjänster – åtkomst till TAK och BL"
-  },
   "guides": {
     "disableAutoOpen": "Visa inte guider automatiskt för mig"
   }
