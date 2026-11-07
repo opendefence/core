@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from lib_opendefence_core.models.v1alpha1 import Integration
 from lib_opendefence_core.models.v1alpha1.integration import ProductComponent, ProductDescription, ProductInfo
 from opendefence_core.api.app import app
-from opendefence_core.api.dependencies import jwt_user
+from opendefence_core.api.dependencies import mtls_user
 from opendefence_core.api.lib.uids import compact
 from tests.factories import make_integration, make_user, uid
 from tests.fakes import FakeList
@@ -55,7 +55,7 @@ def integrations(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[Integration]]
         return FakeList(store)
 
     monkeypatch.setattr(Integration, "async_list", classmethod(async_list))
-    app.dependency_overrides[jwt_user] = lambda: make_user("user-1", callsign="alpha1")
+    app.dependency_overrides[mtls_user] = lambda: make_user("user-1", callsign="alpha1")
     yield store
     app.dependency_overrides.clear()
 

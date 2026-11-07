@@ -15,7 +15,7 @@ from opendefence_core.api import dependencies
 from opendefence_core.api.app import app
 from opendefence_core.api.lib.uids import compact
 from opendefence_core.certificates import certificate_identity
-from tests.factories import make_client_certificate, make_user, uid
+from tests.factories import make_client_certificate, make_group, make_user, uid
 from tests.fakes import FakeList
 
 
@@ -55,6 +55,32 @@ def users(monkeypatch: pytest.MonkeyPatch) -> list[User]:
     return state
 
 
+@pytest.fixture
+def groups(monkeypatch: pytest.MonkeyPatch) -> list[Group]:
+    """Groups the API can list."""
+    state: list[Group] = []
+
+    async def async_list(cls: type[Group], **kwargs: object) -> FakeList[Group]:
+        _ = cls, kwargs
+        return FakeList(state)
+
+    monkeypatch.setattr(Group, "async_list", classmethod(async_list))
+    return state
+
+
+@pytest.fixture
+def roles(monkeypatch: pytest.MonkeyPatch) -> list[Role]:
+    """Roles the API can list."""
+    state: list[Role] = []
+
+    async def async_list(cls: type[Role], **kwargs: object) -> FakeList[Role]:
+        _ = cls, kwargs
+        return FakeList(state)
+
+    monkeypatch.setattr(Role, "async_list", classmethod(async_list))
+    return state
+
+
 async def test_mtls_user_returns_the_certificate_user(users: list[User]) -> None:
     """The accepted certificate authenticates its user; only the first certificate of a chain counts."""
     user, other = make_user("user-alpha"), make_user("user-bravo")
@@ -89,15 +115,9 @@ async def test_mtls_user_rejects(users: list[User], case: str) -> None:
     assert raised.value.status_code == 401
 
 
-def test_me_with_a_client_certificate(users: list[User], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_me_with_a_client_certificate(users: list[User], groups: list[Group], roles: list[Role]) -> None:
     """GET /users/me answers for the certificate's user; a valid token without a certificate is 401."""
-
-    async def empty(cls: type, **kwargs: object) -> FakeList[Group]:
-        _ = cls, kwargs
-        return FakeList([])
-
-    monkeypatch.setattr(Group, "async_list", classmethod(empty))
-    monkeypatch.setattr(Role, "async_list", classmethod(empty))
+    _ = groups, roles
     user = make_user("user-alpha", callsign="alpha1")
     certificate = _certificate(user)
     _accept(user, certificate)
@@ -109,5 +129,33 @@ def test_me_with_a_client_certificate(users: list[User], monkeypatch: pytest.Mon
     app.dependency_overrides[dependencies.jwt_user] = lambda: user
     try:
         assert client.get("/api/v3/users/me").status_code == 401
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize(
+    ("held", "joined", "allowed"),
+    [(["superadmin"], [], True), ([], ["admins"], True), (["operator"], [], False)],
+)
+async def test_superadmin_user(groups: list[Group], held: list[str], joined: list[str], allowed: bool) -> None:
+    """The superadmin role counts when held directly or through a group; any other caller is 403."""
+    groups.append(make_group("admins", roles=["superadmin"]))
+    user = make_user("user-alpha", roles=held, groups=joined)
+    if allowed:
+        assert await dependencies.superadmin_user(user) is user
+        return
+    with pytest.raises(HTTPException) as raised:
+        await dependencies.superadmin_user(user)
+    assert raised.value.status_code == 403
+
+
+def test_admin_routes_need_superadmin(groups: list[Group]) -> None:
+    """A certificate without the superadmin role is 403 on admin routes; no certificate is 401."""
+    _ = groups
+    client = TestClient(app)
+    assert client.get("/api/v3/groups").status_code == 401
+    app.dependency_overrides[dependencies.mtls_user] = lambda: make_user("user-alpha")
+    try:
+        assert client.get("/api/v3/groups").status_code == 403
     finally:
         app.dependency_overrides.clear()

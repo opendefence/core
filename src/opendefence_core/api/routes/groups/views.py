@@ -6,7 +6,7 @@ from cloudcoil.errors import APIError, ResourceConflict
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from lib_opendefence_core.models.v1alpha1 import Group, Role, User
-from opendefence_core.api.dependencies import jwt_user
+from opendefence_core.api.dependencies import superadmin_user
 from opendefence_core.api.lib.groups import (
     add_manager,
     add_member,
@@ -26,8 +26,7 @@ from opendefence_core.api.routes.groups.schema import CreateGroupRequest, GroupR
 from opendefence_core.api.routes.users.schema import UserResponse
 from opendefence_core.api.schema import UserSummary
 
-# FIXME: switch to the mTLS user with the superadmin role
-router = APIRouter(prefix="/groups", tags=["groups"], dependencies=[Depends(jwt_user)])
+router = APIRouter(prefix="/groups", tags=["groups"], dependencies=[Depends(superadmin_user)])
 
 
 async def _admitted[T](write: Awaitable[T]) -> T:
