@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeployment } from "@/api/health";
+import { baseUrl } from "@/lib/origins";
 import { useInvitePdfExport } from "@/hooks/helpers/useInvitePdfExport";
 import { InviteHeader } from "@/components/invite-code/InviteHeader";
 import { InviteQRCodeCard } from "@/components/invite-code/InviteQRCodeCard";
@@ -18,15 +19,15 @@ export const Route = createFileRoute("/invite-code/$code")({
   component: InviteCodePage,
 });
 
-function getInviteUrl(code: string, autoOpenGuides: boolean): string {
-  let hostname = new URL(window.location.origin).hostname;
-  hostname = hostname.replace(/^mtls\./, "");
+function getInviteUrl(
+  domain: string,
+  code: string,
+  autoOpenGuides: boolean,
+): string {
+  if (!domain) return "";
   return (
-    window.location.protocol +
-    "//" +
-    hostname +
-    (window.location.port ? ":" + window.location.port : "") +
-    "/login?code=" +
+    baseUrl(domain) +
+    "login?code=" +
     code +
     // Carried in the link rather than stored server side: it is a default for
     // the people joining with this code, not a deployment-wide policy.
@@ -37,11 +38,11 @@ function getInviteUrl(code: string, autoOpenGuides: boolean): string {
 function InviteCodePage() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
-  const { deployment } = useDeployment();
+  const { deployment, domain } = useDeployment();
   const { t } = useTranslation();
 
   const [autoOpenGuides, setAutoOpenGuides] = useState(true);
-  const inviteUrl = getInviteUrl(code ?? "", autoOpenGuides);
+  const inviteUrl = getInviteUrl(domain, code ?? "", autoOpenGuides);
   const { qrRef, downloadQRCodeAsPDF } = useInvitePdfExport({
     code: code ?? "",
     inviteUrl,

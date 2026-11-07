@@ -16,21 +16,23 @@ function typeOf(user: UserResponse): "superadmin" | "user" {
 }
 
 export function useUserType() {
+  const certified = isAppOrigin();
   const { data, isLoading } = useQuery({
-    queryKey: ["users", "me"],
+    queryKey: certified ? ["users", "me"] : ["enrollment"],
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/v3/users/me");
+      const { data, error } = certified
+        ? await api.GET("/api/v3/users/me")
+        : await api.GET("/api/v3/enrollment");
       if (error) throw new Error("Not authenticated");
       return data;
     },
-    // On app.* the certificate answers for us, elsewhere only a token can.
-    enabled: isAppOrigin() || readToken() !== null,
+    enabled: certified || readToken() !== null,
     retry: false,
     staleTime: Infinity,
   });
 
   return {
-    userType: data ? typeOf(data) : null,
+    userType: data && "effectiveRoles" in data ? typeOf(data) : null,
     isLoading,
     callsign: data?.callsign ?? null,
     isValidUser: data !== undefined,
