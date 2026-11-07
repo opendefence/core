@@ -468,14 +468,25 @@
     },
     "userDialog": {
       "title": "Manage User",
-      "currentRole": "Current role:",
       "goBack": "Go back",
       "remove": "Remove",
       "removing": "Removing...",
       "promote": "Promote",
       "promoting": "Promoting...",
       "demote": "Demote",
-      "demoting": "Demoting..."
+      "demoting": "Demoting...",
+      "state": "State:",
+      "roles": "Roles",
+      "noRoles": "No roles yet.",
+      "addRole": "Give a role",
+      "addRoleDescription": "{{callsign}} holds the role directly.",
+      "removeRole": "Take the role away",
+      "fromGroup": "from {{group}}",
+      "groups": "Groups",
+      "noGroups": "In no group yet.",
+      "addGroup": "Add to a group",
+      "addGroupDescription": "{{callsign}} becomes a member of the group and of every group above it.",
+      "removeGroup": "Remove from the group"
     },
     "tooltips": {
       "cannotRemove": "You cannot remove yourself from this application",
@@ -523,7 +534,12 @@
     "selected": "{{count}} selected",
     "promote": "Promote",
     "demote": "Demote",
-    "remove": "Remove"
+    "remove": "Remove",
+    "states": {
+      "pending": "Pending",
+      "active": "Active",
+      "revoked": "Revoked"
+    }
   },
   "manageRoles": {
     "title": "Manage Roles",

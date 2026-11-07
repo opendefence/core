@@ -468,14 +468,25 @@
     },
     "userDialog": {
       "title": "Hallinnoi käyttäjää",
-      "currentRole": "Nykyinen rooli:",
       "goBack": "Takaisin",
       "remove": "Poista",
       "removing": "Poistetaan...",
       "promote": "Ylennä",
       "promoting": "Ylennetään...",
       "demote": "Alenna",
-      "demoting": "Alennetaan..."
+      "demoting": "Alennetaan...",
+      "state": "Tila:",
+      "roles": "Roolit",
+      "noRoles": "Ei vielä rooleja.",
+      "addRole": "Anna rooli",
+      "addRoleDescription": "{{callsign}} saa roolin suoraan.",
+      "removeRole": "Poista rooli",
+      "fromGroup": "ryhmästä {{group}}",
+      "groups": "Ryhmät",
+      "noGroups": "Ei vielä ryhmissä.",
+      "addGroup": "Lisää ryhmään",
+      "addGroupDescription": "{{callsign}} liittyy ryhmään ja kaikkiin sen yläpuolisiin ryhmiin.",
+      "removeGroup": "Poista ryhmästä"
     },
     "tooltips": {
       "cannotRemove": "Et voi poistaa itseäsi",
@@ -523,7 +534,12 @@
     "selected": "{{count}} valittu",
     "promote": "Ylennä",
     "demote": "Alenna",
-    "remove": "Poista"
+    "remove": "Poista",
+    "states": {
+      "pending": "Odottaa",
+      "active": "Aktiivinen",
+      "revoked": "Peruttu"
+    }
   },
   "manageRoles": {
     "title": "Hallitse rooleja",
