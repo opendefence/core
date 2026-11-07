@@ -108,6 +108,7 @@ function RootLayout() {
       const adminPaths = [
         "/approve-users",
         "/manage-users",
+        "/manage-roles",
         "/add-users",
         "/admin-tools",
       ];

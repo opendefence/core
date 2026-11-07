@@ -7,6 +7,7 @@
     "userManagement": "Användarhantering",
     "approveUsers": "Godkänn användare",
     "manageUsers": "Hantera användare",
+    "manageRoles": "Hantera roller",
     "addUsers": "Lägg till användare",
     "admin": "Admin",
     "user": "Användare",
@@ -514,6 +515,61 @@
     "demote": "Degradera",
     "remove": "Ta bort"
   },
+  "manageRoles": {
+    "title": "Hantera roller",
+    "description": "En roll avgör vad en användare får göra. Användaren har rollen direkt eller genom en grupp.",
+    "forbidden": "403 Förbjudet: Adminbehörighet krävs",
+    "filterPlaceholder": "Filtrera roller",
+    "noRoles": "Inga roller ännu.",
+    "managed": "Integration",
+    "created": "Skapad {{date}}",
+    "cancel": "Avbryt",
+    "creating": "Skapar...",
+    "deleting": "Tar bort...",
+    "create": {
+      "title": "Skapa roll",
+      "description": "Båda namnen är permanenta. Plattformen kan inte byta namn.",
+      "displayNameLabel": "Visningsnamn",
+      "nameLabel": "Namn",
+      "nameHelp": "Små bokstäver, siffror och bindestreck. Högst 63 tecken.",
+      "nameInvalid": "Använd små bokstäver, siffror och bindestreck. Börja och sluta med en bokstav eller siffra.",
+      "submit": "Skapa"
+    },
+    "detail": {
+      "holders": "Direkt hos {{count}}",
+      "loadingHolders": "Laddar innehavare...",
+      "noHolders": "Ingen har den här rollen direkt.",
+      "add": "Ge rollen till en användare",
+      "addDescription": "Användaren har {{role}} direkt efter detta.",
+      "remove": "Ta bort rollen",
+      "grantedBy": "Grupper som ger rollen",
+      "throughGroups": "Medlemmar i dessa grupper har också rollen. De visas inte ovan."
+    },
+    "manage": {
+      "namePermanent": "En roll kan inte byta namn. Ta bort den och skapa en ny.",
+      "managedKept": "En integration äger den här rollen, så plattformen behåller den.",
+      "superadminKept": "Plattformen behåller rollen superadmin. Utan den kan ingen administrera installationen.",
+      "delete": "Ta bort roll"
+    },
+    "messages": {
+      "noCallsign": "Ingen anropssignal hittades. Logga in.",
+      "created": "Rollen {{role}} skapades",
+      "createError": "Kunde inte skapa rollen: {{error}}",
+      "deleted": "Rollen {{role}} togs bort",
+      "deleteError": "Kunde inte ta bort rollen: {{error}}",
+      "given": "Rollen gavs",
+      "giveError": "Kunde inte ge rollen: {{error}}",
+      "taken": "Rollen togs bort",
+      "takeError": "Kunde inte ta bort rollen: {{error}}",
+      "cannotTakeOwn": "Du kan inte ta bort superadmin från dig själv",
+      "cannotTakeLast": "Minst en administratör måste finnas kvar"
+    }
+  },
+  "pickers": {
+    "filterUsers": "Filtrera användare",
+    "loading": "Laddar...",
+    "noUsers": "Inga användare att välja."
+  },
   "mtlsInstall": {
     "title": "Ladda ner och installera din nyckel",
     "description": "Installera ditt mTLS-certifikat för säker åtkomst. Detta säkerställer att endast du kan ansluta.",
@@ -999,6 +1055,7 @@
     "userManagementDesc": "Godkänn nya användare och hantera roller.",
     "approveUsersDesc": "Granska och godkänn nya användare",
     "manageUsersDesc": "Hantera användarroller och behörigheter",
+    "manageRolesDesc": "Skapa roller och ge dem till användare",
     "addUsersDesc": "Skapa och hantera inbjudningskoder",
     "takServerTitle": "Takserver",
     "takServerDesc": "Hantera Takserver-konfiguration",

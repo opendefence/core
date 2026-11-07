@@ -5,7 +5,13 @@ import { useRequireSuperadmin } from "@/hooks/auth/useRequireSuperadmin";
 import { Forbidden } from "@/components/Forbidden";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Users, Shield, FileText, type LucideIcon } from "lucide-react";
+import {
+  Users,
+  Shield,
+  ShieldCheck,
+  FileText,
+  type LucideIcon,
+} from "lucide-react";
 
 type AdminToolsSearch = {
   type?: "users" | "services" | "all";
@@ -139,6 +145,12 @@ function AdminToolsPage() {
           titleKey: "common.approveUsers",
           descKey: "adminTools.approveUsersDesc",
           action: { type: "navigate", to: "/approve-users" },
+        },
+        {
+          icon: ShieldCheck,
+          titleKey: "common.manageRoles",
+          descKey: "adminTools.manageRolesDesc",
+          action: { type: "navigate", to: "/manage-roles" },
         },
       ],
     },

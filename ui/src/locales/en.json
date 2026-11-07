@@ -7,6 +7,7 @@
     "userManagement": "User Management",
     "approveUsers": "Approve Users",
     "manageUsers": "Manage Users",
+    "manageRoles": "Manage Roles",
     "addUsers": "Add Users",
     "admin": "Admin",
     "user": "User",
@@ -514,6 +515,61 @@
     "demote": "Demote",
     "remove": "Remove"
   },
+  "manageRoles": {
+    "title": "Manage Roles",
+    "description": "A role decides what a user may do. A user holds a role directly, or a group grants it.",
+    "forbidden": "403 Forbidden: Admin access required",
+    "filterPlaceholder": "Filter roles",
+    "noRoles": "No roles yet.",
+    "managed": "Integration",
+    "created": "Created {{date}}",
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "deleting": "Deleting...",
+    "create": {
+      "title": "Create Role",
+      "description": "Both names are permanent. The platform has no rename.",
+      "displayNameLabel": "Display name",
+      "nameLabel": "Name",
+      "nameHelp": "Lower-case letters, numbers and hyphens. 63 characters at most.",
+      "nameInvalid": "Use lower-case letters, numbers and hyphens. Start and end with a letter or a number.",
+      "submit": "Create"
+    },
+    "detail": {
+      "holders": "Held directly by {{count}}",
+      "loadingHolders": "Loading the holders...",
+      "noHolders": "Nobody holds this role directly.",
+      "add": "Give the role to a user",
+      "addDescription": "The user holds {{role}} directly after this.",
+      "remove": "Take the role away",
+      "grantedBy": "Granted by groups",
+      "throughGroups": "Members of these groups hold the role too. They are not listed above."
+    },
+    "manage": {
+      "namePermanent": "A role cannot be renamed. Delete it and create a new one.",
+      "managedKept": "An integration owns this role, so the platform keeps it.",
+      "superadminKept": "The platform keeps the superadmin role. Without it nobody can administer this deployment.",
+      "delete": "Delete role"
+    },
+    "messages": {
+      "noCallsign": "No callsign found. Please log in.",
+      "created": "Role {{role}} created",
+      "createError": "Failed to create the role: {{error}}",
+      "deleted": "Role {{role}} deleted",
+      "deleteError": "Failed to delete the role: {{error}}",
+      "given": "Role given",
+      "giveError": "Failed to give the role: {{error}}",
+      "taken": "Role taken away",
+      "takeError": "Failed to take the role away: {{error}}",
+      "cannotTakeOwn": "You cannot take superadmin away from yourself",
+      "cannotTakeLast": "At least one administrator must remain"
+    }
+  },
+  "pickers": {
+    "filterUsers": "Filter users",
+    "loading": "Loading...",
+    "noUsers": "No users to choose."
+  },
   "mtlsInstall": {
     "title": "Download & Install Your Key",
     "description": "Install your mTLS certificate to securely access all services. This ensures only you can connect with your identity.",
@@ -999,6 +1055,7 @@
     "userManagementDesc": "Approve new users, manage team roles, and control access to your services.",
     "approveUsersDesc": "Review and approve new user registrations",
     "manageUsersDesc": "Manage user roles and permissions",
+    "manageRolesDesc": "Create roles and give them to users",
     "addUsersDesc": "Create and manage invite codes for new users",
     "takServerTitle": "Takserver",
     "takServerDesc": "Manage Takserver configuration",
