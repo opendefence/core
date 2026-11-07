@@ -56,14 +56,24 @@ task base:export-ca > public-root-ca.pem
 curl --cacert public-root-ca.pem https://local-dev.opendefence.fi/api/v3/health
 ```
 
-`https://app.local-dev.opendefence.fi/api/` serves the same API and requires a user
-client certificate. The name does not resolve yet. Pass `--resolve` to curl:
+`https://app.local-dev.opendefence.fi/` serves the UI and the rest of the API.
+It requires a user client certificate. The name also resolves to 127.0.0.1:
 
 ```sh
 curl --cacert public-root-ca.pem --cert user.pem --key user.key \
-  --resolve app.local-dev.opendefence.fi:443:127.0.0.1 \
   https://app.local-dev.opendefence.fi/api/v3/users/me
 ```
+
+A new deployment has no users. Create the first administrator's invite:
+
+```sh
+uv run --locked opendefence_core api invite
+```
+
+Open `https://local-dev.opendefence.fi/login?code=<code>` and choose a
+callsign. The invite is single-use and approves itself, so no second
+administrator is needed. Download the certificate and import it into your
+browser. Then open `https://app.local-dev.opendefence.fi/`.
 
 Try the platform objects with the examples:
 
@@ -191,7 +201,9 @@ Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
 5. `api`: the REST API, its RBAC, and its JWT signing key.
 6. `ui`: the web UI.
 7. `ingress`: the `domain` certificate from `public-issuer`, Traefik's default
-   `TLSStore`, and the `IngressRoute`s serving `/api` and the UI.
+   `TLSStore`, and the `IngressRoute`s. `<domain>` serves the UI and the
+   enrollment routes. `app.<domain>` serves the UI and the whole API behind
+   the `core-mtls` TLSOption, which requires a user client certificate.
 
 Resources are raw YAML in `manifests/`; the middlewares, API, and ingress use
 Go templates. `manifests/crds/crds.yaml` and `manifests/operator/operator.yaml`
