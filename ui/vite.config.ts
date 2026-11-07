@@ -253,9 +253,8 @@ export default defineConfig(({ mode }) => {
       watch: { ignored: ["**/.env*"] },
       host: env.SERVER_DOMAIN || "localhost",
       allowedHosts: [
-        env.SERVER_DOMAIN ?? "localhost",
-        "local-dev.opendefence.fi",
-        /^.+\.local-dev\.opendefence\.fi$/,
+        env.SERVER_DOMAIN ? `.${env.SERVER_DOMAIN}` : "localhost",
+        ".local-dev.opendefence.fi",
       ],
       proxy: {
         "/api": {
