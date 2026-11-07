@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ChevronRight,
   ChevronLeft,
@@ -228,7 +227,7 @@ export function MtlsGuide({ open, onOpenChange }: MtlsGuideProps) {
                 />
               </button>
               {showInstructions && (
-                <ScrollArea className="max-h-[50vh] -mx-1 px-1">
+                <div className="-mx-1 px-1">
                   <ol className="space-y-2 text-sm text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pr-4 pb-2">
                     {getPlatformSteps().map((stepText, idx) => (
                       <li key={idx} className="flex gap-2">
@@ -239,7 +238,7 @@ export function MtlsGuide({ open, onOpenChange }: MtlsGuideProps) {
                       </li>
                     ))}
                   </ol>
-                </ScrollArea>
+                </div>
               )}
             </div>
           )}
