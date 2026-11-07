@@ -115,14 +115,14 @@ function ManageGroupsPage() {
       </Button>
 
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-        <div className="p-4 bg-card border-2 border-border rounded-xl">
+        <div className="flex min-h-48 flex-col p-5 bg-card border-2 border-border rounded-xl">
           <GroupTree
             tree={tree}
             selectedId={selectedGroup?.id}
             onSelect={selectGroup}
           />
         </div>
-        <div className="p-5 bg-card border-2 border-border rounded-xl space-y-5">
+        <div className="flex min-h-48 flex-col p-5 bg-card border-2 border-border rounded-xl space-y-5">
           <GroupDetail
             group={selectedGroup}
             parent={parent}

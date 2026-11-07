@@ -27,7 +27,7 @@ export function GroupDetail({
   if (!group) {
     return (
       <p
-        className="text-sm text-muted-foreground"
+        className="flex flex-1 items-center justify-center text-sm text-muted-foreground"
         data-testid="group-detail-empty"
       >
         {t("manageGroups.selectGroup")}
