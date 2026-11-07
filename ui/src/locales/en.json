@@ -300,7 +300,8 @@
       "noGroups": "No groups yet.",
       "roles": "Roles",
       "noRoles": "No roles yet.",
-      "gives": "Gives: {{names}}"
+      "givesGroups": "Groups: {{names}}",
+      "givesRoles": "Roles: {{names}}"
     }
   },
   "approveUser": {
