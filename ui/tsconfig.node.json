@@ -26,7 +26,6 @@
   "include": [
     "vite.config.ts",
     "module-federation/vite-importmap-shim.ts",
-    "vite.config.ts",
-    "vite-env.d.ts"
+    "vite.config.ts"
   ]
 }
