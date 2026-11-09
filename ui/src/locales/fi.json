@@ -13,25 +13,15 @@
     "admin": "Ylläpitäjä",
     "user": "Käyttäjä",
     "deployApp": "Deploy App",
-    "takServer": "Takserver",
     "learnAboutMtls": "Lue lisää mTLS:stä",
     "proudlyServedBy": "Palvelun tarjoaa PV-Arki.",
-    "releasedUnder": "Julkaistu GNU GPLv3 -lisenssillä TAK Product Centerin toimesta.",
-    "viewSource": "Näytä lähdekoodi",
-    "letDevelopersKnow": "Kerro kehittäjille",
-    "whatYouThink": "mitä ajattelet",
-    "allRightsReserved": "Kaikki oikeudet pidätetään.",
     "copyright": "© 2026 PV-Arki. Kaikki oikeudet pidätetään.",
     "authenticating": "Autentikoidaan...",
-    "adminConsole": "Ylläpitäjän konsoli",
     "forbiddenAdminAccess": "403 Kielletty: Ylläpitäjäoikeudet vaaditaan",
     "cancel": "Peruuta",
     "confirm": "Vahvista",
     "confirming": "Vahvistetaan...",
     "processing": "Käsitellään...",
-    "type": "Tyyppi",
-    "toConfirm": "vahvistaaksesi",
-    "typeConfirmPlaceholder": "Kirjoita \"{text}\" vahvistaaksesi",
     "managing": "Hallitaan",
     "step": "Vaihe",
     "of": "/",
@@ -42,11 +32,6 @@
     "imageNotAvailable": "Kuva ei saatavilla",
     "clickToEnlarge": "Klikkaa suurentaaksesi",
     "footer": "Avaa alatunniste"
-  },
-  "pages": {
-    "login": "Kirjaudu",
-    "waitingRoom": "Odotushuone",
-    "error": "Virhe"
   },
   "modals": {
     "mtls": {
@@ -86,7 +71,6 @@
       }
     },
     "completion": "Perehdyttäminen valmis!",
-    "completionDesc": "Olet valmis ja voit nyt työskennellä täysillä teholla.",
     "step": "Vaihe",
     "of": "/",
     "finish": "Valmis",
@@ -101,9 +85,6 @@
   "systemStatus": {
     "title": "Järjestelmän tila",
     "lastUpdated": "Päivitetty",
-    "services": "Palvelut",
-    "active": "Aktiivinen",
-    "issues": "Ongelmat",
     "noServices": "Ei palveluita saatavilla",
     "operational": "TOIMII",
     "down": "ALHAALLA",
@@ -165,10 +146,6 @@
         "title": "Turvallinen yhteys",
         "description": "mTLS varmistaa että sekä sinä että palvelin vahvistatte henkilöllisyyden. Asenna varmenne turvalliseen käyttöön."
       },
-      "platform": {
-        "title": "Valitse alustasi",
-        "description": "Valitse käyttöjärjestelmäsi pudotusvalikosta. Asennusohjeet mukautuvat automaattisesti näyttämään oikeat vaiheet Windowsille, macOS:lle, Linuxille, Androidille tai iOS:lle."
-      },
       "download": {
         "title": "Lataa varmenne",
         "description": "Klikkaa 'Lataa varmenne' saadaksesi henkilökohtaisen mTLS-varmenteesi. Pidä tämä tiedosto turvassa."
@@ -176,10 +153,6 @@
       "install": {
         "title": "Asennus",
         "description": "Seuraa alla olevia alustasi koskevia asennusohjeita."
-      },
-      "navigate": {
-        "title": "Käytä turvallisia palveluita",
-        "description": "Kun asennus on valmis, klikkaa 'Siirry palveluihin' päästäksesi turvalliseen verkkotunnukseen. Selaimesi käyttää juuri asennettua varmennettasi automaattiseen tunnistautumiseen. Olet nyt valmis käyttämään kaikkia taktisia palveluita!"
       }
     },
     "androidWarning": {
@@ -233,14 +206,11 @@
   },
   "addUsers": {
     "title": "Lisää käyttäjiä kutsukoodilla",
-    "subtitle": "Yhtä kutsukoodia voidaan käyttää useita kertoja. Klikkaa koodia nähdäksesi sen QR-koodin ja jakaaksesi sen käyttäjille. Luo uusi koodi vain tarvittaessa.",
-    "subtitleHighlight": "Yhtä kutsukoodia voidaan käyttää useita kertoja.",
     "createNewInvite": "Luo uusi kutsukoodi",
     "create": "Luo",
     "creating": "Luodaan...",
     "selectMultiple": "Valitse useita",
     "cancel": "Peruuta",
-    "selected": "{{count}} valittu",
     "enable": "Ota käyttöön",
     "disable": "Poista käytöstä",
     "delete": "Poista",
@@ -250,9 +220,7 @@
     "created": "Luotu {{date}}",
     "createdBy": "{{creator}} loi tämän koodin {{date}}",
     "forbidden": "403 Kielletty: Ylläpitäjän oikeudet vaaditaan",
-    "noCallsign": "Kutsutunnusta ei löytynyt. Kirjaudu sisään.",
     "createModalTitle": "Luo uusi kutsukoodi",
-    "createModalDescription": "Yhtä kutsukoodia voi käyttää useampi käyttäjä",
     "createModalWarning": "⚠️ Yhtä kutsukoodia voi käyttää useampi käyttäjä",
     "createModalText": "Sinun tarvitsee luoda uusi koodi vain, jos:",
     "createModalReason1": "Olet poistanut tai poistanut käytöstä edellisen koodisi",
@@ -264,7 +232,6 @@
     "enableCode": "Ota koodi käyttöön",
     "deleteCode": "Poista koodi",
     "deleting": "Poistetaan...",
-    "goBack": "Takaisin",
     "walkthrough": {
       "title": "Näin lisäät käyttäjiä",
       "description": "Pikakäyttöopas kutsujen lähettämiseen",
@@ -310,7 +277,6 @@
     "approvalCodeLabel": "Hyväksyntäkoodi",
     "approvalCodePlaceholder": "Syötä hyväksyntäkoodi",
     "enterApprovalCodeMessage": "Syötä hyväksyntäkoodi",
-    "goBack": "Takaisin",
     "cancel": "Peruuta",
     "approve": "Hyväksy",
     "approving": "Hyväksytään...",
@@ -365,11 +331,9 @@
       "icon": "⚠️"
     },
     "returnHome": "Palaa etusivulle",
-    "troubleshootingSteps": "Yleiset vianmääritysvaiheet",
-    "errorCode": "Virhe: {{code}}"
+    "troubleshootingSteps": "Yleiset vianmääritysvaiheet"
   },
   "home": {
-    "welcome": "Tervetuloa Deploy Appiin",
     "description": "Pääset käyttämään taktisia palveluita ja työkaluja. Valitse palvelu aloittaaksesi.",
     "loadingServices": "Ladataan palveluita...",
     "authRequired": "Sinun tulee olla kirjautunut käyttääksesi palveluita.",
@@ -444,10 +408,6 @@
   },
   "manageUsers": {
     "title": "Hallitse käyttäjiä",
-    "description": "Hallitse käyttäjiä tässä näkymässä.",
-    "adminHighlight": "Ylläpitäjät",
-    "fighterHighlight": "Taistelijat",
-    "noCallsignFound": "Kutsutunnusta ei löytynyt. Kirjaudu sisään.",
     "forbidden": "403 Kielletty: Ylläpito-oikeudet vaaditaan",
     "administrators": "Ylläpitäjät",
     "fighters": "Taistelijat",
@@ -470,11 +430,8 @@
       "title": "Hallinnoi käyttäjää",
       "goBack": "Takaisin",
       "remove": "Poista",
-      "removing": "Poistetaan...",
       "promote": "Ylennä",
-      "promoting": "Ylennetään...",
       "demote": "Alenna",
-      "demoting": "Alennetaan...",
       "state": "Tila:",
       "roles": "Roolit",
       "noRoles": "Ei vielä rooleja.",
@@ -490,23 +447,22 @@
     },
     "tooltips": {
       "cannotRemove": "Et voi poistaa itseäsi",
-      "cannotDemote": "Et voi alentaa itseäsi"
+      "cannotDemote": "Et voi alentaa itseäsi",
+      "cannotPromoteAdmins": "Et voi ylentää käyttäjää, joka on jo ylläpitäjä",
+      "cannotDemoteNonAdmins": "Voit alentaa vain ylläpitäjiä"
     },
     "confirmModals": {
       "promote": {
         "title": "Ylennä käyttäjä",
-        "description": "Haluatko varmasti ylentää käyttäjän {{callsign}} ylläpitäjäksi? He saavat täydet hallintaoikeudet.",
-        "requiredText": "PROMOTE"
+        "description": "Haluatko varmasti ylentää käyttäjän {{callsign}} ylläpitäjäksi? He saavat täydet hallintaoikeudet."
       },
       "demote": {
         "title": "Alenna käyttäjä",
-        "description": "Haluatko varmasti alentaa käyttäjän {{callsign}} ylläpitäjästä taistelijaksi?",
-        "requiredText": "DEMOTE"
+        "description": "Haluatko varmasti alentaa käyttäjän {{callsign}} ylläpitäjästä taistelijaksi?"
       },
       "remove": {
         "title": "Poista käyttäjä",
-        "description": "Toimintoa ei voi peruuttaa. Haluatko varmasti poistaa käyttäjän {{callsign}}?",
-        "requiredText": "{{callsign}}"
+        "description": "Toimintoa ei voi peruuttaa. Haluatko varmasti poistaa käyttäjän {{callsign}}?"
       }
     },
     "messages": {
@@ -698,7 +654,6 @@
     "selectPlaceholder": "Valitse OS",
     "instructionsTitle": "Asennusohjeet:",
     "note": "Huom:",
-    "passwordLabel": "Varmenteen salasana:",
     "downloadButton": "Lataa avain",
     "downloading": "Ladataan...",
     "navigateButton": "Siirry avaimella",
@@ -1037,32 +992,6 @@
         "title": "Hae avaimesi",
         "action": "Lataa avain"
       },
-      "firefox": {
-        "caption": "Avain on tiedosto, jonka lisäät Firefoxiin.",
-        "title": "Lisää avain Firefoxiin",
-        "steps": [
-          "Kopioi osoite ja avaa se uuteen ikkunaan näillä näppäimillä:",
-          "Paina Tuo…",
-          "Avaa Lataukset, valitse {{fileName}} ja paina Valitse.",
-          "Kirjoita salasanaksi sivulla näkyvä PIN-koodi ja paina Kirjaudu sisään.",
-          "Paina varmenneikkunassa OK ja sitten täällä Asennettu – jatka."
-        ],
-        "fallbackPath": "Firefoxissa: ≡-valikko → Asetukset → hae ”varmenteet” → Varmenteiden hallinta → Omat varmenteet.",
-        "pick": "Firefox kysyy varmennetta. {{certName}} on jo valittuna. Paina OK."
-      },
-      "chrome": {
-        "caption": "Avain on tiedosto, jonka lisäät selaimeen.",
-        "title": "Lisää avain selaimeen",
-        "steps": [
-          "Kopioi osoite ja avaa se uuteen ikkunaan näillä näppäimillä:",
-          "Paina Tuo.",
-          "Avaa Lataukset, valitse {{fileName}} ja paina Valitse.",
-          "Kirjoita salasanaksi sivulla näkyvä PIN-koodi ja paina OK.",
-          "Palaa tähän ikkunaan ja paina Asennettu – jatka."
-        ],
-        "fallbackPath": "Selaimessa: ⋮-valikko → Asetukset → Tietosuoja ja turvallisuus → Turvallisuus → Hallinnoi varmenteita → Omat varmenteet.",
-        "pick": "Selain kysyy varmennetta. {{certName}} on jo valittuna. Paina OK."
-      },
       "system": {
         "crManager": "Varmenteiden hallinta",
         "crPlatform": "Asiakasvarmenteet alustalta",
@@ -1100,8 +1029,6 @@
     "iosExplanation": "iOS:llä vain Safari tukee tarvittavia turvaominaisuuksia. Muut selaimet eivät toimi.",
     "unknownExplanation": "Tätä selainta ei ole testattu sovelluksen kanssa.",
     "supportedBrowsers": "Yhteensopivat selaimet",
-    "importantNote": "Huomio",
-    "securityRequirement": "Sovellus vaatii selaimia, jotka tukevat mTLS-varmenteita turvallisuuden takaamiseksi.",
     "refreshNote": "Lataa yhteensopiva selain ja avaa sivu uudelleen.",
     "continueAtRisk": "Jatka omalla vastuulla",
     "riskWarning": "Varoitus: Asiat voivat mennä rikki, jos jatkat tukemattomalla selaimella.",
@@ -1120,12 +1047,9 @@
     "loadingMarkdown": "Ladataan markdownia..."
   },
   "waitingRoom": {
-    "titleShort": "Odottaa hyväksyntää",
     "title": "Pyydä hyväksyntä",
     "description": "Ylläpitäjä on yleensä se, joka antoi sinulle kutsukoodin.",
     "actionFailed": "Toiminto epäonnistui: {{error}}",
-    "instructionsTitle": "Hyväksynnän ohjeet",
-    "instructionsText": "Voit hyväksyä käyttäjän ottamalla hänen hyväksyntäkoodinsa odotushuoneen näytöltä, pyytämällä hänen hyväksyntälinkkinsä tai syöttämällä koodin “Hyväksy käyttäjiä” -näkymässä.",
     "approvedToast": "Sinut on hyväksytty!",
     "codeLabel": "Hyväksyntäkoodi",
     "callsignLabel": "Kutsutunnus",
