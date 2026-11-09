@@ -21,6 +21,14 @@ export function writeStore(key: string, value: string): void {
   }
 }
 
+export function clearStore(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Nothing readable is nothing to clear.
+  }
+}
+
 export function readSession(key: string): string | null {
   try {
     return sessionStorage.getItem(key);
