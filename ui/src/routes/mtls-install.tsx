@@ -84,18 +84,18 @@ function MtlsInstallPage() {
 
   const { data: status, isError } = useEnrollmentStatus();
   const callsign = status?.callsign ?? "";
+  const userId = status?.id ?? "";
   const commonName = status?.certificateCommonName;
   const uri = status?.certificateUri;
 
   const { mutate: request, data: bundle, isPending, error } = useCertificate();
 
-  const certDownloaded = !!callsign && readCertDownloaded(callsign);
+  const certDownloaded = !!userId && readCertDownloaded(userId);
 
   // Keep pin during the instructions in case browser reloads the tab.
   const pin = useMemo(
-    () =>
-      !callsign ? "" : certDownloaded ? readPin(callsign) : savedPin(callsign),
-    [callsign, certDownloaded],
+    () => (!userId ? "" : certDownloaded ? readPin(userId) : savedPin(userId)),
+    [userId, certDownloaded],
   );
 
   // The certificate is made as soon as identity is known
@@ -137,14 +137,14 @@ function MtlsInstallPage() {
   }, [isPending]);
 
   useEffect(() => {
-    if (!callsign) return;
+    if (!userId) return;
     const leave = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.closest("[data-mtls-url]")) clearPin(callsign);
+      if (target?.closest("[data-mtls-url]")) clearPin(userId);
     };
     document.addEventListener("click", leave);
     return () => document.removeEventListener("click", leave);
-  }, [callsign]);
+  }, [userId]);
 
   const canNavigate = certDownloaded;
 
@@ -154,7 +154,7 @@ function MtlsInstallPage() {
       new Blob([bundle.pfx], { type: "application/x-pkcs12" }),
       `${callsign}_${deployment}.pfx`,
     );
-    writeCertDownloaded(callsign);
+    writeCertDownloaded(userId);
     setDownloadCount((n) => n + 1);
     if (!guided) toast.success(t("mtlsInstall.certificateDownloaded"));
   };
@@ -183,7 +183,6 @@ function MtlsInstallPage() {
             <div className="my-auto pb-10">
               {osToShow === "Linux" ? (
                 <LinuxInstallFlow
-                  callsign={callsign}
                   certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
@@ -202,7 +201,6 @@ function MtlsInstallPage() {
                 />
               ) : osToShow === "Windows" ? (
                 <WinInstallFlow
-                  callsign={callsign}
                   certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
@@ -221,7 +219,6 @@ function MtlsInstallPage() {
                 />
               ) : (
                 <MacInstallFlow
-                  callsign={callsign}
                   certName={commonName ?? ""}
                   deployment={deployment}
                   fileName={`${callsign}_${deployment}.pfx`}
@@ -265,7 +262,6 @@ function MtlsInstallPage() {
 
             {osToShow === "iOS" ? (
               <IosInstallFlow
-                callsign={callsign}
                 certName={commonName ?? ""}
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
@@ -282,7 +278,6 @@ function MtlsInstallPage() {
               />
             ) : (
               <AndroidInstallFlow
-                callsign={callsign}
                 fileName={`${callsign}_${deployment}.pfx`}
                 mtlsUrl={mtlsUrl}
                 onDownload={handleDownloadKey}
