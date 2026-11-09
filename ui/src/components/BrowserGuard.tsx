@@ -2,8 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import {
   getBrowserInfo,
   getBrowserDownloadLinks,
-} from "@/utils/browserDetection";
-import { getOperatingSystem } from "@/components/mtls/platformUtils";
+} from "@/lib/browserDetection";
+import { getOperatingSystem } from "@/lib/platformUtils";
 import { useDeployment } from "@/api/health";
 import { getTheme } from "@/config/themes";
 import { useIsMobile } from "@/hooks/use-mobile";

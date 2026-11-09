@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { GuardHeader } from "./GuardHeader";
 import { BrowserExplanation } from "./BrowserExplanation";
 import { SupportedBrowsersList } from "./SupportedBrowsersList";
-import type { BrowserInfo } from "@/utils/browserDetection";
+import type { BrowserInfo } from "@/lib/browserDetection";
 
 interface DesktopGuardProps {
   deployment: string;
