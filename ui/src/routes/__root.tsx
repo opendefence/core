@@ -10,16 +10,13 @@ import {
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useUserType } from "@/hooks/auth/useUserType";
-import { withGuidePreference } from "@/hooks/useGuidePreferences";
 import { MtlsInfoModal } from "@/components/MtlsInfoModal";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "@/components/Sidebar";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { appUrl, isAppOrigin } from "@/lib/origins";
-import { readStore } from "@/lib/safeStorage";
-import { readToken } from "@/api/token";
+import { isAppOrigin } from "@/lib/origins";
 import { useIsTablet } from "@/hooks/use-tablet";
 
 const ENROLLMENT_PATHS = [
@@ -32,17 +29,10 @@ const ENROLLMENT_PATHS = [
 
 export const Route = createRootRoute({
   component: RootLayoutWrapper,
+  // Stored state cannot prove a session, so /login resumes once the API has.
   beforeLoad: ({ location }) => {
     if (isAppOrigin() || ENROLLMENT_PATHS.includes(location.pathname)) return;
-
-    const callsign = readStore("callsign");
-    if (callsign && readStore(`cert_downloaded:${callsign}`) === "true") {
-      // A separate origin, so the router cannot take us there.
-      window.location.href = withGuidePreference(
-        appUrl(window.location.hostname),
-      );
-    }
-    throw redirect({ to: readToken() ? "/mtls-install" : "/login" });
+    throw redirect({ to: "/login" });
   },
 });
 

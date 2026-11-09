@@ -5,7 +5,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { CertificateError, useCertificate } from "@/api/certificates";
 import { useEnrollmentStatus } from "@/api/enrollment";
-import { readToken } from "@/api/token";
+import {
+  clearEnrollment,
+  readCertDownloaded,
+  readToken,
+  writeCertDownloaded,
+} from "@/api/token";
 import { downloadBlob } from "@/lib/downloadBlob";
 import {
   useGuidePreferences,
@@ -25,7 +30,6 @@ import { MacInstallFlow } from "@/components/mtls/MacInstallFlow";
 import { WinInstallFlow } from "@/components/mtls/WinInstallFlow";
 import { LinuxInstallFlow } from "@/components/mtls/LinuxInstallFlow";
 import { CompactHeader } from "@/components/CompactHeader";
-import { readStore, writeStore } from "@/lib/safeStorage";
 import { clearPin, readPin, savedPin } from "@/lib/certificate/pin";
 import {
   getOperatingSystem,
@@ -85,9 +89,7 @@ function MtlsInstallPage() {
 
   const { mutate: request, data: bundle, isPending, error } = useCertificate();
 
-  // Scoped by callsign
-  const certDownloaded =
-    !!callsign && readStore(`cert_downloaded:${callsign}`) === "true";
+  const certDownloaded = !!callsign && readCertDownloaded(callsign);
 
   // Keep pin during the instructions in case browser reloads the tab.
   const pin = useMemo(
@@ -120,8 +122,11 @@ function MtlsInstallPage() {
       error instanceof CertificateError && error.reason === "approvalUsed";
     if (!readToken()) navigate({ to: "/login" });
     else if (status && !status.approved) navigate({ to: "/waiting-room" });
-    else if (isError || (spent && !certDownloaded))
+    else if (isError || (spent && !certDownloaded)) {
+      // A kept token would send the next visit straight back here.
+      clearEnrollment();
       navigate({ to: "/login", search: { reason: "enrollment_failed" } });
+    }
   }, [status, isError, error, certDownloaded, navigate]);
 
   useEffect(() => {
@@ -149,7 +154,7 @@ function MtlsInstallPage() {
       new Blob([bundle.pfx], { type: "application/x-pkcs12" }),
       `${callsign}_${deployment}.pfx`,
     );
-    writeStore(`cert_downloaded:${callsign}`, "true");
+    writeCertDownloaded(callsign);
     setDownloadCount((n) => n + 1);
     if (!guided) toast.success(t("mtlsInstall.certificateDownloaded"));
   };

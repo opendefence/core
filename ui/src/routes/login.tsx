@@ -7,6 +7,7 @@ import { TriangleAlert } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { EnrollmentLayout } from "@/components/enrollment/EnrollmentLayout";
+import { useEnrollmentResume } from "@/hooks/auth/useEnrollmentResume";
 import { useDeployment } from "@/api/health";
 import { baseUrl, appUrl, isAppOrigin } from "@/lib/origins";
 
@@ -36,6 +37,7 @@ function LoginPage() {
   const { t } = useTranslation();
   const { domain } = useDeployment();
   const { code: urlCode, reason } = Route.useSearch();
+  const resuming = useEnrollmentResume();
 
   // Reaching login on the mTLS origin means the certificate did not work
   useEffect(() => {
@@ -43,6 +45,19 @@ function LoginPage() {
       window.location.href = `${baseUrl(domain)}error?code=mtls_fail`;
     }
   }, [domain]);
+
+  if (resuming) {
+    return (
+      <EnrollmentLayout>
+        <div
+          data-testid="login-resuming"
+          className="flex items-center justify-center py-12"
+        >
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </EnrollmentLayout>
+    );
+  }
 
   return (
     <EnrollmentLayout>

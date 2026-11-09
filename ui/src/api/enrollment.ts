@@ -3,7 +3,7 @@ import { api } from "./client";
 import { writeToken } from "./token";
 
 // 404 means the invite is no longer redeemable: used up, expired or changed since it was
-// checked. 409 means someone else holds the callsign.
+// checked. 409 means someone else holds the callsign. 401 means the token names no user.
 export class EnrollError extends Error {
   status: number;
 
@@ -41,15 +41,24 @@ export function useEnroll() {
   });
 }
 
+// A 4xx is a verdict, not a blip: retrying one only stalls the page.
+function retryUnlessRefused(count: number, error: Error): boolean {
+  const refused =
+    error instanceof EnrollError && error.status >= 400 && error.status < 500;
+  return !refused && count < 3;
+}
+
 /** The caller's own enrollment. Given an interval, polls until they are approved. */
-export function useEnrollmentStatus(pollMs?: number) {
+export function useEnrollmentStatus(pollMs?: number, enabled = true) {
   return useQuery({
     queryKey: ["enrollment"],
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/v3/enrollment");
-      if (error) throw new Error("Enrollment status failed");
+      const { data, response } = await api.GET("/api/v3/enrollment");
+      if (!data) throw new EnrollError(response.status);
       return data;
     },
+    enabled,
+    retry: retryUnlessRefused,
     refetchInterval: ({ state }) =>
       pollMs !== undefined && !state.data?.approved ? pollMs : false,
   });
