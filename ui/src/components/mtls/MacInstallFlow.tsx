@@ -35,7 +35,6 @@ function browserName() {
 }
 
 interface MacInstallFlowProps {
-  callsign: string;
   certName: string;
   password: string;
   deployment: string;
@@ -48,7 +47,6 @@ interface MacInstallFlowProps {
 }
 
 export function MacInstallFlow({
-  callsign,
   certName,
   password,
   deployment,
@@ -60,11 +58,7 @@ export function MacInstallFlow({
   platformPicker,
 }: MacInstallFlowProps) {
   const { t } = useTranslation();
-  const { step, furthest, go } = useWizardStep(
-    STEP_KEY,
-    callsign,
-    MAC_STEPS.length,
-  );
+  const { step, furthest, go } = useWizardStep(STEP_KEY, MAC_STEPS.length);
   const { returned } = usePageFocus(step === 1);
   const { copied, copy } = useStickyCopy(password);
   const loginUrl = `${window.location.origin}/`;

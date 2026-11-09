@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { readStore, writeStore } from "@/lib/safeStorage";
+import { readUserId } from "@/api/token";
 
 export interface WizardStep {
   /** The step being shown. */
@@ -39,12 +40,8 @@ export function parseProgress(
  * and that the user can move freely within: every step already reached stays
  * one tap away.
  */
-export function useWizardStep(
-  storageKey: string,
-  callsign: string,
-  count: number,
-): WizardStep {
-  const owner = callsign || readStore("callsign") || "";
+export function useWizardStep(storageKey: string, count: number): WizardStep {
+  const owner = readUserId() ?? "";
   const [progress, setProgress] = useState(() =>
     parseProgress(readStore(storageKey), owner, count),
   );
