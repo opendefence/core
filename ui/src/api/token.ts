@@ -2,18 +2,26 @@ import { clearStore, readStore, writeStore } from "@/lib/safeStorage";
 
 // Carries the user through enrollment, until their certificate takes over.
 const TOKEN_KEY = "token";
-const CALLSIGN_KEY = "callsign";
+const USER_ID_KEY = "userId";
 
-// One browser may enroll more than once.
-const certKey = (callsign: string) => `cert_downloaded:${callsign}`;
+// Keyed by uid, not callsign: a callsign repeats, a uid never does.
+const certKey = (userId: string) => `cert_downloaded:${userId}`;
 
-/** Whether this callsign saved its bundle, the last step. */
-export function readCertDownloaded(callsign: string): boolean {
-  return readStore(certKey(callsign)) === "true";
+/** Whether this user saved their bundle, the last step. */
+export function readCertDownloaded(userId: string): boolean {
+  return readStore(certKey(userId)) === "true";
 }
 
-export function writeCertDownloaded(callsign: string): void {
-  writeStore(certKey(callsign), "true");
+export function writeCertDownloaded(userId: string): void {
+  writeStore(certKey(userId), "true");
+}
+
+export function readUserId(): string | null {
+  return readStore(USER_ID_KEY);
+}
+
+export function writeUserId(userId: string): void {
+  writeStore(USER_ID_KEY, userId);
 }
 
 export function readToken(): string | null {
@@ -26,8 +34,8 @@ export function writeToken(token: string): void {
 
 /** Drop what an unfinishable enrollment left behind, so the next visit is clean. */
 export function clearEnrollment(): void {
-  const callsign = readStore(CALLSIGN_KEY);
-  if (callsign) clearStore(certKey(callsign));
-  clearStore(CALLSIGN_KEY);
+  const userId = readUserId();
+  if (userId) clearStore(certKey(userId));
+  clearStore(USER_ID_KEY);
   clearStore(TOKEN_KEY);
 }

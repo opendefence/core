@@ -34,7 +34,6 @@ const DIALOG_GRACE_MS = 2000;
 type DialogState = "dialog" | "waiting" | "no-dialog" | "returned";
 
 interface AndroidInstallFlowProps {
-  callsign: string;
   password: string;
   fileName: string;
   mtlsUrl: string;
@@ -50,7 +49,6 @@ interface AndroidInstallFlowProps {
  * only ever has to say two things while they are open: the password, and OK.
  */
 export function AndroidInstallFlow({
-  callsign,
   password,
   fileName,
   mtlsUrl,
@@ -60,11 +58,7 @@ export function AndroidInstallFlow({
   platformPicker,
 }: AndroidInstallFlowProps) {
   const { t } = useTranslation();
-  const { step, furthest, go } = useWizardStep(
-    STEP_KEY,
-    callsign,
-    CERT_STEPS.length,
-  );
+  const { step, furthest, go } = useWizardStep(STEP_KEY, CERT_STEPS.length);
   const focus = usePageFocus(step === 1);
   const { copied, copy } = useStickyCopy(password);
 

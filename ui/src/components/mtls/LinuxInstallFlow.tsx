@@ -28,7 +28,6 @@ const MANAGER_URL = {
 };
 
 interface LinuxInstallFlowProps {
-  callsign: string;
   certName: string;
   password: string;
   deployment: string;
@@ -41,7 +40,6 @@ interface LinuxInstallFlowProps {
 }
 
 export function LinuxInstallFlow({
-  callsign,
   certName,
   password,
   deployment,
@@ -54,11 +52,7 @@ export function LinuxInstallFlow({
 }: LinuxInstallFlowProps) {
   const { t } = useTranslation();
   const browser = /Firefox\//.test(navigator.userAgent) ? "firefox" : "chrome";
-  const { step, furthest, go } = useWizardStep(
-    STEP_KEY,
-    callsign,
-    CERT_STEPS.length,
-  );
+  const { step, furthest, go } = useWizardStep(STEP_KEY, CERT_STEPS.length);
   const { returned } = usePageFocus(step === 1);
   const { copied: pwCopied, copy: copyPw } = useStickyCopy(password);
   const { copied: urlCopiedOnce, copy: copyUrlRaw } = useStickyCopy(

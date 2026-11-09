@@ -12,7 +12,7 @@ export function useEnrollmentResume(): boolean {
   useEffect(() => {
     if (!checking) return;
     if (status) {
-      if (readCertDownloaded(status.callsign)) setChecking(false);
+      if (readCertDownloaded(status.id)) setChecking(false);
       else
         navigate({ to: status.approved ? "/mtls-install" : "/waiting-room" });
     } else if (isError) {

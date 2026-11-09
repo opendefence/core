@@ -34,7 +34,6 @@ const STEP_KEY = "mtls_win_step";
 const FF_CERT_MANAGER = "chrome://pippki/content/certManager.xhtml";
 
 interface WinInstallFlowProps {
-  callsign: string;
   certName: string;
   password: string;
   deployment: string;
@@ -47,7 +46,6 @@ interface WinInstallFlowProps {
 }
 
 export function WinInstallFlow({
-  callsign,
   certName,
   password,
   deployment,
@@ -62,11 +60,7 @@ export function WinInstallFlow({
   // Firefox doesn't read the Windows certificate store, so it needs its own import.
   const firefox = /Firefox\//.test(navigator.userAgent);
   const steps = firefox ? WIN_FIREFOX_STEPS : CERT_STEPS;
-  const { step, furthest, go } = useWizardStep(
-    STEP_KEY,
-    callsign,
-    steps.length,
-  );
+  const { step, furthest, go } = useWizardStep(STEP_KEY, steps.length);
   const { returned } = usePageFocus(step === 1);
   const { returned: ffReturned } = usePageFocus(steps[step] === "firefox");
   const { copied, copy } = useStickyCopy(password);

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { EnrollError, useEnroll } from "@/api/enrollment";
-import { writeStore } from "@/lib/safeStorage";
+import { writeUserId } from "@/api/token";
 
 interface UseCallsignSetupOptions {
   code: string;
@@ -23,7 +23,7 @@ export function useCallsignSetup({ code }: UseCallsignSetupOptions) {
       { code, callsign },
       {
         onSuccess: (status) => {
-          writeStore("callsign", status.callsign);
+          writeUserId(status.id);
           navigate({ to: "/waiting-room" });
         },
         onError: (error) => {

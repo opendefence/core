@@ -19,7 +19,6 @@ const SHOT_LANGS = ["fi", "en", "sv"];
 const SHOTS = ["install-1", "install-2", "install-3", "install-4"];
 
 interface IosInstallFlowProps {
-  callsign: string;
   certName: string;
   password: string;
   mtlsUrl: string;
@@ -30,7 +29,6 @@ interface IosInstallFlowProps {
 }
 
 export function IosInstallFlow({
-  callsign,
   certName,
   password,
   mtlsUrl,
@@ -42,11 +40,7 @@ export function IosInstallFlow({
   const { t, i18n } = useTranslation();
   const lang = i18n.resolvedLanguage ?? "";
   const shotDir = `/guide/ios/${SHOT_LANGS.includes(lang) ? lang : "en"}`;
-  const { step, furthest, go } = useWizardStep(
-    STEP_KEY,
-    callsign,
-    CERT_STEPS.length,
-  );
+  const { step, furthest, go } = useWizardStep(STEP_KEY, CERT_STEPS.length);
   // Safari's own download alerts blur the page; only a trip to Settings hides it.
   const { returned } = usePageFocus(step === 1, { hiddenOnly: true });
   const { copied, copy } = useStickyCopy(password);
