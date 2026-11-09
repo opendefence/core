@@ -31,10 +31,7 @@ import { WinInstallFlow } from "@/components/mtls/WinInstallFlow";
 import { LinuxInstallFlow } from "@/components/mtls/LinuxInstallFlow";
 import { CompactHeader } from "@/components/CompactHeader";
 import { clearPin, readPin, savedPin } from "@/lib/certificate/pin";
-import {
-  getOperatingSystem,
-  PLATFORM_INSTRUCTIONS,
-} from "@/components/mtls/platformUtils";
+import { getOperatingSystem, PLATFORM_INSTRUCTIONS } from "@/lib/platformUtils";
 import { useDeployment } from "@/api/health";
 import { appUrl } from "@/lib/origins";
 import { LanguageSwitcher } from "@/components/auth/LanguageSwitcher";
