@@ -1,9 +1,10 @@
 """Reading and managing platform roles."""
 
 from collections.abc import Mapping
+from contextlib import suppress
 
 from cloudcoil.apimachinery import ObjectMeta
-from cloudcoil.errors import ResourceNotFound
+from cloudcoil.errors import ResourceConflict
 
 from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Role, RoleSpec, User
@@ -39,9 +40,7 @@ async def create_role(name: str, display_name: str) -> Role:
 
 async def ensure_role(name: str, display_name: str) -> None:
     """Create the role unless it exists. A reference to a missing role never resolves."""
-    try:
-        await Role.async_get(name)
-    except ResourceNotFound:
+    with suppress(ResourceConflict):
         await create_role(name, display_name)
 
 

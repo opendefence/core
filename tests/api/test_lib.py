@@ -7,7 +7,7 @@ from pathlib import Path
 
 import jwt as pyjwt
 import pytest
-from cloudcoil.errors import ResourceNotFound
+from cloudcoil.errors import ResourceConflict
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 
@@ -217,10 +217,12 @@ def test_new_user_auto_approved() -> None:
 
 @pytest.fixture
 def made_roles(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
-    """Record the roles ensure_role would create."""
+    """Record the roles ensure_role creates; superadmin already exists."""
     created: list[tuple[str, str]] = []
 
     async def create_role(name: str, display_name: str) -> Role:
+        if name == "superadmin":
+            raise ResourceConflict(name)
         created.append((name, display_name))
         return make_role(name)
 
@@ -228,28 +230,14 @@ def made_roles(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
     return created
 
 
-async def test_ensure_role_keeps_an_existing_role(
-    monkeypatch: pytest.MonkeyPatch, made_roles: list[tuple[str, str]]
-) -> None:
+async def test_ensure_role_keeps_an_existing_role(made_roles: list[tuple[str, str]]) -> None:
     """A role that is already there is left as it is."""
-
-    async def async_get(name: str) -> Role:
-        return make_role(name)
-
-    monkeypatch.setattr(Role, "async_get", async_get)
     await roles.ensure_role("superadmin", "Superadmin")
     assert made_roles == []
 
 
-async def test_ensure_role_creates_a_missing_role(
-    monkeypatch: pytest.MonkeyPatch, made_roles: list[tuple[str, str]]
-) -> None:
+async def test_ensure_role_creates_a_missing_role(made_roles: list[tuple[str, str]]) -> None:
     """A reference to a missing role never resolves, so create it first."""
-
-    async def async_get(name: str) -> Role:
-        raise ResourceNotFound(name)
-
-    monkeypatch.setattr(Role, "async_get", async_get)
     await roles.ensure_role("group-admin", "Group admin")
     assert made_roles == [("group-admin", "Group admin")]
 
