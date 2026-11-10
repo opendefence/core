@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 
 from opendefence_core.k8s_operator.render import CRDS_PATH, IMAGE, OPERATOR_PATH, render
-from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, PUBLIC_CERT_NAMESPACE, SYSTEM_NAMESPACE
+from opendefence_core.naming import CLIENT_CERT_NAMESPACE, OPERATOR_NAME, OPERATOR_TLS_SECRET, SYSTEM_NAMESPACE
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -121,7 +121,7 @@ def test_operator_rbac() -> None:
     assert ("secrets",) not in rules
     assert "delete" in rules[("certificaterequests",)]
     assert not any(
-        document["kind"] == "Role" and document["metadata"].get("namespace") == PUBLIC_CERT_NAMESPACE
+        document["kind"] == "Role" and document["metadata"].get("namespace") == CLIENT_CERT_NAMESPACE
         for document in documents
     )
     leases = _one(documents, "Role", SYSTEM_NAMESPACE)

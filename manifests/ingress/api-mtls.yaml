@@ -22,4 +22,4 @@ spec:
   tls:
     options:
       name: core-mtls
-      namespace: cert-manager
+      namespace: traefik-system
