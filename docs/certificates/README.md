@@ -12,7 +12,7 @@ The client generates the key pair, and the server never holds a private key.
 3. `GET /api/v3/enrollment` returns `certificateCommonName` and `certificateUri` after approval.
 4. The client sends a CSR for that identity with `POST /api/v3/certificates/csr`.
 5. The operator consumes the approval and creates the CertificateRequest `user-<resource-name>`
-   in `opendefence-public-certs`. cert-manager signs it with `public-issuer`.
+   in `opendefence-client-certs`. cert-manager signs it with `client-issuer`.
 6. `GET /api/v3/certificates/chain.pem` returns the leaf certificate and the CA.
 7. `GET https://app.<domain>/api/v3/users/me` with the client certificate returns the caller.
 
@@ -35,9 +35,9 @@ The limit is 8192 characters.
 
 ## Client certificate authentication
 
-`app.<domain>` requires a client certificate signed by `public-issuer`. Traefik verifies it
-with the TLSOption `core-mtls` against `public-root-secret` in `cert-manager`.
-Base creates that secret only with `issuer.type: ca`. With `acme`, `app.<domain>` accepts no certificate.
+`app.<domain>` requires a client certificate signed by `client-issuer`. Traefik verifies it
+with the TLSOption `core-mtls` against the Secret `client-ca` in `traefik-system`.
+Base creates the issuer and the Secret with every `issuer.type`. Server certificates come from `public-issuer`.
 
 The IngressRoute `core-api-mtls` applies the middlewares in this order:
 

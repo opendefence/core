@@ -14,7 +14,7 @@ from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION
 from opendefence_core.api.dependencies import JWTUser
 from opendefence_core.api.routes.certificates.schema import CSR_RESPONSES, PEM_MEDIA_TYPE, PEM_RESPONSES, CsrRequest
 from opendefence_core.certificates import approval_used, certificate_identity, check_csr, wants_certificate
-from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, user_certificate_name
+from opendefence_core.naming import CLIENT_CERT_NAMESPACE, user_certificate_name
 
 logger = get_logger(__name__)
 
@@ -52,7 +52,7 @@ async def get_certificate(user: JWTUser) -> Response:
     if not wants_certificate(user) or ready is None or ready.status != "True":
         raise HTTPException(status.HTTP_409_CONFLICT, detail=CERTIFICATE_NOT_ISSUED_MESSAGE)
     try:
-        issued = await CertificateRequest.async_get(user_certificate_name(user), PUBLIC_CERT_NAMESPACE)
+        issued = await CertificateRequest.async_get(user_certificate_name(user), CLIENT_CERT_NAMESPACE)
     except ResourceNotFound as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, detail=CERTIFICATE_NOT_ISSUED_MESSAGE) from exc
     if issued.status is None or not issued.status.certificate:

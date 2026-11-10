@@ -8,11 +8,11 @@ from lib_opendefence_core.models.v1alpha1 import User
 SYSTEM_NAMESPACE = "opendefence-system"
 """Namespace of the operator and the REST API."""
 
-PUBLIC_CERT_NAMESPACE = "opendefence-public-certs"
+CLIENT_CERT_NAMESPACE = "opendefence-client-certs"
 """Namespace of the users' certificate signing requests."""
 
-PUBLIC_ISSUER = "public-issuer"
-"""Base's ClusterIssuer for public certificates, including the users' mTLS certificates."""
+CLIENT_ISSUER = "client-issuer"
+"""Base's ClusterIssuer for the users' mTLS certificates."""
 
 OPERATOR_NAME = "core-operator"
 """Operator Application name: its Deployment, ServiceAccount, Service, Lease, and RBAC."""
@@ -25,5 +25,5 @@ SUPERADMIN_ROLE = "superadmin"
 
 
 def user_certificate_name(user: User) -> str:
-    """Name of the user's one-shot cert-manager CertificateRequest in PUBLIC_CERT_NAMESPACE."""
+    """Name of the user's one-shot cert-manager CertificateRequest in CLIENT_CERT_NAMESPACE."""
     return f"user-{user.name}"

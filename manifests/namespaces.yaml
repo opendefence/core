@@ -5,8 +5,8 @@ metadata:
   annotations:
     linkerd.io/inject: enabled
 ---
-# User mTLS certificates issued by the operator from base's public-issuer
+# User mTLS certificates issued by the operator from base's client-issuer
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: opendefence-public-certs
+  name: opendefence-client-certs

@@ -268,4 +268,4 @@ def test_pem_download(monkeypatch: pytest.MonkeyPatch, as_user: None) -> None:
     assert response.status_code == 200
     assert response.content == b"leaf\nca\n"
     assert response.headers["content-type"] == "application/x-pem-file"
-    assert seen == [("opendefence-public-certs", "user-alpha1")]
+    assert seen == [("opendefence-client-certs", "user-alpha1")]
