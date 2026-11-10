@@ -86,8 +86,8 @@ The **operator** (`opendefence_core operator run`, Deployment `core-operator`)
 reconciles them:
 
 - An approved, unrevoked User gets a one-shot cert-manager `CertificateRequest`
-  named `user-<resource-name>` in `opendefence-public-certs`.
-  cert-manager signs the CSR from the user's browser with base's `public-issuer`.
+  named `user-<resource-name>` in `opendefence-client-certs`.
+  cert-manager signs the CSR from the user's browser with base's `client-issuer`.
   The server never holds the user's private key.
   `CertificateReady` reports progress. `status.publicKey` contains the SHA-256
   fingerprint of the public key SPKI. See [User certificates](docs/certificates/README.md)
@@ -180,7 +180,7 @@ Zarf deploys to the current kube-context, which must equal `KUBE_CONTEXT`
 `zarf.yaml` defines the package. Components deploy in order:
 
 1. `namespaces`: `opendefence-system` (Linkerd-injected) and
-   `opendefence-public-certs` (user certificates).
+   `opendefence-client-certs` (user certificates).
 2. `crds`: the `platform.opendefence.fi/v1alpha1` CRDs (User, Group, Role,
    Invite, UserBinding, Integration).
 3. `traefik-middlewares`: shared middlewares in Traefik's `traefik-system`

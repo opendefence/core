@@ -36,7 +36,7 @@ from opendefence_core.k8s_operator.controllers._certificates import (
     reconcile_certificate,
 )
 from opendefence_core.k8s_operator.controllers.users import reconcile_user
-from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, PUBLIC_ISSUER, user_certificate_name
+from opendefence_core.naming import CLIENT_CERT_NAMESPACE, CLIENT_ISSUER, user_certificate_name
 from tests.factories import make_user
 from tests.fakes import FakeClient, FakeContext
 
@@ -98,7 +98,7 @@ async def _send(ctx: FakeContext, csr: str | None = None) -> None:
 
 async def _request(ctx: FakeContext) -> CertificateRequest:
     user = await _current(ctx)
-    return await ctx.get(CertificateRequest, user_certificate_name(user), namespace=PUBLIC_CERT_NAMESPACE)
+    return await ctx.get(CertificateRequest, user_certificate_name(user), namespace=CLIENT_CERT_NAMESPACE)
 
 
 async def _issued(ctx: FakeContext, *, expired: bool = False) -> CertificateRequest:
@@ -172,7 +172,7 @@ def test_identity_and_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     assert request.spec is not None
     assert base64.b64decode(request.spec.request).decode() == csr
     assert request.spec.duration == "2880h"
-    assert request.spec.issuer_ref.name == PUBLIC_ISSUER
+    assert request.spec.issuer_ref.name == CLIENT_ISSUER
     assert request.spec.usages == ["digital signature", "client auth"]
     common_name, uri = certificate_identity(user)
     assert user.metadata is not None and user.metadata.uid is not None
@@ -382,7 +382,7 @@ async def test_missing_request_requires_fresh_approval() -> None:
     ctx = _context(_approved())
     await _issue(ctx)
     user = await _current(ctx)
-    await ctx.clients[CertificateRequest].delete(user_certificate_name(user), namespace=PUBLIC_CERT_NAMESPACE)
+    await ctx.clients[CertificateRequest].delete(user_certificate_name(user), namespace=CLIENT_CERT_NAMESPACE)
     ctx.ensured.clear()
     await _reconcile(ctx)
     assert ctx.ensured == []
@@ -455,7 +455,7 @@ async def test_cleanup_precedes_missing_references(revoke: bool) -> None:
         current.spec.approved_at = None
     with pytest.raises(Wait):
         await reconcile_user(current, cast(Context[User], ctx))
-    assert ctx.clients[CertificateRequest].deleted[-1] == (PUBLIC_CERT_NAMESPACE, user_certificate_name(user))
+    assert ctx.clients[CertificateRequest].deleted[-1] == (CLIENT_CERT_NAMESPACE, user_certificate_name(user))
     assert ctx.status["public_key"] is None
     current = await _current(ctx)
     assert _annotations(current)[ACCEPTED_CREDENTIALS_ANNOTATION] == EMPTY_CREDENTIALS
@@ -569,7 +569,7 @@ async def test_only_fresh_certificate_approval_can_replace(change: str) -> None:
     assert ctx.ensured == []
     assert ctx.status["public_key"] == fingerprint
     assert ctx.conditions[-1][2] == "Issued"
-    await ctx.clients[CertificateRequest].delete(user_certificate_name(current), namespace=PUBLIC_CERT_NAMESPACE)
+    await ctx.clients[CertificateRequest].delete(user_certificate_name(current), namespace=CLIENT_CERT_NAMESPACE)
     ctx.ensured.clear()
     await _reconcile(ctx)
     assert ctx.ensured == []
