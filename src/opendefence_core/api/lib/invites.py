@@ -78,7 +78,9 @@ async def create_admin_invite(role: str, display_name: str) -> str:
 async def update_invite(invite: Invite, spec: InviteSpec) -> Invite:
     """Replace the invite spec, failing on a concurrent change."""
     invite.spec = spec
-    return await invite.async_update()
+    updated = await invite.async_update()
+    logger.audit("Invite %s updated", updated.name)
+    return updated
 
 
 async def delete_invite(invite: Invite) -> None:

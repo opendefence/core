@@ -9,11 +9,14 @@ from cloudcoil.patches import diff
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import Response
 
+from lib_opendefence_core.logging import get_logger
 from lib_opendefence_core.models.v1alpha1 import CERTIFICATE_READY_CONDITION
 from opendefence_core.api.dependencies import JWTUser
 from opendefence_core.api.routes.certificates.schema import CSR_RESPONSES, PEM_MEDIA_TYPE, PEM_RESPONSES, CsrRequest
 from opendefence_core.certificates import approval_used, certificate_identity, check_csr, wants_certificate
 from opendefence_core.naming import PUBLIC_CERT_NAMESPACE, user_certificate_name
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
@@ -39,6 +42,7 @@ async def submit_csr(request: CsrRequest, user: JWTUser) -> None:
         if exc.status_code not in (409, 422):
             raise
         raise HTTPException(status.HTTP_409_CONFLICT, detail="User changed; retry.") from exc
+    logger.audit("User %s submitted a CSR", user.name)
 
 
 @router.get("/chain.pem", response_class=Response, responses=PEM_RESPONSES)

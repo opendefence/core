@@ -27,7 +27,9 @@ async def create_group(name: str, spec: GroupSpec) -> Group:
 async def update_group(group: Group, spec: GroupSpec) -> Group:
     """Replace the group spec, failing on a concurrent change."""
     group.spec = spec
-    return await group.async_update()
+    updated = await group.async_update()
+    logger.audit("Group %s updated", updated.name)
+    return updated
 
 
 async def delete_group(group: Group) -> None:
