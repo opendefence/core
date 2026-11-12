@@ -20,3 +20,35 @@ export function writeStore(key: string, value: string): void {
     // No resume across reloads, but the flow still works in this session.
   }
 }
+
+export function clearStore(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Nothing readable is nothing to clear.
+  }
+}
+
+export function readSession(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function writeSession(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // No resume across reloads, but the flow still works in this session.
+  }
+}
+
+export function clearSession(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // Nothing readable is nothing to clear.
+  }
+}

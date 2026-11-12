@@ -28,7 +28,8 @@ const MANAGER_URL = {
 };
 
 interface LinuxInstallFlowProps {
-  callsign: string;
+  certName: string;
+  password: string;
   deployment: string;
   fileName: string;
   mtlsUrl: string;
@@ -39,7 +40,8 @@ interface LinuxInstallFlowProps {
 }
 
 export function LinuxInstallFlow({
-  callsign,
+  certName,
+  password,
   deployment,
   fileName,
   mtlsUrl,
@@ -50,13 +52,9 @@ export function LinuxInstallFlow({
 }: LinuxInstallFlowProps) {
   const { t } = useTranslation();
   const browser = /Firefox\//.test(navigator.userAgent) ? "firefox" : "chrome";
-  const { step, furthest, go } = useWizardStep(
-    STEP_KEY,
-    callsign,
-    CERT_STEPS.length,
-  );
+  const { step, furthest, go } = useWizardStep(STEP_KEY, CERT_STEPS.length);
   const { returned } = usePageFocus(step === 1);
-  const { copied: pwCopied, copy: copyPw } = useStickyCopy(callsign);
+  const { copied: pwCopied, copy: copyPw } = useStickyCopy(password);
   const { copied: urlCopiedOnce, copy: copyUrlRaw } = useStickyCopy(
     MANAGER_URL[browser],
   );
@@ -121,7 +119,7 @@ export function LinuxInstallFlow({
             data-testid="mtls-download-button"
             data-mtls-downloading={isDownloading ? "true" : "false"}
             onClick={startDownload}
-            disabled={isDownloading || !callsign}
+            disabled={isDownloading || !password}
             className={action}
           >
             {isDownloading ? (
@@ -212,21 +210,21 @@ export function LinuxInstallFlow({
               {browser === "chrome" && (
                 <>
                   <ChromeCertImport mark={2} />
-                  <ChromePassword callsign={callsign} mark={4} />
+                  <ChromePassword password={password} mark={4} />
                 </>
               )}
               {browser === "firefox" && (
                 <>
                   <FirefoxCertManager mark={2} />
                   <FirefoxPassword
-                    callsign={callsign}
+                    password={password}
                     mark={4}
                     buttonMark={4}
                   />
                 </>
               )}
               <PasswordCallout
-                callsign={callsign}
+                password={password}
                 isCopied={copied}
                 onCopy={copy}
               />
@@ -238,7 +236,7 @@ export function LinuxInstallFlow({
               type="button"
               data-testid="linux-retry"
               onClick={startDownload}
-              disabled={isDownloading || !callsign}
+              disabled={isDownloading || !password}
               className="flex min-h-11 items-center gap-2 underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
             >
               <RotateCw className="h-4 w-4" />
@@ -265,13 +263,13 @@ export function LinuxInstallFlow({
             {t("mtlsInstall.done.title")}
           </h1>
           <div className="grid gap-6 md:grid-cols-[1fr_1fr] md:items-start">
-            <p className="text-lg">{t(k("pick"), { callsign })}</p>
+            <p className="text-lg">{t(k("pick"), { certName })}</p>
             {browser === "firefox" ? (
-              <FirefoxCertPicker host={host} callsign={callsign} />
+              <FirefoxCertPicker host={host} certName={certName} />
             ) : (
               <ChromeLinuxCertPicker
                 host={host}
-                callsign={callsign}
+                certName={certName}
                 issuer={`${deployment} Intermediate CA`}
               />
             )}

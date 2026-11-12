@@ -143,7 +143,17 @@
     "verifying": "Vahvistetaan...",
     "codeRequired": "Koodi vaaditaan",
     "codeInvalid": "Koodin muoto on virheellinen",
-    "codeNotValid": "Koodi on virheellinen"
+    "codeNotValid": "Koodi on virheellinen",
+    "reasons": {
+      "enrollment_failed": {
+        "title": "Liittymistä ei voitu viimeistellä",
+        "description": "Aloita alusta uudella kutsukoodilla."
+      },
+      "invite_unusable": {
+        "title": "Kutsua ei voi enää käyttää",
+        "description": "Se käytettiin loppuun tai vanheni. Pyydä uusi kutsukoodi."
+      }
+    }
   },
   "loginGuide": {
     "title": "Kirjautumisopas",
@@ -184,7 +194,7 @@
     },
     "androidWarning": {
       "title": "Android-käyttäjät:",
-      "description": "Kun lataat varmenteen, ponnahdusikkuna kysyy salasanaa. Käytä kutsutunnustasi salasanana."
+      "description": "Kun lataat varmenteen, ponnahdusikkuna kysyy salasanaa. Käytä sivulla näkyvää PIN-koodia."
     },
     "installSteps": {
       "title": "Asennusohjeet"
@@ -318,6 +328,7 @@
       "required": "Kutsutunnus vaaditaan",
       "min": "Kutsutunnuksen tulee olla vähintään 3 merkkiä",
       "pattern": "Vain kirjaimet, numerot ja alaviivat sallittu",
+      "firstChar": "Alettava kirjaimella tai numerolla",
       "max": "Kutsutunnus voi olla enintään 30 merkkiä"
     },
     "errors": {
@@ -530,8 +541,6 @@
     "downloading": "Ladataan...",
     "navigateButton": "Siirry avaimella",
     "certificateDownloaded": "Varmenne ladattu onnistuneesti!",
-    "downloadFailed": "Lataus epäonnistui. Yritä uudelleen.",
-    "callsignNotFound": "Kutsutunnusta ei löytynyt",
     "os": {
       "Windows": "Windows",
       "MacOS": "MacOS",
@@ -546,7 +555,7 @@
           "2": "Avaa .pfx-tiedosto tuonti-ikkunaan",
           "3": "Valitse 'Current User' tai 'Local Machine' (suositus: Current User)",
           "4": "Valitse 'Automatically select the certificate store'",
-          "5": "Anna kutsutunnuksesi pyydettäessä",
+          "5": "Syötä salasanaksi sivulla näkyvä PIN-koodi",
           "6": "Viimeistele asennus",
           "7": "Käytä 'Siirry avaimella' -painiketta palveluihin"
         },
@@ -559,7 +568,7 @@
         "steps": {
           "1": "Lataa varmenteesi",
           "2": "Avaa .pfx tiedosto Keychain Accessiin",
-          "3": "Syötä kutsutunnuksesi salasanaksi",
+          "3": "Syötä salasanaksi sivulla näkyvä PIN-koodi",
           "4": "Varmista, että varmenne näkyy login-avaimiston alla",
           "5": "Siirry palveluihin avaimella"
         },
@@ -584,7 +593,7 @@
         "steps": {
           "1": "Lataa varmenteesi laitteellesi",
           "2": "Laitteesi avaa asennusikkunan automaattisesti",
-          "3": "Syötä salasanaksi kutsutunnuksesi",
+          "3": "Syötä salasanaksi sivulla näkyvä PIN-koodi",
           "4": "Valitse 'VPN ja sovelluskäytön varmenne' varmenteen käyttötarkoitukseksi",
           "5": "Älä vaihda varmenteen nimeä ja paina 'OK'",
           "6": "Siirry palveluihin avaimella"
@@ -600,7 +609,7 @@
           "2": "Avaa tiedosto ja hyväksy asennus",
           "3": "Siirry: Asetukset → Yleiset → VPN ja laitehallinta",
           "4": "Avaa ladattu profiili",
-          "5": "Syötä kutsutunnuksesi",
+          "5": "Syötä sivulla näkyvä PIN-koodi",
           "6": "Paina 'Asenna' kahdesti",
           "7": "Siirry palveluihin avaimella"
         },
@@ -673,7 +682,7 @@
         "downloadedBody": "Tarkista profiili Asetuksissa, jos haluat asentaa sen.",
         "close": "Sulje",
         "certTitle": "”{{host}}” vaatii asiakasvarmenteen",
-        "certBody": "Käytä varmennetta ”{{callsign}}”, kun siirryt tälle sivustolle.",
+        "certBody": "Käytä varmennetta ”{{certName}}”, kun siirryt tälle sivustolle.",
         "cancel": "Kumoa",
         "continue": "Jatka"
       }
@@ -692,14 +701,14 @@
         "openHint": "Selaimen latauksista oikeasta yläkulmasta tai Lataukset-kansiosta.",
         "retry": "Ei latautunut? Lataa uudelleen",
         "unlock": "Avaa lukitus Touch ID:llä tai Macin salasanalla",
-        "password": "Anna salasanaksi kutsutunnuksesi ja paina OK",
+        "password": "Anna salasanaksi sivulla näkyvä PIN-koodi ja paina OK",
         "comeBack": "Painettuasi OK Avainnippu-sovellus aukeaa. Palaa sitten tähän selaimeen ja paina Asennettu – jatka."
       },
       "done": {
-        "pick": "Valitse {{callsign}} ja paina OK",
-        "generic": "Kun selain pyytää varmennetta, valitse {{callsign}}. Jos Mac kysyy salasanaa, anna Macin oma salasana ja valitse Salli aina.",
+        "pick": "Valitse {{certName}} ja paina OK",
+        "generic": "Kun selain pyytää varmennetta, valitse {{certName}}. Jos Mac kysyy salasanaa, anna Macin oma salasana ja valitse Salli aina.",
         "allowIf": "Jos Mac vielä kysyy salasanaa, anna Macin salasana ja valitse Salli aina",
-        "safariLogin": "Paina Kirjaudu varmenteella, valitse listasta {{callsign}} ja paina Jatka",
+        "safariLogin": "Paina Kirjaudu varmenteella, valitse listasta {{certName}} ja paina Jatka",
         "safariGo": "Paina alta Siirry palveluun"
       },
       "system": {
@@ -736,8 +745,8 @@
           "hint": "Asennettu varmenne ei näy listassa ennen kuin haet sitä. Avainnippu ei auennut? Avaa Spotlight (⌘ + välilyönti) ja kirjoita Avainnippu.",
           "steps": [
             "Valitse Omat varmenteet",
-            "Hae {{callsign}} hakukentästä (⌘V)",
-            "Kaksoisklikkaa {{callsign}}-riviä"
+            "Hae {{certName}} hakukentästä",
+            "Kaksoisklikkaa {{certName}}-riviä"
           ]
         },
         "trust": {
@@ -751,7 +760,7 @@
         "access": {
           "title": "Salli avaimen käyttö",
           "steps": [
-            "Avaa nuoli {{callsign}}-rivin vasemmalla",
+            "Avaa nuoli {{certName}}-rivin vasemmalla",
             "Kaksoisklikkaa Imported Private Key",
             "Valitse Pääsynhallinta",
             "Salli kaikkien appien käyttää tätä kohdetta",
@@ -791,7 +800,7 @@
         "openHint": "Avaa se selaimen latauksista oikeasta yläkulmasta.",
         "steps": [
           "Paina Seuraava kahdesti",
-          "Anna salasanaksi kutsutunnuksesi",
+          "Anna salasanaksi sivulla näkyvä PIN-koodi",
           "Paina Seuraava kahdesti, sitten Valmis ja OK"
         ],
         "showAll": "Näytä kaikki ohjatun toiminnon sivut",
@@ -799,15 +808,15 @@
         "pages": [
           "Tervetuloa: paina Seuraava",
           "Tuotava tiedosto: paina Seuraava",
-          "Anna salasana (kutsutunnus) ja paina Seuraava",
+          "Anna salasana (PIN-koodi) ja paina Seuraava",
           "Varmennesäilö: paina Seuraava",
           "Viimeistely: paina Valmis",
           "Tuonti onnistui: paina OK"
         ]
       },
       "done": {
-        "pick": "Selain kysyy varmennetta. Valitse {{callsign}} ja paina OK.",
-        "pickFirefox": "Firefox kysyy varmennetta. {{callsign}} on jo valittuna. Paina OK."
+        "pick": "Selain kysyy varmennetta. Valitse {{certName}} ja paina OK.",
+        "pickFirefox": "Firefox kysyy varmennetta. {{certName}} on jo valittuna. Paina OK."
       },
       "firefox": {
         "title": "Lisää avain Firefoxiin",
@@ -819,7 +828,7 @@
           "Kopioi osoite ja avaa se uuteen ikkunaan näillä näppäimillä:",
           "Paina Tuo…",
           "Avaa Ladatut tiedostot, valitse {{fileName}} ja paina Avaa.",
-          "Kirjoita salasanaksi tunnuksesi ja paina Kirjaudu sisään.",
+          "Kirjoita salasanaksi sivulla näkyvä PIN-koodi ja paina Kirjaudu sisään.",
           "Paina varmenneikkunassa OK ja sitten täällä Asennettu – jatka."
         ]
       },
@@ -873,11 +882,11 @@
           "Kopioi osoite ja avaa se uuteen ikkunaan näillä näppäimillä:",
           "Paina Tuo…",
           "Avaa Lataukset, valitse {{fileName}} ja paina Valitse.",
-          "Kirjoita salasanaksi tunnuksesi ja paina Kirjaudu sisään.",
+          "Kirjoita salasanaksi sivulla näkyvä PIN-koodi ja paina Kirjaudu sisään.",
           "Paina varmenneikkunassa OK ja sitten täällä Asennettu – jatka."
         ],
         "fallbackPath": "Firefoxissa: ≡-valikko → Asetukset → hae ”varmenteet” → Varmenteiden hallinta → Omat varmenteet.",
-        "pick": "Firefox kysyy varmennetta. {{callsign}} on jo valittuna. Paina OK."
+        "pick": "Firefox kysyy varmennetta. {{certName}} on jo valittuna. Paina OK."
       },
       "chrome": {
         "caption": "Avain on tiedosto, jonka lisäät selaimeen.",
@@ -886,11 +895,11 @@
           "Kopioi osoite ja avaa se uuteen ikkunaan näillä näppäimillä:",
           "Paina Tuo.",
           "Avaa Lataukset, valitse {{fileName}} ja paina Valitse.",
-          "Kirjoita salasanaksi tunnuksesi ja paina OK.",
+          "Kirjoita salasanaksi sivulla näkyvä PIN-koodi ja paina OK.",
           "Palaa tähän ikkunaan ja paina Asennettu – jatka."
         ],
         "fallbackPath": "Selaimessa: ⋮-valikko → Asetukset → Tietosuoja ja turvallisuus → Turvallisuus → Hallinnoi varmenteita → Omat varmenteet.",
-        "pick": "Selain kysyy varmennetta. {{callsign}} on jo valittuna. Paina OK."
+        "pick": "Selain kysyy varmennetta. {{certName}} on jo valittuna. Paina OK."
       },
       "system": {
         "crManager": "Varmenteiden hallinta",
@@ -912,6 +921,11 @@
         "ffUnlockTitle": "Salasana vaaditaan",
         "ffYours": "Omat varmenteet"
       }
+    },
+    "errors": {
+      "notApproved": "Tiliäsi ei ole vielä hyväksytty",
+      "notIssued": "Varmennetta ei myönnetty ajoissa. Lataa sivu uudelleen.",
+      "failed": "Varmenteen haku epäonnistui"
     }
   },
   "browserGuard": {

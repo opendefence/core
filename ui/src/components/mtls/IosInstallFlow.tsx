@@ -19,7 +19,8 @@ const SHOT_LANGS = ["fi", "en", "sv"];
 const SHOTS = ["install-1", "install-2", "install-3", "install-4"];
 
 interface IosInstallFlowProps {
-  callsign: string;
+  certName: string;
+  password: string;
   mtlsUrl: string;
   onDownload: () => void;
   isDownloading: boolean;
@@ -28,7 +29,8 @@ interface IosInstallFlowProps {
 }
 
 export function IosInstallFlow({
-  callsign,
+  certName,
+  password,
   mtlsUrl,
   onDownload,
   isDownloading,
@@ -38,14 +40,10 @@ export function IosInstallFlow({
   const { t, i18n } = useTranslation();
   const lang = i18n.resolvedLanguage ?? "";
   const shotDir = `/guide/ios/${SHOT_LANGS.includes(lang) ? lang : "en"}`;
-  const { step, furthest, go } = useWizardStep(
-    STEP_KEY,
-    callsign,
-    CERT_STEPS.length,
-  );
+  const { step, furthest, go } = useWizardStep(STEP_KEY, CERT_STEPS.length);
   // Safari's own download alerts blur the page; only a trip to Settings hides it.
   const { returned } = usePageFocus(step === 1, { hiddenOnly: true });
-  const { copied, copy } = useStickyCopy(callsign);
+  const { copied, copy } = useStickyCopy(password);
 
   useEffect(() => {
     for (const name of SHOTS) new Image().src = `${shotDir}/${name}.webp`;
@@ -95,7 +93,7 @@ export function IosInstallFlow({
             data-testid="mtls-download-button"
             data-mtls-downloading={isDownloading ? "true" : "false"}
             onClick={startDownload}
-            disabled={isDownloading || !callsign}
+            disabled={isDownloading || !password}
           >
             {isDownloading ? (
               <Loader2 className="size-7 animate-spin" />
@@ -110,7 +108,7 @@ export function IosInstallFlow({
       {current === "install" && (
         <>
           <PasswordCallout
-            callsign={callsign}
+            password={password}
             isCopied={copied}
             onCopy={copy}
           />
@@ -126,7 +124,7 @@ export function IosInstallFlow({
             type="button"
             data-testid="ios-retry"
             onClick={startDownload}
-            disabled={isDownloading || !callsign}
+            disabled={isDownloading || !password}
             className="flex min-h-11 items-center justify-center gap-2 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
           >
             <RotateCw className="h-4 w-4" />
@@ -166,7 +164,7 @@ export function IosInstallFlow({
               title={t("mtlsInstall.ios.system.certTitle", {
                 host: new URL(mtlsUrl, window.location.href).hostname,
               })}
-              body={t("mtlsInstall.ios.system.certBody", { callsign })}
+              body={t("mtlsInstall.ios.system.certBody", { certName })}
               buttons={[
                 t("mtlsInstall.ios.system.cancel"),
                 t("mtlsInstall.ios.system.continue"),

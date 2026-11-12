@@ -3,25 +3,37 @@
 import {
   createRootRoute,
   Outlet,
+  redirect,
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useUserType } from "@/hooks/auth/useUserType";
-import { withGuidePreference } from "@/hooks/useGuidePreferences";
 import { MtlsInfoModal } from "@/components/MtlsInfoModal";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "@/components/Sidebar";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useDeployment } from "@/api/health";
-import { appUrl, isAppOrigin } from "@/lib/origins";
+import { isAppOrigin } from "@/lib/origins";
 import { useIsTablet } from "@/hooks/use-tablet";
+
+const ENROLLMENT_PATHS = [
+  "/login",
+  "/callsign-setup",
+  "/waiting-room",
+  "/mtls-install",
+  "/error",
+];
 
 export const Route = createRootRoute({
   component: RootLayoutWrapper,
+  // Stored state cannot prove a session, so /login resumes once the API has.
+  beforeLoad: ({ location }) => {
+    if (isAppOrigin() || ENROLLMENT_PATHS.includes(location.pathname)) return;
+    throw redirect({ to: "/login" });
+  },
 });
 
 function RootLayoutWrapper() {
@@ -42,7 +54,6 @@ function RootLayout() {
   const isTablet = useIsTablet();
 
   const { userType, isLoading: userTypeLoading, isValidUser } = useUserType();
-  const { domain } = useDeployment();
 
   const toggleSidebar = (open: boolean) => {
     setSidebarOpen(open);
@@ -52,39 +63,14 @@ function RootLayout() {
   };
 
   useEffect(() => {
-    if (
-      !userTypeLoading &&
-      isValidUser &&
-      !isAppOrigin() &&
-      domain &&
-      location.pathname === "/"
-    ) {
-      const certDownloaded = localStorage.getItem("cert_downloaded") === "true";
-
-      if (!certDownloaded) {
-        navigate({ to: "/mtls-install" });
-        return;
-      }
-
-      // app.* is a separate origin with its own localStorage, so carry the
-      // guide choice across rather than losing it on the hop.
-      window.location.href = withGuidePreference(appUrl(domain));
-      return;
-    }
-  }, [userTypeLoading, isValidUser, domain, location.pathname, navigate]);
-
-  useEffect(() => {
     if (isMobile || isTablet) {
       setSidebarOpen(false);
     }
   }, [location.pathname, isMobile, isTablet]);
 
+  // The enrollment pages, plus the approval deep link, render without chrome.
   const isAuthPage =
-    location.pathname === "/login" ||
-    location.pathname === "/waiting-room" ||
-    location.pathname === "/mtls-install" ||
-    location.pathname === "/callsign-setup" ||
-    location.pathname === "/error" ||
+    ENROLLMENT_PATHS.includes(location.pathname) ||
     location.pathname === "/approve-user";
 
   const isProductPage = location.pathname.startsWith("/product/");
@@ -101,12 +87,19 @@ function RootLayout() {
         location.pathname.startsWith(path),
       );
 
-      if (isAdminPath && userType !== "admin") {
+      if (isAdminPath && userType !== "superadmin") {
         toast.error(t("common.forbiddenAdminAccess"));
         navigate({ to: "/" });
       }
     }
   }, [userType, userTypeLoading, isValidUser, location.pathname, navigate, t]);
+
+  // Only reachable on app.*
+  useEffect(() => {
+    if (!userTypeLoading && !isValidUser && !isAuthPage) {
+      navigate({ to: "/login" });
+    }
+  }, [userTypeLoading, isValidUser, isAuthPage, navigate]);
 
   if (isAuthPage) {
     return <Outlet />;
@@ -124,7 +117,6 @@ function RootLayout() {
   }
 
   if (!isValidUser) {
-    navigate({ to: "/login" });
     return null;
   }
 

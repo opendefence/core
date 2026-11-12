@@ -100,12 +100,12 @@ export function WinRadio({ label, on }: { label: string; on?: boolean }) {
   );
 }
 
-/** The password field the wizard asks for, filled with the callsign. */
+/** The password field the wizard asks for, filled with the PIN. */
 export function WinPasswordField({
-  callsign,
+  password,
   mark,
 }: {
-  callsign: string;
+  password: string;
   mark?: number;
 }) {
   const { t } = useTranslation();
@@ -120,7 +120,7 @@ export function WinPasswordField({
         )}
       >
         {!!mark && <Mark n={mark} />}
-        {callsign}
+        {password}
       </span>
     </div>
   );
@@ -204,10 +204,10 @@ export function FirefoxCertManager({ mark }: { mark?: number }) {
 
 /** Firefox "Password Required" prompt when importing the key file. */
 export function FirefoxPassword({
-  callsign,
+  password,
   mark,
 }: {
-  callsign: string;
+  password: string;
   mark?: number;
 }) {
   const { t } = useTranslation();
@@ -223,7 +223,7 @@ export function FirefoxPassword({
         )}
       >
         {!!mark && <Mark n={mark} />}
-        {callsign}
+        {password}
       </span>
       <div className="mt-4 flex justify-end gap-2">
         <FfButton label={s("ffSignIn")} primary mark={mark ? mark + 1 : 0} />
@@ -236,10 +236,10 @@ export function FirefoxPassword({
 /** Firefox's own "identify yourself with a certificate" prompt. */
 export function FirefoxCertPicker({
   host,
-  callsign,
+  certName,
 }: {
   host: string;
-  callsign: string;
+  certName: string;
 }) {
   const { t } = useTranslation();
   const s = (k: string, v?: Record<string, string>) =>
@@ -251,7 +251,7 @@ export function FirefoxCertPicker({
         {s("ffPickBody", { host })}
       </p>
       <span className="mt-2 flex h-7 items-center justify-between rounded border border-[#0061e0] px-2">
-        <span className="truncate">{callsign} […]</span>
+        <span className="truncate">{certName} […]</span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0" />
       </span>
       <p className="mt-3 font-semibold">{s("ffPickDetails")}</p>
@@ -275,11 +275,11 @@ export function FirefoxCertPicker({
 /** Edge / Chrome on Windows: "Select a certificate for authentication". */
 export function WinCertPicker({
   host,
-  callsign,
+  certName,
   issuer,
 }: {
   host: string;
-  callsign: string;
+  certName: string;
   issuer: string;
 }) {
   const { t } = useTranslation();
@@ -301,7 +301,7 @@ export function WinCertPicker({
       <div className="mt-3 border border-white/30 p-2">
         <div className="relative rounded px-2 py-1.5 ring-[3px] ring-inset ring-[#c41010]">
           <Mark n={1} />
-          <p className="font-semibold">{callsign}</p>
+          <p className="font-semibold">{certName}</p>
           <p className="text-white/70">{issuer}</p>
         </div>
       </div>
