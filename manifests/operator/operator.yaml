@@ -194,7 +194,7 @@ spec:
       serviceAccountName: core-operator
       containers:
       - name: operator
-        image: ghcr.io/opendefence/core:0.5.4-261112
+        image: ghcr.io/opendefence/core:0.5.5-261112
         args:
         - run
         env:

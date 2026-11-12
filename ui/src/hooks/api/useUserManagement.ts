@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { SUPERADMIN_ROLE, useRoleId } from "@/api/roles";
 import {
   isAdmin,
-  useDemoteUser,
-  usePromoteUser,
+  isLastAdmin,
+  isSelf,
+  useGiveUserRole,
   useRevokeUser,
+  useTakeUserRole,
   useUsers,
   type User,
 } from "@/api/users";
@@ -34,7 +37,10 @@ export function useUserManagement({
 
   const { data: users, isLoading, refetch } = useUsers("active", 10000);
 
-  const promoteUserMutation = usePromoteUser({
+  // Promotion and demotion give and take one role: superadmin.
+  const adminRole = useRoleId(SUPERADMIN_ROLE);
+
+  const promoteUserMutation = useGiveUserRole({
     onSuccess: () => {
       toast.success(
         t("manageUsers.messages.promoted", {
@@ -52,7 +58,7 @@ export function useUserManagement({
     },
   });
 
-  const demoteUserMutation = useDemoteUser({
+  const demoteUserMutation = useTakeUserRole({
     onSuccess: () => {
       toast.success(
         t("manageUsers.messages.demoted", { callsign: selectedUser?.callsign }),
@@ -87,7 +93,7 @@ export function useUserManagement({
   const administrators = users?.filter(isAdmin) || [];
   const fighters = users?.filter((user) => !isAdmin(user)) || [];
 
-  const isCurrentUser = (user: User) => user.callsign === currentCallsign;
+  const isCurrentUser = (user: User) => isSelf(user, currentCallsign);
 
   const hasAdminSelected = administrators.some((admin) =>
     selectedUsers.includes(admin.id),
@@ -112,7 +118,7 @@ export function useUserManagement({
 
   const handlePromoteConfirm = () => {
     if (!selectedUser) return;
-    promoteUserMutation.mutate(selectedUser.id);
+    promoteUserMutation.mutate({ userId: selectedUser.id, roleId: adminRole });
   };
 
   const handleDemoteClick = () => {
@@ -126,7 +132,7 @@ export function useUserManagement({
 
   const handleDemoteConfirm = () => {
     if (!selectedUser) return;
-    demoteUserMutation.mutate(selectedUser.id);
+    demoteUserMutation.mutate({ userId: selectedUser.id, roleId: adminRole });
   };
 
   const handleRemoveClick = () => {
@@ -137,7 +143,7 @@ export function useUserManagement({
       return;
     }
 
-    if (isAdmin(selectedUser) && administrators.length <= 1) {
+    if (isLastAdmin(administrators, selectedUser)) {
       toast.error(t("manageUsers.messages.cannotDeleteLastAdmin"));
       return;
     }
@@ -168,9 +174,9 @@ export function useUserManagement({
   const confirmBulkAction = async () => {
     for (const userId of selectedUsers) {
       if (bulkAction === "promote") {
-        await promoteUserMutation.mutateAsync(userId);
+        await promoteUserMutation.mutateAsync({ userId, roleId: adminRole });
       } else if (bulkAction === "demote") {
-        await demoteUserMutation.mutateAsync(userId);
+        await demoteUserMutation.mutateAsync({ userId, roleId: adminRole });
       } else if (bulkAction === "remove") {
         await deleteUserMutation.mutateAsync(userId);
       }

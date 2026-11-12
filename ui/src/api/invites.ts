@@ -1,17 +1,8 @@
-import {
-  useMutation,
-  useQuery,
-  type UseMutationOptions,
-} from "@tanstack/react-query";
-import { api } from "./client";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { api, type Options } from "./client";
 import type { components } from "./schema";
 
 export type Invite = components["schemas"]["InviteResponse"];
-
-type Options<TData, TVars> = Omit<
-  UseMutationOptions<TData, Error, TVars>,
-  "mutationFn"
->;
 
 /** Any number of redemptions. */
 const UNLIMITED = -1;
