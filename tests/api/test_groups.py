@@ -33,7 +33,10 @@ def user_summary(name: str, callsign: str, state: str = "pending") -> dict[str, 
 
 @pytest.fixture
 def groups(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[Group]]:
-    """A root group with one child, and two users, one of them a member of the child."""
+    """A root group with one child, and two users, one of them a member of the child.
+
+    Requests are signed in as user-1.
+    """
     store = [make_group("battalion"), make_group("squad", parent="battalion", roles=["medic"])]
     users = [make_user("user-1", callsign="alpha1", groups=["squad"]), make_user("user-2", callsign="bravo2")]
 
@@ -191,7 +194,7 @@ def test_add_and_remove_member(groups: list[Group]) -> None:
     added = client.put(f"/api/v3/groups/{battalion}/members/{bravo}")
     assert added.status_code == 200
     assert client.put(f"/api/v3/groups/{battalion}/members/{bravo}").status_code == 200
-    assert client.get(f"/api/v3/groups/{battalion}/members").json()[0]["id"] == bravo
+    assert [user["id"] for user in client.get(f"/api/v3/groups/{battalion}/members").json()] == [bravo]
     assert client.delete(f"/api/v3/groups/{battalion}/members/{bravo}").status_code == 204
     assert client.delete(f"/api/v3/groups/{battalion}/members/{bravo}").status_code == 204
     assert client.get(f"/api/v3/groups/{battalion}/members").json() == []
@@ -217,12 +220,15 @@ def test_grant_unknown_role(groups: list[Group]) -> None:
 
 
 def test_add_and_remove_manager(groups: list[Group]) -> None:
-    """Managers are recorded on the group."""
+    """Managers are recorded on the group, and both writes are idempotent."""
     _ = groups
     squad, bravo = object_id("squad"), object_id("user-2")
     added = client.put(f"/api/v3/groups/{squad}/managers/{bravo}")
     assert added.status_code == 200
     assert added.json()["managers"] == [user_summary("user-2", "bravo2")]
+    again = client.put(f"/api/v3/groups/{squad}/managers/{bravo}")
+    assert again.json()["managers"] == [user_summary("user-2", "bravo2")]
+    assert client.delete(f"/api/v3/groups/{squad}/managers/{bravo}").status_code == 204
     assert client.delete(f"/api/v3/groups/{squad}/managers/{bravo}").status_code == 204
     assert client.get(f"/api/v3/groups/{squad}").json()["managers"] == []
 

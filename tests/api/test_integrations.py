@@ -40,7 +40,7 @@ def _finnish_only() -> Integration:
     """An integration described only in Finnish."""
     integration = make_integration("example-two")
     integration.spec.product_info = ProductInfo(
-        descriptions=[ProductDescription(language="fi", title="Example two", description="Esimerkkituote kaksi")],
+        descriptions=[ProductDescription(language="fi", title="Esimerkki kaksi", description="Esimerkkituote kaksi")],
     )
     return integration
 
@@ -106,7 +106,7 @@ def test_language_falls_back(integrations: list[Integration]) -> None:
     """An integration that lacks the language answers in what it has."""
     _ = integrations
     body = client.get(f"/api/v3/integrations/{integration_id('example-two')}", params={"language": "sv"}).json()
-    assert (body["language"], body["title"]) == ("fi", "Example two")
+    assert (body["language"], body["title"]) == ("fi", "Esimerkki kaksi")
 
 
 def test_read_integration_without_product_info(integrations: list[Integration]) -> None:
