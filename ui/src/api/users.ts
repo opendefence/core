@@ -30,6 +30,21 @@ export function isLastAdmin(
   return admins.length <= 1 && admins.some((admin) => admin.id === user.id);
 }
 
+/** Groups the user joined directly, or those plus every ancestor of them. */
+export function useUserGroups(userId: string | undefined, effective = false) {
+  return useQuery({
+    queryKey: ["users", userId, "groups", effective],
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/v3/users/{user_id}/groups", {
+        params: { path: { user_id: userId ?? "" }, query: { effective } },
+      });
+      if (error) throw new Error("Failed to load the groups of the user");
+      return data;
+    },
+    enabled: userId !== undefined,
+  });
+}
+
 /** Users in one state, or all of them. Given an interval, keeps the list fresh. */
 export function useUsers(state?: UserState, pollMs?: number) {
   return useQuery({

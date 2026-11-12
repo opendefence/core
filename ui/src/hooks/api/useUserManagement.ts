@@ -93,6 +93,9 @@ export function useUserManagement({
   const administrators = users?.filter(isAdmin) || [];
   const fighters = users?.filter((user) => !isAdmin(user)) || [];
 
+  const live = users?.find((user) => user.id === selectedUser?.id);
+  const shownUser = userDialogOpen ? (live ?? selectedUser) : selectedUser;
+
   const isCurrentUser = (user: User) => isSelf(user, currentCallsign);
 
   const hasAdminSelected = administrators.some((admin) =>
@@ -208,8 +211,9 @@ export function useUserManagement({
     isLoading,
 
     // Selection state
-    selectedUser,
+    selectedUser: shownUser,
     openUser,
+    refetch,
     userDialogOpen,
     setUserDialogOpen,
     selectedUsers,

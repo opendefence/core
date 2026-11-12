@@ -8,29 +8,20 @@
     "approveUsers": "Godkänn användare",
     "manageUsers": "Hantera användare",
     "manageRoles": "Hantera roller",
+    "manageGroups": "Hantera grupper",
     "addUsers": "Lägg till användare",
     "admin": "Admin",
     "user": "Användare",
     "deployApp": "Deploy App",
-    "takServer": "Takserver",
     "learnAboutMtls": "Lär dig om mTLS",
     "proudlyServedBy": "Stolt serverad av PV-Arki.",
-    "releasedUnder": "Utgiven under GNU GPLv3 av TAK Product Center.",
-    "viewSource": "Visa källa",
-    "letDevelopersKnow": "Låt utvecklarna veta",
-    "whatYouThink": "vad du tycker",
-    "allRightsReserved": "Alla rättigheter förbehållna.",
     "copyright": "© 2026 PV-Arki. Alla rättigheter förbehållna.",
     "authenticating": "Autentiserar...",
-    "adminConsole": "Administrationskonsol",
     "forbiddenAdminAccess": "403 Förbjuden: Administratörsåtkomst krävs",
     "cancel": "Avbryt",
     "confirm": "Bekräfta",
     "confirming": "Bekräftar...",
     "processing": "Bearbetar...",
-    "type": "Typ",
-    "toConfirm": "för att bekräfta",
-    "typeConfirmPlaceholder": "Skriv \"{text}\" för att bekräfta",
     "managing": "Hanterar",
     "step": "Steg",
     "of": "av",
@@ -41,11 +32,6 @@
     "imageNotAvailable": "Bilden är inte tillgänglig",
     "clickToEnlarge": "Klicka för att förstora",
     "footer": "Öppna sidfot"
-  },
-  "pages": {
-    "login": "Logga in",
-    "waitingRoom": "Väntrum",
-    "error": "Fel"
   },
   "modals": {
     "mtls": {
@@ -85,7 +71,6 @@
       }
     },
     "completion": "Introduktionen är slutförd!",
-    "completionDesc": "Du är redo och kan nu arbeta i full kapacitet.",
     "step": "Steg",
     "of": "av",
     "finish": "Slutför",
@@ -100,9 +85,6 @@
   "systemStatus": {
     "title": "Systemstatus",
     "lastUpdated": "Senast uppdaterad",
-    "services": "Tjänster",
-    "active": "Aktiv",
-    "issues": "Problem",
     "noServices": "Inga tjänster tillgängliga",
     "operational": "OPERATIV",
     "down": "NERE",
@@ -164,10 +146,6 @@
         "title": "Säker anslutning",
         "description": "mTLS säkerställer att både du och servern verifierar identitet. Installera certifikatet för säker åtkomst."
       },
-      "platform": {
-        "title": "Välj din plattform",
-        "description": "Välj ditt operativsystem från rullgardinsmenyn. Installationsinstruktionerna anpassas automatiskt för att visa rätt steg för Windows, macOS, Linux, Android eller iOS."
-      },
       "download": {
         "title": "Ladda ner certifikat",
         "description": "Klicka på 'Ladda ner certifikat' för att få ditt personliga mTLS-certifikat. Håll filen säker."
@@ -175,10 +153,6 @@
       "install": {
         "title": "Installation",
         "description": "Följ de plattformsspecifika stegen nedan för att installera ditt certifikat."
-      },
-      "navigate": {
-        "title": "Få tillgång till säkra tjänster",
-        "description": "När det är installerat, klicka på 'Navigera till tjänster' för att komma åt den säkra domänen. Din webbläsare kommer att använda ditt nyinstallerade certifikat för att autentisera automatiskt. Du är nu redo att använda alla taktiska tjänster!"
       }
     },
     "androidWarning": {
@@ -232,14 +206,11 @@
   },
   "addUsers": {
     "title": "Lägg till användare med inbjudningskod",
-    "subtitle": "En inbjudningskod kan användas flera gånger. Klicka på en kod för att se dess QR-kod och dela den. Skapa en ny kod endast vid behov.",
-    "subtitleHighlight": "En inbjudningskod kan användas flera gånger.",
     "createNewInvite": "Skapa ny inbjudan",
     "create": "Skapa",
     "creating": "Skapar...",
     "selectMultiple": "Markera flera",
     "cancel": "Avbryt",
-    "selected": "{{count}} markerade",
     "enable": "Aktivera",
     "disable": "Inaktivera",
     "delete": "Ta bort",
@@ -249,9 +220,7 @@
     "created": "Skapad den {{date}}",
     "createdBy": "{{creator}} skapade koden den {{date}}",
     "forbidden": "403 Förbjudet: Adminbehörighet krävs",
-    "noCallsign": "Ingen anropssignal hittades. Logga in.",
     "createModalTitle": "Skapa ny inbjudningskod",
-    "createModalDescription": "En enda inbjudningskod kan användas av flera användare",
     "createModalWarning": "⚠️ En inbjudningskod kan användas av flera användare",
     "createModalText": "Du behöver bara skapa en ny kod om:",
     "createModalReason1": "Du har tagit bort eller inaktiverat din tidigare kod",
@@ -263,7 +232,6 @@
     "enableCode": "Aktivera kod",
     "deleteCode": "Ta bort kod",
     "deleting": "Tar bort...",
-    "goBack": "Tillbaka",
     "walkthrough": {
       "title": "Hur man lägger till användare",
       "description": "Snabbguide för att bjuda in användare",
@@ -293,6 +261,14 @@
       "activateError": "Kunde inte aktivera kod: {{error}}",
       "forbiddenError": "403 Förbjudet: Adminbehörighet krävs",
       "noCallsignError": "Ingen anropssignal hittades. Logga in."
+    },
+    "assignments": {
+      "groups": "Grupper",
+      "noGroups": "Inga grupper ännu.",
+      "roles": "Roller",
+      "noRoles": "Inga roller ännu.",
+      "givesGroups": "Grupper: {{names}}",
+      "givesRoles": "Roller: {{names}}"
     }
   },
   "approveUser": {
@@ -301,7 +277,6 @@
     "approvalCodeLabel": "Godkännandekod",
     "approvalCodePlaceholder": "Ange godkännandekod",
     "enterApprovalCodeMessage": "Ange en godkännandekod",
-    "goBack": "Tillbaka",
     "cancel": "Avbryt",
     "approve": "Godkänn",
     "approving": "Godkänner...",
@@ -356,11 +331,9 @@
       "icon": "⚠️"
     },
     "returnHome": "Tillbaka till hem",
-    "troubleshootingSteps": "Vanliga felsökningssteg",
-    "errorCode": "Fel: {{code}}"
+    "troubleshootingSteps": "Vanliga felsökningssteg"
   },
   "home": {
-    "welcome": "Välkommen till Deploy App",
     "description": "Få åtkomst till dina taktiska tjänster. Välj en tjänst för att börja.",
     "loadingServices": "Laddar tjänster...",
     "authRequired": "Du måste vara autentiserad för att komma åt tjänster.",
@@ -435,10 +408,6 @@
   },
   "manageUsers": {
     "title": "Hantera användare",
-    "description": "Hantera användare här. Administratörer kan använda dessa verktyg. Krigare är grundanvändare med tjänsteåtkomst.",
-    "adminHighlight": "Admins",
-    "fighterHighlight": "Krigare",
-    "noCallsignFound": "Ingen anropssignal hittades. Logga in.",
     "forbidden": "403 Förbjudet: Adminbehörighet krävs",
     "administrators": "Administratörer",
     "fighters": "Krigare",
@@ -459,34 +428,41 @@
     },
     "userDialog": {
       "title": "Hantera användare",
-      "currentRole": "Nuvarande roll:",
       "goBack": "Tillbaka",
       "remove": "Ta bort",
-      "removing": "Tar bort...",
       "promote": "Befordra",
-      "promoting": "Befordrar...",
       "demote": "Degradera",
-      "demoting": "Degraderar..."
+      "state": "Status:",
+      "roles": "Roller",
+      "noRoles": "Inga roller ännu.",
+      "addRole": "Ge en roll",
+      "addRoleDescription": "{{callsign}} får rollen direkt.",
+      "removeRole": "Ta bort rollen",
+      "fromGroup": "från {{group}}",
+      "groups": "Grupper",
+      "noGroups": "Inga grupper ännu.",
+      "addGroup": "Lägg till i en grupp",
+      "addGroupDescription": "{{callsign}} blir medlem i gruppen och i alla grupper ovanför.",
+      "removeGroup": "Ta bort från gruppen"
     },
     "tooltips": {
       "cannotRemove": "Du kan inte ta bort dig själv",
-      "cannotDemote": "Du kan inte degradera dig själv"
+      "cannotDemote": "Du kan inte degradera dig själv",
+      "cannotPromoteAdmins": "Du kan inte befordra en användare som redan är administratör",
+      "cannotDemoteNonAdmins": "Du kan bara degradera administratörer"
     },
     "confirmModals": {
       "promote": {
         "title": "Befordra användare",
-        "description": "Vill du befordra {{callsign}} till administratör?",
-        "requiredText": "PROMOTE"
+        "description": "Vill du befordra {{callsign}} till administratör?"
       },
       "demote": {
         "title": "Degradera användare",
-        "description": "Vill du degradera {{callsign}} från administratör till krigare?",
-        "requiredText": "DEMOTE"
+        "description": "Vill du degradera {{callsign}} från administratör till krigare?"
       },
       "remove": {
         "title": "Ta bort användare",
-        "description": "Detta kan inte ångras. Ta bort {{callsign}}?",
-        "requiredText": "{{callsign}}"
+        "description": "Detta kan inte ångras. Ta bort {{callsign}}?"
       }
     },
     "messages": {
@@ -514,7 +490,12 @@
     "selected": "{{count}} markerade",
     "promote": "Befordra",
     "demote": "Degradera",
-    "remove": "Ta bort"
+    "remove": "Ta bort",
+    "states": {
+      "pending": "Väntar",
+      "active": "Aktiv",
+      "revoked": "Återkallad"
+    }
   },
   "manageRoles": {
     "title": "Hantera roller",
@@ -566,10 +547,103 @@
       "cannotTakeLast": "Minst en administratör måste finnas kvar"
     }
   },
+  "manageGroups": {
+    "title": "Hantera grupper",
+    "description": "En grupp håller användare och ger dem roller. En medlem i en grupp är medlem i varje grupp ovanför.",
+    "forbidden": "403 Förbjudet: Adminbehörighet krävs",
+    "noGroups": "Inga grupper ännu.",
+    "selectGroup": "Välj en grupp för att se den.",
+    "detail": {
+      "parent": "Överordnad grupp",
+      "root": "Ingen. Detta är en grupp på översta nivån.",
+      "roles": "Roller som ges",
+      "noRoles": "Den här gruppen ger inga roller.",
+      "rolesReach": "Alla medlemmar i den här gruppen och i grupperna under den har dessa roller.",
+      "inherited": "Roller från grupper ovanför",
+      "fromGroup": "från {{group}}",
+      "managers": "Ansvariga",
+      "noManagers": "Inga ansvariga."
+    },
+    "messages": {
+      "noCallsign": "Ingen anropssignal hittades. Logga in.",
+      "created": "Gruppen {{group}} skapades",
+      "createError": "Kunde inte skapa gruppen: {{error}}",
+      "changed": "Gruppen ändrades",
+      "changeError": "Kunde inte ändra gruppen: {{error}}",
+      "deleted": "Gruppen togs bort",
+      "deleteError": "Kunde inte ta bort gruppen: {{error}}",
+      "memberAdded": "Medlemmen lades till",
+      "memberRemoved": "Medlemmen togs bort",
+      "memberError": "Kunde inte ändra medlemmarna: {{error}}",
+      "roleGranted": "Rollen gavs",
+      "roleRevoked": "Rollen ges inte längre",
+      "roleError": "Kunde inte ändra rollerna: {{error}}",
+      "managerAdded": "Den ansvariga lades till",
+      "managerRemoved": "Den ansvariga togs bort",
+      "managerError": "Kunde inte ändra de ansvariga: {{error}}"
+    },
+    "cancel": "Avbryt",
+    "creating": "Skapar...",
+    "create": {
+      "title": "Skapa grupp",
+      "description": "Namnet är permanent. Bara visningsnamnet kan ändras senare.",
+      "displayNameLabel": "Visningsnamn",
+      "nameLabel": "Namn",
+      "nameHelp": "Små bokstäver, siffror och bindestreck. Högst 63 tecken.",
+      "nameInvalid": "Använd små bokstäver, siffror och bindestreck. Börja och sluta med en bokstav eller siffra.",
+      "atRoot": "Skapa som grupp på översta nivån",
+      "under": "Den nya gruppen hamnar under {{group}}.",
+      "topLevel": "Den nya gruppen har ingen överordnad grupp.",
+      "submit": "Skapa"
+    },
+    "rename": {
+      "title": "Byt visningsnamn",
+      "description": "Namnet {{name}} är oförändrat. Bara visningsnamnet ändras.",
+      "submit": "Spara"
+    },
+    "move": {
+      "title": "Flytta",
+      "description": "Välj gruppen som håller {{group}}.",
+      "toRoot": "Ingen överordnad grupp. Gör den till en grupp på översta nivån."
+    },
+    "delete": {
+      "title": "Ta bort",
+      "description": "{{group}} tas bort. Detta kan inte ångras.",
+      "blocked": "Rensa först: {{reasons}}",
+      "children": "grupperna under den",
+      "members": "dess medlemmar",
+      "managers": "dess ansvariga",
+      "roles": "rollerna den ger"
+    },
+    "members": {
+      "title": "Medlemmar ({{count}})",
+      "none": "Inga medlemmar ännu.",
+      "add": "Lägg till medlem",
+      "addDescription": "Användaren blir medlem i {{group}} och i varje grupp ovanför.",
+      "remove": "Ta bort medlemmen",
+      "showEffective": "Visa medlemmar från grupper under",
+      "fromGroup": "från {{group}}"
+    },
+    "roles": {
+      "add": "Ge en roll",
+      "addDescription": "{{group}} ger rollen till alla sina medlemmar.",
+      "remove": "Sluta ge rollen"
+    },
+    "managers": {
+      "add": "Lägg till ansvarig",
+      "addDescription": "Användaren blir ansvarig för {{group}}. Det gör dem inte till medlem.",
+      "remove": "Ta bort den ansvariga",
+      "noAuthority": "En ansvarig registreras bara. Ingen endpoint kontrollerar det ännu."
+    }
+  },
   "pickers": {
     "filterUsers": "Filtrera användare",
     "loading": "Laddar...",
-    "noUsers": "Inga användare att välja."
+    "noUsers": "Inga användare att välja.",
+    "filterGroups": "Filtrera grupper",
+    "noGroups": "Inga grupper att välja.",
+    "filterRoles": "Filtrera roller",
+    "noRoles": "Inga roller att välja."
   },
   "mtlsInstall": {
     "title": "Ladda ner och installera din nyckel",
@@ -580,7 +654,6 @@
     "selectPlaceholder": "Välj OS",
     "instructionsTitle": "Installationsinstruktioner:",
     "note": "Obs:",
-    "passwordLabel": "Lösenord för certifikat:",
     "downloadButton": "Ladda ner nyckel",
     "downloading": "Laddar ner...",
     "navigateButton": "Fortsätt med nyckeln",
@@ -919,32 +992,6 @@
         "title": "Hämta din nyckel",
         "action": "Ladda ner nyckel"
       },
-      "firefox": {
-        "caption": "Nyckeln är en fil som du lägger till i Firefox.",
-        "title": "Lägg till nyckeln i Firefox",
-        "steps": [
-          "Kopiera adressen och öppna den i ett nytt fönster med dessa tangenter:",
-          "Tryck Importera…",
-          "Öppna Hämtningar, välj {{fileName}} och tryck Välj.",
-          "Ange PIN-koden som visas på sidan och tryck Logga in.",
-          "Tryck OK i certifikatfönstret och sedan Installerad – fortsätt här."
-        ],
-        "fallbackPath": "I Firefox: ≡-menyn → Inställningar → sök ”certifikat” → Hantera certifikat → Dina certifikat.",
-        "pick": "Firefox ber om ett certifikat. {{certName}} är redan valt. Tryck OK."
-      },
-      "chrome": {
-        "caption": "Nyckeln är en fil som du lägger till i webbläsaren.",
-        "title": "Lägg till nyckeln i webbläsaren",
-        "steps": [
-          "Kopiera adressen och öppna den i ett nytt fönster med dessa tangenter:",
-          "Tryck Importera.",
-          "Öppna Hämtningar, välj {{fileName}} och tryck Välj.",
-          "Ange PIN-koden som visas på sidan och tryck OK.",
-          "Kom tillbaka till det här fönstret och tryck Installerad – fortsätt."
-        ],
-        "fallbackPath": "I webbläsaren: ⋮-menyn → Inställningar → Integritet och säkerhet → Säkerhet → Hantera certifikat → Dina certifikat.",
-        "pick": "Webbläsaren ber om ett certifikat. {{certName}} är redan valt. Tryck OK."
-      },
       "system": {
         "crManager": "Certifikathanterare",
         "crPlatform": "Klientcertifikat från plattformen",
@@ -982,8 +1029,6 @@
     "iosExplanation": "På iOS stöder endast Safari nödvändiga säkerhetsfunktioner. Andra webbläsare fungerar inte.",
     "unknownExplanation": "Denna webbläsare har inte testats med applikationen.",
     "supportedBrowsers": "Kompatibla webbläsare",
-    "importantNote": "Viktigt",
-    "securityRequirement": "Applikationen kräver webbläsare som stöder mTLS-certifikat för att säkerställa säkerhet.",
     "refreshNote": "Ladda ner en kompatibel webbläsare och öppna sidan igen.",
     "continueAtRisk": "Fortsätt på egen risk",
     "riskWarning": "Varning: Saker kan gå sönder om du fortsätter med en webbläsare som inte stöds.",
@@ -1002,12 +1047,9 @@
     "loadingMarkdown": "Laddar markdown..."
   },
   "waitingRoom": {
-    "titleShort": "Väntar på godkännande",
     "title": "Bli godkänd",
     "description": "Administratören är oftast den som gav dig din inbjudningskod.",
     "actionFailed": "Åtgärd misslyckades: {{error}}",
-    "instructionsTitle": "Väntar på godkännande (instruktioner)",
-    "instructionsText": "Godkänn användare genom deras godkännandekod, godkännandelänk eller via \"Godkänn användare\".",
     "approvedToast": "Du har blivit godkänd!",
     "codeLabel": "Godkännandekod",
     "callsignLabel": "Anropssignal",

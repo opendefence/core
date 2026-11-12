@@ -5,7 +5,7 @@ import { GuardHeader } from "./GuardHeader";
 import { BrowserExplanation } from "./BrowserExplanation";
 import { SupportedBrowsersList } from "./SupportedBrowsersList";
 import { RiskConfirmationDrawer } from "./RiskConfirmationDrawer";
-import type { BrowserInfo } from "@/utils/browserDetection";
+import type { BrowserInfo } from "@/lib/browserDetection";
 
 interface MobileGuardProps {
   deployment: string;

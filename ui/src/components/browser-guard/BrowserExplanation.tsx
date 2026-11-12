@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { BrowserInfo } from "@/utils/browserDetection";
+import type { BrowserInfo } from "@/lib/browserDetection";
 
 interface BrowserExplanationProps {
   browserType: BrowserInfo["browserType"];

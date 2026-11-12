@@ -8,29 +8,20 @@
     "approveUsers": "Approve Users",
     "manageUsers": "Manage Users",
     "manageRoles": "Manage Roles",
+    "manageGroups": "Manage Groups",
     "addUsers": "Add Users",
     "admin": "Admin",
     "user": "User",
     "deployApp": "Deploy App",
-    "takServer": "Takserver",
     "learnAboutMtls": "Learn about mTLS",
     "proudlyServedBy": "Proudly served by PV-Arki.",
-    "releasedUnder": "Released under GNU GPLv3 by TAK Product Center.",
-    "viewSource": "View source",
-    "letDevelopersKnow": "Let developers know",
-    "whatYouThink": "what you think",
-    "allRightsReserved": "All rights reserved.",
     "copyright": "© 2026 PV-Arki. All rights reserved.",
     "authenticating": "Authenticating...",
-    "adminConsole": "Admin Console",
     "forbiddenAdminAccess": "403 Forbidden: Admin access required",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "confirming": "Confirming...",
     "processing": "Processing...",
-    "type": "Type",
-    "toConfirm": "to confirm",
-    "typeConfirmPlaceholder": "Type \"{text}\" to confirm",
     "managing": "Managing",
     "step": "Step",
     "of": "of",
@@ -41,11 +32,6 @@
     "imageNotAvailable": "Image not available",
     "clickToEnlarge": "Click to enlarge",
     "footer": "Open footer"
-  },
-  "pages": {
-    "login": "Login",
-    "waitingRoom": "Waiting Room",
-    "error": "Error"
   },
   "modals": {
     "mtls": {
@@ -85,7 +71,6 @@
       }
     },
     "completion": "Onboarding Completed!",
-    "completionDesc": "You're all set and ready to operate at full capacity.",
     "step": "Step",
     "of": "of",
     "finish": "Finish",
@@ -100,9 +85,6 @@
   "systemStatus": {
     "title": "System Status",
     "lastUpdated": "Last updated",
-    "services": "Services",
-    "active": "Active",
-    "issues": "Issues",
     "noServices": "No services available",
     "operational": "OPERATIONAL",
     "down": "DOWN",
@@ -164,10 +146,6 @@
         "title": "Secure Connection",
         "description": "mTLS ensures both you and the server verify identity. Install the certificate for secure access."
       },
-      "platform": {
-        "title": "Select Your Platform",
-        "description": "Choose your operating system from the dropdown menu. The installation instructions will automatically adjust to show the correct steps for Windows, macOS, Linux, Android, or iOS."
-      },
       "download": {
         "title": "Download Certificate",
         "description": "Click 'Download Certificate' to get your personal mTLS certificate. Keep this file secure."
@@ -175,10 +153,6 @@
       "install": {
         "title": "Installation",
         "description": "Follow the platform-specific steps below to install your certificate."
-      },
-      "navigate": {
-        "title": "Access Secure Services",
-        "description": "Once installed, click 'Navigate to Services' to access the secure domain. Your browser will use your newly installed certificate to authenticate automatically. You're now ready to use all tactical services!"
       }
     },
     "androidWarning": {
@@ -232,14 +206,11 @@
   },
   "addUsers": {
     "title": "Add Users with Invite Code",
-    "subtitle": "One invite code can be used multiple times. Click on a code to view its QR code and share it with users. Create a new code only if needed.",
-    "subtitleHighlight": "One invite code can be used multiple times.",
     "createNewInvite": "Create New Invite",
     "create": "Create",
     "creating": "Creating...",
     "selectMultiple": "Select Multiple",
     "cancel": "Cancel",
-    "selected": "{{count}} selected",
     "enable": "Enable",
     "disable": "Disable",
     "delete": "Delete",
@@ -249,9 +220,7 @@
     "created": "Created on {{date}}",
     "createdBy": "{{creator}} created this code on {{date}}",
     "forbidden": "403 Forbidden: Admin access required",
-    "noCallsign": "No callsign found. Please log in.",
     "createModalTitle": "Create New Invite Code",
-    "createModalDescription": "One invite code can be used by multiple users",
     "createModalWarning": "⚠️ One invite code can be used by multiple users",
     "createModalText": "You only need to create a new code if:",
     "createModalReason1": "You've deleted or deactivated your previous code",
@@ -263,7 +232,6 @@
     "enableCode": "Enable Code",
     "deleteCode": "Delete Code",
     "deleting": "Deleting...",
-    "goBack": "Go Back",
     "walkthrough": {
       "title": "How to Add Users",
       "description": "Quick guide to inviting users",
@@ -293,6 +261,14 @@
       "activateError": "Failed to activate invite code: {{error}}",
       "forbiddenError": "403 Forbidden: Admin access required",
       "noCallsignError": "No callsign found. Please log in."
+    },
+    "assignments": {
+      "groups": "Groups",
+      "noGroups": "No groups yet.",
+      "roles": "Roles",
+      "noRoles": "No roles yet.",
+      "givesGroups": "Groups: {{names}}",
+      "givesRoles": "Roles: {{names}}"
     }
   },
   "approveUser": {
@@ -301,7 +277,6 @@
     "approvalCodeLabel": "Approval Code",
     "approvalCodePlaceholder": "Enter approval code",
     "enterApprovalCodeMessage": "Please enter an approval code",
-    "goBack": "Go Back",
     "cancel": "Cancel",
     "approve": "Approve",
     "approving": "Approving...",
@@ -356,11 +331,9 @@
       "icon": "⚠️"
     },
     "returnHome": "Return Home",
-    "troubleshootingSteps": "Common troubleshooting steps",
-    "errorCode": "Error: {{code}}"
+    "troubleshootingSteps": "Common troubleshooting steps"
   },
   "home": {
-    "welcome": "Welcome to Deploy App",
     "description": "Access your tactical services and tools. Select a service below to get started.",
     "loadingServices": "Loading your services...",
     "authRequired": "You must be authenticated to access services. Please log in.",
@@ -435,10 +408,6 @@
   },
   "manageUsers": {
     "title": "Manage Users",
-    "description": "Manage users in this view.",
-    "adminHighlight": "Admins",
-    "fighterHighlight": "Fighters",
-    "noCallsignFound": "No callsign found. Please log in.",
     "forbidden": "403 Forbidden: Admin access required",
     "administrators": "Administrators",
     "fighters": "Fighters",
@@ -459,34 +428,41 @@
     },
     "userDialog": {
       "title": "Manage User",
-      "currentRole": "Current role:",
       "goBack": "Go back",
       "remove": "Remove",
-      "removing": "Removing...",
       "promote": "Promote",
-      "promoting": "Promoting...",
       "demote": "Demote",
-      "demoting": "Demoting..."
+      "state": "State:",
+      "roles": "Roles",
+      "noRoles": "No roles yet.",
+      "addRole": "Give a role",
+      "addRoleDescription": "{{callsign}} holds the role directly.",
+      "removeRole": "Take the role away",
+      "fromGroup": "from {{group}}",
+      "groups": "Groups",
+      "noGroups": "In no group yet.",
+      "addGroup": "Add to a group",
+      "addGroupDescription": "{{callsign}} becomes a member of the group and of every group above it.",
+      "removeGroup": "Remove from the group"
     },
     "tooltips": {
       "cannotRemove": "You cannot remove yourself from this application",
-      "cannotDemote": "You cannot demote yourself"
+      "cannotDemote": "You cannot demote yourself",
+      "cannotPromoteAdmins": "You cannot promote a user who is already an administrator",
+      "cannotDemoteNonAdmins": "You can only demote administrators"
     },
     "confirmModals": {
       "promote": {
         "title": "Promote User",
-        "description": "Are you sure you want to promote {{callsign}} to administrator? They will have full access to user management tools.",
-        "requiredText": "PROMOTE"
+        "description": "Are you sure you want to promote {{callsign}} to administrator? They will have full access to user management tools."
       },
       "demote": {
         "title": "Demote User",
-        "description": "Are you sure you want to demote {{callsign}} from administrator to fighter? They will lose access to user management tools.",
-        "requiredText": "DEMOTE"
+        "description": "Are you sure you want to demote {{callsign}} from administrator to fighter? They will lose access to user management tools."
       },
       "remove": {
         "title": "Remove User",
-        "description": "This action cannot be undone. Are you sure you want to remove {{callsign}}?",
-        "requiredText": "{{callsign}}"
+        "description": "This action cannot be undone. Are you sure you want to remove {{callsign}}?"
       }
     },
     "messages": {
@@ -514,7 +490,12 @@
     "selected": "{{count}} selected",
     "promote": "Promote",
     "demote": "Demote",
-    "remove": "Remove"
+    "remove": "Remove",
+    "states": {
+      "pending": "Pending",
+      "active": "Active",
+      "revoked": "Revoked"
+    }
   },
   "manageRoles": {
     "title": "Manage Roles",
@@ -566,10 +547,103 @@
       "cannotTakeLast": "At least one administrator must remain"
     }
   },
+  "manageGroups": {
+    "title": "Manage Groups",
+    "description": "A group holds users and grants roles to them. A member of a group is a member of every group above it.",
+    "forbidden": "403 Forbidden: Admin access required",
+    "noGroups": "No groups yet.",
+    "selectGroup": "Select a group to see it.",
+    "detail": {
+      "parent": "Parent",
+      "root": "None. This is a top-level group.",
+      "roles": "Roles granted",
+      "noRoles": "This group grants no roles.",
+      "rolesReach": "Every member of this group and of the groups below it holds these roles.",
+      "inherited": "Roles from groups above",
+      "fromGroup": "from {{group}}",
+      "managers": "Managers",
+      "noManagers": "No managers."
+    },
+    "messages": {
+      "noCallsign": "No callsign found. Please log in.",
+      "created": "Group {{group}} created",
+      "createError": "Failed to create the group: {{error}}",
+      "changed": "Group changed",
+      "changeError": "Failed to change the group: {{error}}",
+      "deleted": "Group deleted",
+      "deleteError": "Failed to delete the group: {{error}}",
+      "memberAdded": "Member added",
+      "memberRemoved": "Member removed",
+      "memberError": "Failed to change the members: {{error}}",
+      "roleGranted": "Role granted",
+      "roleRevoked": "Role no longer granted",
+      "roleError": "Failed to change the roles: {{error}}",
+      "managerAdded": "Manager added",
+      "managerRemoved": "Manager removed",
+      "managerError": "Failed to change the managers: {{error}}"
+    },
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "create": {
+      "title": "Create Group",
+      "description": "The name is permanent. Only the display name can change later.",
+      "displayNameLabel": "Display name",
+      "nameLabel": "Name",
+      "nameHelp": "Lower-case letters, numbers and hyphens. 63 characters at most.",
+      "nameInvalid": "Use lower-case letters, numbers and hyphens. Start and end with a letter or a number.",
+      "atRoot": "Create as a top-level group",
+      "under": "The new group goes under {{group}}.",
+      "topLevel": "The new group has no parent.",
+      "submit": "Create"
+    },
+    "rename": {
+      "title": "Rename",
+      "description": "The name {{name}} stays as it is. Only the display name changes.",
+      "submit": "Rename"
+    },
+    "move": {
+      "title": "Move",
+      "description": "Choose the group that holds {{group}}.",
+      "toRoot": "No parent. Make it a top-level group."
+    },
+    "delete": {
+      "title": "Delete",
+      "description": "{{group}} is deleted. This cannot be undone.",
+      "blocked": "Clear this first: {{reasons}}",
+      "children": "the groups below it",
+      "members": "its members",
+      "managers": "its managers",
+      "roles": "the roles it grants"
+    },
+    "members": {
+      "title": "Members ({{count}})",
+      "none": "No members yet.",
+      "add": "Add a member",
+      "addDescription": "The user becomes a member of {{group}} and of every group above it.",
+      "remove": "Remove the member",
+      "showEffective": "Show members from groups below",
+      "fromGroup": "from {{group}}"
+    },
+    "roles": {
+      "add": "Grant a role",
+      "addDescription": "{{group}} grants the role to all its members.",
+      "remove": "Stop granting the role"
+    },
+    "managers": {
+      "add": "Add a manager",
+      "addDescription": "The user is named a manager of {{group}}. This does not make them a member.",
+      "remove": "Remove the manager",
+      "noAuthority": "A manager designation is recorded only. No endpoint checks it yet."
+    }
+  },
   "pickers": {
     "filterUsers": "Filter users",
     "loading": "Loading...",
-    "noUsers": "No users to choose."
+    "noUsers": "No users to choose.",
+    "filterGroups": "Filter groups",
+    "noGroups": "No groups to choose.",
+    "filterRoles": "Filter roles",
+    "noRoles": "No roles to choose."
   },
   "mtlsInstall": {
     "title": "Download & Install Your Key",
@@ -580,7 +654,6 @@
     "selectPlaceholder": "Select your OS",
     "instructionsTitle": "Installation Instructions:",
     "note": "Note:",
-    "passwordLabel": "Password for certificate:",
     "downloadButton": "Download your key",
     "downloading": "Downloading...",
     "navigateButton": "Navigate with your key",
@@ -919,32 +992,6 @@
         "title": "Get your key",
         "action": "Download key"
       },
-      "firefox": {
-        "caption": "Your key is a file you add to Firefox.",
-        "title": "Add the key to Firefox",
-        "steps": [
-          "Copy the address, then open it in a new window with these keys:",
-          "Press Import…",
-          "Open Downloads, select {{fileName}} and press Select.",
-          "Enter the PIN shown on this page and press Sign in.",
-          "Press OK in the certificate window, then Installed – continue here."
-        ],
-        "fallbackPath": "In Firefox: ≡ menu → Settings → search “certificates” → Manage certificates → Your Certificates.",
-        "pick": "Firefox asks for a certificate. {{certName}} is already selected. Press OK."
-      },
-      "chrome": {
-        "caption": "Your key is a file you add to your browser.",
-        "title": "Add the key to your browser",
-        "steps": [
-          "Copy the address, then open it in a new window with these keys:",
-          "Press Import.",
-          "Open Downloads, select {{fileName}} and press Select.",
-          "Enter the PIN shown on this page and press OK.",
-          "Come back to this window and press Installed – continue."
-        ],
-        "fallbackPath": "In the browser: ⋮ menu → Settings → Privacy and security → Security → Manage certificates → Your certificates.",
-        "pick": "Your browser asks for a certificate. {{certName}} is already selected. Press OK."
-      },
       "system": {
         "crManager": "Certificate Manager",
         "crPlatform": "Client certificates from platform",
@@ -982,8 +1029,6 @@
     "iosExplanation": "On iOS, only Safari supports the necessary security features. Other browsers won't work.",
     "unknownExplanation": "This browser has not been tested with the application.",
     "supportedBrowsers": "Compatible browsers",
-    "importantNote": "Note",
-    "securityRequirement": "The application requires browsers that support mTLS certificates to ensure security.",
     "refreshNote": "Download a compatible browser and reopen the page.",
     "continueAtRisk": "Continue at your own risk",
     "riskWarning": "Warning: Things may break if you continue with an unsupported browser.",
@@ -1002,12 +1047,9 @@
     "loadingMarkdown": "Loading markdown..."
   },
   "waitingRoom": {
-    "titleShort": "Awaiting Approval",
     "title": "Get approved",
     "description": "Your admin is usually whoever gave you your invite code.",
     "actionFailed": "Action failed: {{error}}",
-    "instructionsTitle": "Waiting for Approval (instructions)",
-    "instructionsText": "You may approve your user either by taking the approval code from the Waiting Room screen, by asking them to provide the approval code as a link, or by entering their approval code in the “Approve Users” view.",
     "approvedToast": "You have been approved!",
     "codeLabel": "Approval code",
     "callsignLabel": "Callsign",

@@ -54,7 +54,7 @@ export function Footer({ onMtlsInfoClick }: FooterProps) {
           <DrawerTrigger asChild>
             <button className="w-full py-4 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors border-t border-border bg-card/50">
               <ChevronUp className="h-3 w-3" />
-              <span>{t("common.footer", "Avaa alatunniste")}</span>
+              <span>{t("common.footer")}</span>
             </button>
           </DrawerTrigger>
           <DrawerContent>

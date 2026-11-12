@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { InviteAssignments } from "@/components/add-users/InviteAssignments";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +17,7 @@ import { isActive, type Invite } from "@/api/invites";
 interface CreateInviteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (roleIds: string[], groupIds: string[]) => void;
 }
 
 export function CreateInviteDialog({
@@ -24,10 +26,20 @@ export function CreateInviteDialog({
   onConfirm,
 }: CreateInviteDialogProps) {
   const { t } = useTranslation();
+  const [roleIds, setRoleIds] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
+
+  const toggle = (chosen: string[], id: string) =>
+    chosen.includes(id)
+      ? chosen.filter((held) => held !== id)
+      : [...chosen, id];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="create-invite-dialog">
+      <DialogContent
+        className="sm:max-w-md flex flex-col"
+        data-testid="create-invite-dialog"
+      >
         <DialogHeader>
           <DialogTitle>{t("addUsers.createModalTitle")}</DialogTitle>
           <DialogDescription className="pt-4 space-y-3 text-sm leading-relaxed text-left">
@@ -44,6 +56,16 @@ export function CreateInviteDialog({
             </p>
           </DialogDescription>
         </DialogHeader>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="pr-2">
+            <InviteAssignments
+              roleIds={roleIds}
+              groupIds={groupIds}
+              onToggleRole={(id) => setRoleIds(toggle(roleIds, id))}
+              onToggleGroup={(id) => setGroupIds(toggle(groupIds, id))}
+            />
+          </div>
+        </ScrollArea>
         <div className="flex gap-3 pt-4 flex-col sm:flex-row">
           <Button
             variant="outline"
@@ -54,7 +76,7 @@ export function CreateInviteDialog({
             {t("addUsers.cancel")}
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={() => onConfirm(roleIds, groupIds)}
             variant={"outline"}
             className="flex-1 h-11 bg-primary-light hover:bg-primary-light/90"
             data-testid="create-invite-confirm"
