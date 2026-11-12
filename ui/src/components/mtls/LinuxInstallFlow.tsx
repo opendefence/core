@@ -6,7 +6,7 @@ import { Check, Copy, Download, Loader2, RotateCw } from "lucide-react";
 import { useWizardStep } from "@/hooks/mtls/useWizardStep";
 import { usePageFocus } from "@/hooks/mtls/usePageFocus";
 import { useStickyCopy } from "@/hooks/mtls/useStickyCopy";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { CertProgress } from "./CertProgress";
 import { CERT_STEPS } from "./certSteps";
 import { PasswordCallout } from "./PasswordCallout";
