@@ -47,18 +47,6 @@
     "error": "Virhe"
   },
   "modals": {
-    "keycloak": {
-      "title": "Keycloak-hallintakonsoli",
-      "description": "Keycloak on tämän ympäristön identiteetintarjoaja. Käyttäjät tunnistautuvat mTLS-varmenteella, joten konsoli on tarkoitettu vain tarkasteluun ja vianselvitykseen.",
-      "whatCanYouDo": "Mitä siellä voi tehdä?",
-      "inspectUsers": "Tarkastele käyttäjätilejä ja niiden rooleja",
-      "viewSessions": "Katso ja katkaise aktiiviset istunnot",
-      "manageClients": "Tarkista palveluiden OIDC-asiakasasetukset",
-      "reviewEvents": "Selaa tunnistautumis- ja hallintatapahtumien lokia",
-      "note": "Käyttäjiä, kutsumerkkejä ja rooleja hallitaan Deploy Appin käyttäjähallinnasta. Suoraan Keycloakiin tehdyt muutokset voivat ylikirjoittua ja rikkoa kirjautumisen.",
-      "cancelButton": "Peruuta",
-      "openConsole": "Avaa konsoli"
-    },
     "mtls": {
       "title": "Mikä on mTLS?",
       "description": "Mutual TLS (mTLS) -tunnistautumisen selitys",
@@ -257,8 +245,8 @@
     "filterPlaceholder": "Suodata kutsukoodeja",
     "active": "aktiivinen",
     "inactive": "ei aktiivinen",
+    "created": "Luotu {{date}}",
     "createdBy": "{{creator}} loi tämän koodin {{date}}",
-    "createdByYou": "Loit tämän koodin {{date}}",
     "forbidden": "403 Kielletty: Ylläpitäjän oikeudet vaaditaan",
     "noCallsign": "Kutsutunnusta ei löytynyt. Kirjaudu sisään.",
     "createModalTitle": "Luo uusi kutsukoodi",
@@ -456,7 +444,6 @@
     "noAdministrators": "Ei ylläpitäjiä.",
     "noFighters": "Ei taistelijoita.",
     "you": "Sinä",
-    "keycloakButton": "Avaa Keycloak-hallintakonsoli",
     "walkthrough": {
       "title": "Käyttäjähallinnan opas",
       "description": "Pikakäyttöopas tiimin hallintaan",
@@ -512,7 +499,8 @@
       "cannotDemoteOwn": "Et voi alentaa omaa tiliäsi",
       "cannotDeleteOwn": "Et voi poistaa omaa tiliäsi",
       "cannotDeleteLastAdmin": "Et voi poistaa viimeistä ylläpitäjää.",
-      "cannotSelectSelf": "Et voi valita omaa tiliäsi massatoimintoihin."
+      "cannotSelectSelf": "Et voi valita omaa tiliäsi massatoimintoihin.",
+      "bulkSuccess": "Päivitettiin {{count}} käyttäjää."
     },
     "bulkMode": "Valitse useita",
     "exitBulkMode": "Poistu massatilasta",
@@ -1003,32 +991,6 @@
       "caption": "Näytä tämä hänelle"
     },
     "or": "tai"
-  },
-  "adminTools": {
-    "navLink": "Ylläpitotyökalut",
-    "title": "Ylläpitäjän konsoli",
-    "toolsDesc": "Ylläpitotyökalut",
-    "description": "Hallitse tiimiäsi, käyttäjiä ja ulkoisia palveluita keskitetysti.",
-    "userManagementSection": "Käyttäjähallinta",
-    "userManagementDesc": "Hyväksy uusia käyttäjiä, hallinnoi rooleja ja hallitse pääsyoikeuksia.",
-    "externalServicesSection": "Ulkoiset palvelut",
-    "externalServicesDesc": "Käytä ja hallinnoi taktisia ja battle-log-palvelimiasi.",
-    "approveUsersDesc": "Tarkastele ja hyväksy uusia käyttäjiä",
-    "manageUsersDesc": "Hallitse käyttäjärooleja ja käyttöoikeuksia",
-    "addUsersDesc": "Luo ja hallitse kutsukoodeja",
-    "keycloakTitle": "Keycloak-hallinta",
-    "keycloakDesc": "Identiteettien hallinta ja vianselvitys",
-    "takServerTitle": "Takserverin hallinta",
-    "takServerDesc": "Hallinnoi Takserverin asetuksia",
-    "blServerTitle": "Battlelogin hallinta",
-    "blServerDesc": "Hallinnoi Battlelogin palveluita",
-    "openExternal": "Avaa ulkoinen",
-    "access": "Avaa",
-    "helpTitle": "Pikaopas",
-    "help1": "Käyttäjähallinta – hyväksy, ylennä, alenna tai poista käyttäjiä",
-    "help2": "Kutsukoodit – luo ja hallitse käyttäjäkoodeja",
-    "help3": "Keycloak – identiteettien tarkastelu ja vianselvitys",
-    "help4": "Ulkoiset palvelut – käytä TAK- ja BL-palvelimia"
   },
   "guides": {
     "disableAutoOpen": "Älä näytä minulle ohjeita automaattisesti"

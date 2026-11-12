@@ -77,17 +77,12 @@ function RootLayout() {
 
   useEffect(() => {
     if (!userTypeLoading && isValidUser) {
-      const adminPaths = [
-        "/approve-users",
-        "/manage-users",
-        "/add-users",
-        "/admin-tools",
-      ];
+      const adminPaths = ["/approve-users", "/manage-users", "/add-users"];
       const isAdminPath = adminPaths.some((path) =>
         location.pathname.startsWith(path),
       );
 
-      if (isAdminPath && userType !== "superadmin") {
+      if (isAdminPath && isAppOrigin() && userType !== "superadmin") {
         toast.error(t("common.forbiddenAdminAccess"));
         navigate({ to: "/" });
       }

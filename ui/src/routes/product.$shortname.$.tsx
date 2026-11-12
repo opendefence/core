@@ -2,8 +2,7 @@
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, lazy, Suspense } from "react";
-import { useGetProductDescriptions } from "@/hooks/api/useGetProductDescriptions";
-import { useGetProductInstructions } from "@/hooks/api/useGetProductInstructions";
+import { useProducts } from "@/api/integrations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import {
@@ -48,10 +47,9 @@ function ProductPage() {
     data: products = [],
     isLoading: productsLoading,
     error: productsError,
-  } = useGetProductDescriptions(currentLanguage);
-  const { data: instructionsData } = useGetProductInstructions(shortname);
+  } = useProducts(currentLanguage);
 
-  const product = products.find((p) => p.shortname === shortname);
+  const product = products.find((p) => p.name === shortname);
 
   useEffect(() => {
     if (productsLoading) {
@@ -91,7 +89,7 @@ function ProductPage() {
   }
 
   const Remote =
-    product.component.type === "component"
+    product.component?.type === "component"
       ? getRemoteComponent(shortname, product.component.ref)
       : null;
 
@@ -99,7 +97,7 @@ function ProductPage() {
     <div
       data-testid="product-page"
       data-product-shortname={shortname}
-      data-product-component-type={product.component.type}
+      data-product-component-type={product.component?.type ?? ""}
     >
       {Remote ? (
         <Suspense
@@ -113,7 +111,6 @@ function ProductPage() {
           }
         >
           <Remote
-            data={instructionsData?.data || {}}
             meta={{
               theme: import.meta.env.VITE_THEME,
               callsign: callsign,
@@ -124,7 +121,7 @@ function ProductPage() {
             onNavigate={navigate}
           />
         </Suspense>
-      ) : product.component.type === "markdown" ? (
+      ) : product.component?.type === "markdown" ? (
         <div>
           <button
             onClick={() => navigate({ to: "/" })}

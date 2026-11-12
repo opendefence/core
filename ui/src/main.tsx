@@ -3,10 +3,6 @@ import ReactDOM from "react-dom/client";
 import App from "./app";
 import "./index.css";
 import { Toaster } from "sonner";
-import {
-  QueryClient as LegacyQueryClient,
-  QueryClientProvider as LegacyQueryClientProvider,
-} from "react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/config/i18n";
 import { I18nextProvider } from "react-i18next";
@@ -59,18 +55,15 @@ const initializeApp = async () => {
   }
 
   const queryClient = new QueryClient();
-  const legacyQueryClient = new LegacyQueryClient();
 
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
       <I18nextProvider i18n={i18n}>
         <QueryClientProvider client={queryClient}>
-          <LegacyQueryClientProvider client={legacyQueryClient}>
-            <BrowserGuard>
-              <App />
-              <Toaster position="top-center" richColors />
-            </BrowserGuard>
-          </LegacyQueryClientProvider>
+          <BrowserGuard>
+            <App />
+            <Toaster position="top-center" richColors />
+          </BrowserGuard>
         </QueryClientProvider>
       </I18nextProvider>
     </React.StrictMode>,

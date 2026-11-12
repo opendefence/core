@@ -4,7 +4,7 @@ import type React from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useUserType } from "@/hooks/auth/useUserType";
-import { useGetProductDescriptions } from "@/hooks/api/useGetProductDescriptions";
+import { useProducts, type Product } from "@/api/integrations";
 import { MtlsInfoModal } from "@/components/MtlsInfoModal";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -13,7 +13,6 @@ import {
   ExitConfirmDialog,
   HomeGreeting,
   AdminToolsSection,
-  type Product,
 } from "@/components/home";
 
 export const Route = createFileRoute("/")({
@@ -35,7 +34,7 @@ function HomePage() {
   } = useUserType();
 
   const { data: products = [], isLoading: productsLoading } =
-    useGetProductDescriptions(currentLanguage);
+    useProducts(currentLanguage);
 
   if (userTypeLoading || productsLoading) {
     return (
@@ -59,13 +58,13 @@ function HomePage() {
   const handleProductClick = (product: Product) => {
     if (!isValidUser) return;
 
-    if (product.component.type === "link") {
+    if (product.component?.type === "link") {
       setExitUrl(product.component.ref);
       setExitDialogOpen(true);
     } else {
       navigate({
         to: "/product/$shortname",
-        params: { shortname: product.shortname },
+        params: { shortname: product.name },
       });
     }
   };
@@ -91,7 +90,7 @@ function HomePage() {
 
         {userType === "superadmin" && (
           <AdminToolsSection
-            onNavigate={() => navigate({ to: "/admin-tools" })}
+            onNavigate={() => navigate({ to: "/manage-users" })}
           />
         )}
       </div>
@@ -102,7 +101,7 @@ function HomePage() {
       >
         {products.map((product: Product) => (
           <ProductCard
-            key={product.shortname}
+            key={product.name}
             product={product}
             isValidUser={isValidUser}
             onProductClick={handleProductClick}

@@ -10,6 +10,14 @@ interface HeaderProps {
   onToggleSidebar: () => void;
 }
 
+const ADMIN_PAGES = [
+  { path: "/approve-users", label: "common.approveUsers" },
+  { path: "/manage-users", label: "common.manageUsers" },
+  { path: "/add-users", label: "common.addUsers" },
+  { path: "/manage-roles", label: "common.manageRoles" },
+  { path: "/manage-groups", label: "common.manageGroups" },
+];
+
 function BreadcrumbNav({ appName }: { appName: string }) {
   const location = useLocation();
   const { t } = useTranslation();
@@ -21,35 +29,9 @@ function BreadcrumbNav({ appName }: { appName: string }) {
       { label: appName, href: "/" },
     ];
 
-    if (path.includes("/approve-users")) {
-      breadcrumbs.push({
-        label: t("adminTools.navLink"),
-        href: "/admin-tools?type=users",
-      });
-      breadcrumbs.push({
-        label: t("common.approveUsers"),
-        href: "/approve-users",
-      });
-    } else if (path.includes("/manage-users")) {
-      breadcrumbs.push({
-        label: t("adminTools.navLink"),
-        href: "/admin-tools?type=users",
-      });
-      breadcrumbs.push({
-        label: t("common.manageUsers"),
-        href: "/manage-users",
-      });
-    } else if (path.includes("/add-users")) {
-      breadcrumbs.push({
-        label: t("adminTools.navLink"),
-        href: "/admin-tools?type=users",
-      });
-      breadcrumbs.push({ label: t("common.addUsers"), href: "/add-users" });
-    } else if (path.includes("/admin-tools")) {
-      breadcrumbs.push({
-        label: t("adminTools.navLink"),
-        href: "/admin-tools",
-      });
+    const page = ADMIN_PAGES.find((admin) => path.includes(admin.path));
+    if (page) {
+      breadcrumbs.push({ label: t(page.label), href: page.path });
     }
 
     return breadcrumbs;

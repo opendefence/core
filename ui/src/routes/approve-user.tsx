@@ -14,11 +14,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useApproveUser } from "@/hooks/api/useApproveUser";
+import { useApproveUser } from "@/api/users";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface ApproveUserSearch {
+  user?: string;
   callsign?: string;
   approvalcode?: string;
 }
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/approve-user")({
   component: ApproveUserPage,
   validateSearch: (search: Record<string, unknown>): ApproveUserSearch => {
     return {
+      user: (search.user as string) || undefined,
       callsign: (search.callsign as string) || undefined,
       approvalcode: (search.approvalcode as string) || undefined,
     };
@@ -36,7 +38,7 @@ export const Route = createFileRoute("/approve-user")({
 function ApproveUserPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { callsign, approvalcode } = Route.useSearch();
+  const { user, callsign, approvalcode } = Route.useSearch();
   const [approvalCode, setApprovalCode] = useState(approvalcode || "");
 
   const approveUserMutation = useApproveUser({
@@ -49,19 +51,20 @@ function ApproveUserPage() {
     },
   });
 
+  // Without the id the link names nobody the API can act on.
   useEffect(() => {
-    if (!callsign) {
+    if (!user) {
       navigate({ to: "/approve-users" });
     }
-  }, [callsign, navigate]);
+  }, [user, navigate]);
 
   const handleApprove = () => {
     if (!approvalCode.trim()) {
       toast.error(t("approveUser.enterApprovalCodeMessage"));
       return;
     }
-    if (!callsign) return;
-    approveUserMutation.mutate({ callsign, approvalCode });
+    if (!user) return;
+    approveUserMutation.mutate({ userId: user, approvalCode });
   };
 
   return (
@@ -93,7 +96,7 @@ function ApproveUserPage() {
                 placeholder={t("approveUser.approvalCodePlaceholder")}
                 onKeyDown={(e) => e.key === "Enter" && handleApprove()}
                 autoFocus
-                disabled={approveUserMutation.isLoading}
+                disabled={approveUserMutation.isPending}
               />
             </div>
 
@@ -102,7 +105,7 @@ function ApproveUserPage() {
                 data-testid="approve-user-cancel-button"
                 variant="outline"
                 onClick={() => navigate({ to: "/approve-users" })}
-                disabled={approveUserMutation.isLoading}
+                disabled={approveUserMutation.isPending}
                 className="flex-1"
               >
                 {t("approveUser.cancel")}
@@ -112,9 +115,9 @@ function ApproveUserPage() {
                 onClick={handleApprove}
                 variant={"outline"}
                 className="flex-1 bg-primary-light hover:bg-primary-light/90"
-                disabled={approveUserMutation.isLoading || !approvalCode.trim()}
+                disabled={approveUserMutation.isPending || !approvalCode.trim()}
               >
-                {approveUserMutation.isLoading ? (
+                {approveUserMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     {t("approveUser.approving")}
