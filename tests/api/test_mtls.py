@@ -91,28 +91,26 @@ async def test_mtls_user_returns_the_certificate_user(users: list[User]) -> None
     assert await dependencies.mtls_user(_header(certificate, _certificate(other))) is user
 
 
-@pytest.mark.parametrize(
-    "case",
-    ["no-header", "garbage", "no-uuid-san", "not-a-uuid", "unknown-uid", "not-accepted", "same-serial-other-key"],
-)
-async def test_mtls_user_rejects(users: list[User], case: str) -> None:
-    """Missing or unreadable certificates, unknown users, and certificates not accepted now are 401."""
-    user = make_user("user-alpha")
-    accepted = _certificate(user)
-    _accept(user, accepted)
-    users.append(user)
-    common_name, _ = certificate_identity(user)
-    presented = {
-        "no-uuid-san": make_client_certificate(common_name, "urn:example:other"),
-        "not-a-uuid": make_client_certificate(common_name, "urn:uuid:not-a-uuid"),
-        "unknown-uid": _certificate(make_user("user-ghost")),
-        "not-accepted": _certificate(user, serial=0x9999),
-        "same-serial-other-key": _certificate(user),
-    }.get(case)
-    header = {"no-header": None, "garbage": "not%2Ca%2Ccertificate"}.get(case, _header(presented or accepted))
+async def _assert_rejected(header: str | None) -> None:
     with pytest.raises(HTTPException) as raised:
         await dependencies.mtls_user(header)
     assert raised.value.status_code == 401
+
+
+async def test_mtls_user_rejects(users: list[User]) -> None:
+    """Missing or unreadable certificates, unknown users, and certificates not accepted now are 401."""
+    user = make_user("user-alpha")
+    _accept(user, _certificate(user))
+    users.append(user)
+    common_name, _ = certificate_identity(user)
+    await _assert_rejected(None)
+    await _assert_rejected("not%2Ca%2Ccertificate")
+    await _assert_rejected(_header(make_client_certificate(common_name, "urn:example:other")))
+    await _assert_rejected(_header(make_client_certificate(common_name, "urn:uuid:not-a-uuid")))
+    await _assert_rejected(_header(_certificate(make_user("user-ghost"))))
+    await _assert_rejected(_header(_certificate(user, serial=0x9999)))
+    # Same serial as the accepted certificate, but another key
+    await _assert_rejected(_header(_certificate(user)))
 
 
 def test_me_with_a_client_certificate(users: list[User], groups: list[Group], roles: list[Role]) -> None:
