@@ -1,4 +1,4 @@
-"""Admission webhooks: Group parent chains and deletes, User callsigns and deletes."""
+"""Admission webhooks: Group parent chains and deletes, Role deletes, User callsigns and deletes."""
 
 from typing import cast
 
@@ -6,15 +6,20 @@ import pytest
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.resources import Resource
 
-from lib_opendefence_core.models.v1alpha1 import Group, User
+from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.k8s_operator.controllers.groups import validate_group
+from opendefence_core.k8s_operator.controllers.roles import validate_role_delete
 from opendefence_core.k8s_operator.controllers.users import validate_user_callsign, validate_user_delete
-from tests.factories import make_binding, make_group, make_invite, make_user
+from tests.factories import make_binding, make_group, make_invite, make_role, make_user
 from tests.fakes import FakeAdmissionRequest
 
 
 async def _validate_group(request: FakeAdmissionRequest[Group]) -> None:
     await validate_group(cast(AdmissionRequest[Group], request))
+
+
+async def _validate_role_delete(request: FakeAdmissionRequest[Role]) -> None:
+    await validate_role_delete(cast(AdmissionRequest[Role], request))
 
 
 async def _validate_user_delete(request: FakeAdmissionRequest[User]) -> None:
@@ -141,6 +146,43 @@ async def test_validate_group_rejects_missing_ancestor() -> None:
         await _validate_group(request)
     assert raised.value.reason == "MissingReference"
     assert "missing" in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    ("holder", "label"),
+    [
+        (make_user("user-1", roles=["medic"]), "User/user-1"),
+        (make_group("ops", roles=["medic"]), "Group/ops"),
+        (make_invite("invite-1", roles=["medic"]), "Invite/invite-1"),
+    ],
+    ids=["user", "group", "invite"],
+)
+async def test_validate_role_delete_rejects_role_while_named(holder: Resource, label: str) -> None:
+    """A role that a User, a Group, or an Invite names in roleRefs cannot be deleted."""
+    role = make_role("medic")
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_role_delete(FakeAdmissionRequest(operation="DELETE", old_resource=role, objects=[holder]))
+    assert raised.value.reason == "StillReferenced"
+    assert str(raised.value) == f"Role is still named by: {label}"
+
+
+async def test_validate_role_delete_allows_integration_role_while_named() -> None:
+    """Removing an Integration removes its Roles, whoever names them."""
+    request = FakeAdmissionRequest(
+        operation="DELETE",
+        old_resource=make_role("medic", owner="tak"),
+        objects=[make_user("user-1", roles=["medic"])],
+    )
+    await _validate_role_delete(request)
+    assert request.client_calls == 0
+
+
+async def test_validate_role_delete_allows_role_nothing_names() -> None:
+    """Refs to other roles do not hold this role."""
+    others = [make_user("user-1", roles=["pilot"]), make_group("ops", roles=["pilot"])]
+    await _validate_role_delete(
+        FakeAdmissionRequest(operation="DELETE", old_resource=make_role("medic"), objects=others)
+    )
 
 
 async def test_validate_user_callsign_allows_a_free_callsign() -> None:

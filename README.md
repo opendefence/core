@@ -95,8 +95,10 @@ reconciles them:
 - The admission webhook rejects Group cycles and missing parent groups. It
   rejects the deletion of a Group that has child groups, or that a User or an
   Invite names in `groupRefs`. It rejects the deletion of a User that has
-  UserBindings, or that a Group names in `managerRefs`. With
-  `failurePolicy: Fail`, those writes are rejected while the operator is down.
+  UserBindings, or that a Group names in `managerRefs`. It rejects the
+  deletion of a Role that a User, a Group, or an Invite names in `roleRefs`,
+  unless an Integration owns the Role. With `failurePolicy: Fail`, those
+  writes are rejected while the operator is down.
 
 The **REST API** (`opendefence_core api run`, Deployment `core-api`) serves
 under `/api/v3`:
