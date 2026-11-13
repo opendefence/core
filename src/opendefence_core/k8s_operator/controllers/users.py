@@ -16,7 +16,6 @@ from lib_opendefence_core.models.v1alpha1 import (
     is_synced,
 )
 from lib_opendefence_core.models.v1alpha1.user import normalize_callsign
-from opendefence_core.certificates import wants_certificate
 from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved, named_by, referrers_of, resolve_refs
@@ -79,14 +78,11 @@ async def reconcile_user(user: User, ctx: Context[User]) -> None:
     observed, pending = observe_bindings(user, ctx.cached(UserBinding).list(all_namespaces=True))
     report_bindings_synced(ctx, observed, pending)
     ctx.set_status(bindings=observed)
-    if not wants_certificate(user):
-        await reconcile_certificate(user, ctx)
+    await reconcile_certificate(user, ctx)
     roles = resolve_refs(ctx, Role, user.spec.role_refs)
     groups = resolve_refs(ctx, Group, user.spec.group_refs)
     mark_resolved(ctx)
     ctx.set_status(roles=roles, groups=groups)
-    if wants_certificate(user):
-        await reconcile_certificate(user, ctx)
 
 
 def observe_bindings(user: User, bindings: Sequence[UserBinding]) -> tuple[list[BindingObservation], list[str]]:
