@@ -1,10 +1,10 @@
 """Role management endpoints."""
 
-from cloudcoil.errors import ResourceConflict
+from cloudcoil.errors import APIError, ResourceConflict
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from opendefence_core.api.dependencies import superadmin_user
-from opendefence_core.api.lib.roles import create_role, delete_role, holders, is_managed, list_roles, referrers
+from opendefence_core.api.lib.roles import create_role, delete_role, holders, is_managed, list_roles
 from opendefence_core.api.lib.uids import ObjectId
 from opendefence_core.api.lookups import role_or_404
 from opendefence_core.api.routes.roles.schema import CreateRoleRequest, RoleResponse
@@ -43,10 +43,13 @@ async def remove_role(role_id: ObjectId) -> None:
     role = await role_or_404(role_id)
     if is_managed(role):
         raise HTTPException(status.HTTP_409_CONFLICT, detail=MANAGED_MESSAGE)
-    referring = await referrers(role.name or "")
-    if referring:
-        raise HTTPException(status.HTTP_409_CONFLICT, detail=f"Role is still named by: {', '.join(referring)}")
-    await delete_role(role)
+    try:
+        await delete_role(role)
+    except APIError as exc:
+        # The operator refuses a role that a user, group or invite still names
+        if exc.status_code != status.HTTP_403_FORBIDDEN:
+            raise
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.get("/{role_id}/members")
