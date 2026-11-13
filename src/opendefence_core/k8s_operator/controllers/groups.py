@@ -4,11 +4,12 @@ from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.controller import Context, Controller, ResourceKey
 from cloudcoil.errors import ResourceNotFound
 
-from lib_opendefence_core.models.v1alpha1 import Group, Role, User
+from lib_opendefence_core.models.v1alpha1 import Group, Invite, Role, User
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import (
     inspect_parent_chain,
     mark_resolved,
+    named_by,
     referrers_of,
     reject_parent_chain_issue,
     resolve_optional_ref,
@@ -26,9 +27,10 @@ def _parent_of(group: Group) -> str | None:
 
 @groups.validate(operations=("CREATE", "UPDATE", "DELETE"))
 async def validate_group(request: AdmissionRequest[Group]) -> None:
-    """Reject Group writes that self-parent, cycle, name a missing ancestor, or delete a parent."""
+    """Reject Group writes that self-parent, cycle, name a missing ancestor, or delete a group in use."""
     if request.operation == "DELETE":
         await _deny_delete_with_children(request)
+        await _deny_delete_while_named(request)
         return
     obj = request.resource
     if obj is None:
@@ -67,6 +69,19 @@ async def _deny_delete_with_children(request: AdmissionRequest[Group]) -> None:
         f"Group still has child groups: {', '.join(children)}",
         reason="HasChildren",
     )
+
+
+async def _deny_delete_while_named(request: AdmissionRequest[Group]) -> None:
+    """Reject DELETE while a User or Invite still names this group in groupRefs."""
+    name = request.name
+    if not name:
+        return
+    holders = [
+        *await named_by(request, User, lambda obj: obj.spec.group_refs, name),
+        *await named_by(request, Invite, lambda obj: obj.spec.group_refs, name),
+    ]
+    if holders:
+        raise AdmissionDenied(f"Group is still named by: {', '.join(sorted(holders))}", reason="StillReferenced")
 
 
 @groups.reconcile()

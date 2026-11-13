@@ -4,11 +4,12 @@ from typing import cast
 
 import pytest
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
+from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import Group, User
 from opendefence_core.k8s_operator.controllers.groups import validate_group
 from opendefence_core.k8s_operator.controllers.users import validate_user_callsign, validate_user_delete
-from tests.factories import make_binding, make_group, make_user
+from tests.factories import make_binding, make_group, make_invite, make_user
 from tests.fakes import FakeAdmissionRequest
 
 
@@ -55,6 +56,30 @@ async def test_validate_group_rejects_delete_with_children() -> None:
         )
     assert raised.value.reason == "HasChildren"
     assert "eng, platform" in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    ("holder", "label"),
+    [
+        (make_user("user-1", groups=["ops"]), "User/user-1"),
+        (make_invite("invite-1", groups=["ops"]), "Invite/invite-1"),
+    ],
+    ids=["user", "invite"],
+)
+async def test_validate_group_rejects_delete_while_named(holder: Resource, label: str) -> None:
+    """A group that a User or an Invite names in groupRefs cannot be deleted."""
+    group = make_group("ops")
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_group(FakeAdmissionRequest(operation="DELETE", old_resource=group, objects=[group, holder]))
+    assert raised.value.reason == "StillReferenced"
+    assert str(raised.value) == f"Group is still named by: {label}"
+
+
+async def test_validate_group_allows_delete_while_another_group_is_named() -> None:
+    """Refs to other groups do not hold this group."""
+    group = make_group("ops")
+    others = [make_user("user-1", groups=["eng"]), make_invite("invite-1", groups=["eng"])]
+    await _validate_group(FakeAdmissionRequest(operation="DELETE", old_resource=group, objects=[group, *others]))
 
 
 async def test_validate_group_allows_root_group_without_client() -> None:
