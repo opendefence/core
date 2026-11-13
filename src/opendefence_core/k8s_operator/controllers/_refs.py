@@ -2,8 +2,9 @@
 
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
-from typing import Literal, NoReturn, Protocol
+from typing import Any, Literal, NoReturn, Protocol
 
+from cloudcoil.admission import AdmissionRequest
 from cloudcoil.controller import ResourceKey, TerminalError, Wait
 from cloudcoil.resources import Resource
 
@@ -49,6 +50,17 @@ def referrers_of[T: Resource](
         if obj.name and target_name in ref_names(refs_of(obj)):
             keys.append(ResourceKey(obj.name, obj.namespace))
     return keys
+
+
+async def named_by[T: Resource](
+    request: AdmissionRequest[Any],
+    kind: type[T],
+    refs_of: Callable[[T], ResourceRefs],
+    name: str,
+) -> list[str]:
+    """Return Kind/name of each live object of the kind whose refs name the target."""
+    client = await request.client(kind)
+    return [f"{kind.__name__}/{obj.name}" async for obj in await client.list() if name in ref_names(refs_of(obj))]
 
 
 @dataclass(frozen=True)
