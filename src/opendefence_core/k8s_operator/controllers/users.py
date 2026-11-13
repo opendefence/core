@@ -16,10 +16,9 @@ from lib_opendefence_core.models.v1alpha1 import (
     is_synced,
 )
 from lib_opendefence_core.models.v1alpha1.user import normalize_callsign
-from opendefence_core.certificates import wants_certificate
 from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate
 from opendefence_core.k8s_operator.controllers._events import recorder
-from opendefence_core.k8s_operator.controllers._refs import mark_resolved, referrers_of, resolve_refs
+from opendefence_core.k8s_operator.controllers._refs import mark_resolved, named_by, referrers_of, resolve_refs
 
 users = Controller(User, name="users", owns=(CertificateRequest,), events=recorder("users"))
 
@@ -49,7 +48,7 @@ async def validate_user_callsign(request: AdmissionRequest[User]) -> None:
 
 @users.validate(operations=("DELETE",))
 async def validate_user_delete(request: AdmissionRequest[User]) -> None:
-    """Reject User deletes while any UserBinding still names this user."""
+    """Reject User deletes while a UserBinding names this user or a Group names it as manager"""
     obj = request.old_resource
     name = (obj.name if obj is not None else None) or request.name
     if not name:
@@ -62,13 +61,15 @@ async def validate_user_delete(request: AdmissionRequest[User]) -> None:
         namespace = binding.namespace or ""
         binding_name = binding.name or ""
         holders.append(f"{namespace}/{binding_name}")
-    if not holders:
-        return
-    holders.sort()
-    raise AdmissionDenied(
-        f"User still has UserBindings: {', '.join(holders)}",
-        reason="HasBindings",
-    )
+    if holders:
+        holders.sort()
+        raise AdmissionDenied(
+            f"User still has UserBindings: {', '.join(holders)}",
+            reason="HasBindings",
+        )
+    managed = await named_by(request, Group, lambda obj: obj.spec.manager_refs, name)
+    if managed:
+        raise AdmissionDenied(f"User is still named by: {', '.join(sorted(managed))}", reason="StillReferenced")
 
 
 @users.reconcile()
@@ -77,14 +78,11 @@ async def reconcile_user(user: User, ctx: Context[User]) -> None:
     observed, pending = observe_bindings(user, ctx.cached(UserBinding).list(all_namespaces=True))
     report_bindings_synced(ctx, observed, pending)
     ctx.set_status(bindings=observed)
-    if not wants_certificate(user):
-        await reconcile_certificate(user, ctx)
+    await reconcile_certificate(user, ctx)
     roles = resolve_refs(ctx, Role, user.spec.role_refs)
     groups = resolve_refs(ctx, Group, user.spec.group_refs)
     mark_resolved(ctx)
     ctx.set_status(roles=roles, groups=groups)
-    if wants_certificate(user):
-        await reconcile_certificate(user, ctx)
 
 
 def observe_bindings(user: User, bindings: Sequence[UserBinding]) -> tuple[list[BindingObservation], list[str]]:

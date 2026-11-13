@@ -89,7 +89,7 @@ async def patch_group(group_id: ObjectId, request: UpdateGroupRequest) -> GroupR
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_group(group_id: ObjectId) -> None:
-    """Delete a group that has no child groups."""
+    """Delete a group that has no child groups, members, or invites."""
     await _admitted(delete_group(await group_or_404(group_id)))
 
 

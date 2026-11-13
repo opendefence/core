@@ -150,7 +150,7 @@ class FakeContext:
 
 
 class FakeAdmissionRequest[T: Resource]:
-    """AdmissionRequest whose client reads the given objects; counts client lookups."""
+    """AdmissionRequest whose clients read the given objects by kind; counts client lookups."""
 
     def __init__(
         self,
@@ -164,10 +164,9 @@ class FakeAdmissionRequest[T: Resource]:
         self.resource = resource
         self.old_resource = old_resource
         self.name = (old_resource.name if old_resource else None) or (resource.name if resource else None) or ""
-        self._client: FakeClient[Resource] = FakeClient(objects)
+        self._objects = list(objects)
         self.client_calls = 0
 
-    async def client(self, resource: type[Resource]) -> FakeClient[Resource]:
-        _ = resource
+    async def client[U: Resource](self, resource: type[U]) -> FakeClient[U]:
         self.client_calls += 1
-        return self._client
+        return FakeClient(obj for obj in self._objects if isinstance(obj, resource))

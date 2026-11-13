@@ -194,7 +194,7 @@ spec:
       serviceAccountName: core-operator
       containers:
       - name: operator
-        image: ghcr.io/opendefence/core:0.5.0-261112
+        image: ghcr.io/opendefence/core:0.6.0-261113
         args:
         - run
         env:
@@ -302,5 +302,29 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
+    scope: Cluster
+- name: validate-3.core-operator.opendefence-system.cloudcoil.io
+  admissionReviewVersions:
+  - v1
+  sideEffects: None
+  failurePolicy: Fail
+  matchPolicy: Exact
+  timeoutSeconds: 5
+  clientConfig:
+    service:
+      name: core-operator
+      namespace: opendefence-system
+      path: /validate/validate-role-delete-54c4f1d4061f
+      port: 443
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClBMQUNFSE9MREVSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  rules:
+  - apiGroups:
+    - platform.opendefence.fi
+    apiVersions:
+    - v1alpha1
+    resources:
+    - roles
+    operations:
     - DELETE
     scope: Cluster
