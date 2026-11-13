@@ -3,14 +3,14 @@
 from collections.abc import Iterator
 
 import pytest
-from cloudcoil.errors import ResourceConflict
+from cloudcoil.errors import APIError, ResourceConflict
 from fastapi.testclient import TestClient
 
 from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import superadmin_user
 from opendefence_core.api.lib.uids import compact
-from tests.factories import make_group, make_role, make_user, uid
+from tests.factories import make_role, make_user, uid
 from tests.fakes import FakeList
 
 client = TestClient(app)
@@ -50,12 +50,6 @@ def roles(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[Role]]:
     app.dependency_overrides[superadmin_user] = lambda: make_user("alpha1")
     yield store
     app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def no_referrers(monkeypatch: pytest.MonkeyPatch) -> None:
-    """No user or group names any role."""
-    _seed(monkeypatch, users=[make_user("alpha1")], groups=[make_group("team")])
 
 
 def _seed(monkeypatch: pytest.MonkeyPatch, *, users: list[User], groups: list[Group]) -> None:
@@ -123,9 +117,8 @@ def test_unknown_role(roles: list[Role]) -> None:
     assert client.get("/api/v3/roles/operator").status_code == 422
 
 
-def test_delete_role(roles: list[Role], no_referrers: None) -> None:
+def test_delete_role(roles: list[Role]) -> None:
     """Deleting a role nothing names removes it."""
-    _ = no_referrers
     assert client.delete(f"/api/v3/roles/{role_id('operator')}").status_code == 204
     assert [role.name for role in roles] == ["tak-admin"]
 
@@ -137,19 +130,17 @@ def test_managed_role_cannot_be_deleted(roles: list[Role]) -> None:
 
 
 def test_delete_refuses_a_named_role(roles: list[Role], monkeypatch: pytest.MonkeyPatch) -> None:
-    """A role someone still names cannot be deleted."""
-    _ = roles
-    _seed(
-        monkeypatch,
-        users=[make_user("user-1", callsign="alpha1", roles=["operator"])],
-        groups=[make_group("team", roles=["operator"])],
-    )
+    """The operator refuses a role someone still names; that is a conflict, not a 500."""
 
+    async def denied(self: Role, **kwargs: object) -> Role:
+        _ = self, kwargs
+        raise APIError({"message": "Role is still named by: Invite/invite-1"}, status_code=403)
+
+    monkeypatch.setattr(Role, "async_remove", denied)
     response = client.delete(f"/api/v3/roles/{role_id('operator')}")
-
     assert response.status_code == 409
-    # Users are named by callsign; their resource name stays internal
-    assert response.json()["detail"] == "Role is still named by: Group/team, User/alpha1"
+    assert "Invite/invite-1" in response.json()["detail"]
+    assert [role.name for role in roles] == ["operator", "tak-admin"]
 
 
 def test_role_members(roles: list[Role], monkeypatch: pytest.MonkeyPatch) -> None:

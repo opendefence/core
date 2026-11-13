@@ -55,13 +55,6 @@ async def holders(name: str) -> list[User]:
     return [user async for user in await User.async_list() if names(name, user.spec.role_refs)]
 
 
-async def referrers(name: str) -> list[str]:
-    """Users and groups that still name the role, as a caller can recognise them."""
-    found = [f"User/{user.spec.callsign}" for user in await holders(name)]
-    found += [f"Group/{group.name}" async for group in await Group.async_list() if names(name, group.spec.role_refs)]
-    return sorted(found)
-
-
 def effective_roles(user: User, groups: Mapping[str, Group]) -> list[str]:
     """Roles the user holds directly and roles granted by every group it is effectively in."""
     found = {ref.name for ref in user.spec.role_refs}
