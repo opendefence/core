@@ -462,6 +462,16 @@ async def test_cleanup_precedes_missing_references(revoke: bool) -> None:
     assert APPROVAL_ANNOTATION in _annotations(current)
 
 
+async def test_issuance_precedes_missing_references() -> None:
+    """A role that no longer exists, as after an Integration is removed, does not block a certificate."""
+    user = _approved()
+    user.spec.role_refs = make_user(roles=["missing"]).spec.role_refs
+    ctx = _context(user)
+    with pytest.raises(Wait):
+        await reconcile_user(await _current(ctx), cast(Context[User], ctx))
+    assert await _request(ctx)
+
+
 async def test_reusing_consumed_approval_does_not_issue_again() -> None:
     ctx = _context(_approved())
     await _reconcile(ctx)
