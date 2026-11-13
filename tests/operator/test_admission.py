@@ -226,13 +226,23 @@ async def test_validate_user_callsign_rejects_a_rename_onto_a_taken_callsign() -
     assert raised.value.reason == "CallsignTaken"
 
 
-async def test_validate_user_delete_allows_user_without_bindings() -> None:
-    """A User with no UserBindings may be deleted."""
-    request = FakeAdmissionRequest(
-        operation="DELETE", old_resource=make_user("bob"), objects=[make_binding("charlie", user="charlie")]
-    )
+async def test_validate_user_delete_allows_user_nothing_names() -> None:
+    """A User with no UserBindings that manages no Group may be deleted."""
+    others = [make_binding("charlie", user="charlie"), make_group("ops", managers=["charlie"])]
+    request = FakeAdmissionRequest(operation="DELETE", old_resource=make_user("bob"), objects=others)
     await _validate_user_delete(request)
-    assert request.client_calls == 1
+    assert request.client_calls == 2
+
+
+async def test_validate_user_delete_rejects_group_manager() -> None:
+    """A User that a Group names in managerRefs cannot be deleted."""
+    managed = [make_group("ops", managers=["bob"]), make_group("eng", managers=["bob", "charlie"])]
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_user_delete(
+            FakeAdmissionRequest(operation="DELETE", old_resource=make_user("bob"), objects=managed)
+        )
+    assert raised.value.reason == "StillReferenced"
+    assert str(raised.value) == "User is still named by: Group/eng, Group/ops"
 
 
 async def test_validate_user_delete_ignores_empty_delete() -> None:
