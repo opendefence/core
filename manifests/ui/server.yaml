@@ -1,0 +1,26 @@
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: core-ui
+  namespace: opendefence-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: core-ui
+  port: http
+  proxyProtocol: HTTP/1
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: core-ui-traefik
+  namespace: opendefence-system
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: core-ui
+  requiredAuthenticationRefs:
+    - kind: ServiceAccount
+      name: traefik
+      namespace: traefik-system

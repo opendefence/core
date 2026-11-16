@@ -78,6 +78,7 @@ components:
         files:
           - manifests/ui/deployment.yaml
           - manifests/ui/service.yaml
+          - manifests/ui/server.yaml
     healthChecks:
       - apiVersion: apps/v1
         kind: Deployment
