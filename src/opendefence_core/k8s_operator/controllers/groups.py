@@ -29,7 +29,6 @@ def _parent_of(group: Group) -> str | None:
 async def validate_group(request: AdmissionRequest[Group]) -> None:
     """Reject Group writes that self-parent, cycle, name a missing ancestor, or delete a group in use."""
     if request.operation == "DELETE":
-        await _deny_delete_with_children(request)
         await _deny_delete_while_named(request)
         return
     obj = request.resource
@@ -51,32 +50,13 @@ async def validate_group(request: AdmissionRequest[Group]) -> None:
         raise AdmissionDenied(issue.message, reason=issue.reason)
 
 
-async def _deny_delete_with_children(request: AdmissionRequest[Group]) -> None:
-    """Reject DELETE when any other group still names this group as parent."""
-    obj = request.old_resource
-    name = (obj.name if obj is not None else None) or request.name
-    if not name:
-        return
-    client = await request.client(Group)
-    children: list[str] = []
-    async for group in await client.list():
-        if group.name and _parent_of(group) == name:
-            children.append(group.name)
-    if not children:
-        return
-    children.sort()
-    raise AdmissionDenied(
-        f"Group still has child groups: {', '.join(children)}",
-        reason="HasChildren",
-    )
-
-
 async def _deny_delete_while_named(request: AdmissionRequest[Group]) -> None:
-    """Reject DELETE while a User or Invite still names this group in groupRefs."""
+    """Reject DELETE while a child Group names this group as parent, or a User or Invite names it in groupRefs."""
     name = request.name
     if not name:
         return
     holders = [
+        *await named_by(request, Group, lambda obj: obj.spec.parent_ref, name),
         *await named_by(request, User, lambda obj: obj.spec.group_refs, name),
         *await named_by(request, Invite, lambda obj: obj.spec.group_refs, name),
     ]
