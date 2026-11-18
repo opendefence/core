@@ -59,8 +59,8 @@ async def test_validate_group_rejects_delete_with_children() -> None:
         await _validate_group(
             FakeAdmissionRequest(operation="DELETE", old_resource=parent, objects=[parent, *children])
         )
-    assert raised.value.reason == "HasChildren"
-    assert "eng, platform" in str(raised.value)
+    assert raised.value.reason == "StillReferenced"
+    assert str(raised.value) == "Group is still named by: Group/eng, Group/platform"
 
 
 @pytest.mark.parametrize(
@@ -167,7 +167,7 @@ async def test_validate_role_delete_rejects_role_while_named(holder: Resource, l
 
 
 async def test_validate_role_delete_allows_integration_role_while_named() -> None:
-    """Removing an Integration removes its Roles, whoever names them."""
+    """An Integration-owned Role can be deleted while it is still named."""
     request = FakeAdmissionRequest(
         operation="DELETE",
         old_resource=make_role("medic", owner="tak"),
@@ -301,5 +301,5 @@ async def test_validate_user_delete_rejects_user_with_bindings() -> None:
         await _validate_user_delete(
             FakeAdmissionRequest(operation="DELETE", old_resource=make_user("bob"), objects=bindings)
         )
-    assert raised.value.reason == "HasBindings"
-    assert "radio/bob, taky/bob" in str(raised.value)
+    assert raised.value.reason == "StillReferenced"
+    assert str(raised.value) == "User is still named by: UserBinding/radio/bob, UserBinding/taky/bob"

@@ -48,28 +48,16 @@ async def validate_user_callsign(request: AdmissionRequest[User]) -> None:
 
 @users.validate(operations=("DELETE",))
 async def validate_user_delete(request: AdmissionRequest[User]) -> None:
-    """Reject User deletes while a UserBinding names this user or a Group names it as manager"""
-    obj = request.old_resource
-    name = (obj.name if obj is not None else None) or request.name
+    """Reject User deletes while a UserBinding names this user or a Group names it as manager."""
+    name = request.name
     if not name:
         return
-    client = await request.client(UserBinding)
-    holders: list[str] = []
-    async for binding in await client.list(all_namespaces=True):
-        if binding.spec.user_ref.name != name:
-            continue
-        namespace = binding.namespace or ""
-        binding_name = binding.name or ""
-        holders.append(f"{namespace}/{binding_name}")
+    holders = [
+        *await named_by(request, UserBinding, lambda obj: obj.spec.user_ref, name),
+        *await named_by(request, Group, lambda obj: obj.spec.manager_refs, name),
+    ]
     if holders:
-        holders.sort()
-        raise AdmissionDenied(
-            f"User still has UserBindings: {', '.join(holders)}",
-            reason="HasBindings",
-        )
-    managed = await named_by(request, Group, lambda obj: obj.spec.manager_refs, name)
-    if managed:
-        raise AdmissionDenied(f"User is still named by: {', '.join(sorted(managed))}", reason="StillReferenced")
+        raise AdmissionDenied(f"User is still named by: {', '.join(sorted(holders))}", reason="StillReferenced")
 
 
 @users.reconcile()

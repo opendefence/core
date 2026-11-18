@@ -58,9 +58,13 @@ async def named_by[T: Resource](
     refs_of: Callable[[T], ResourceRefs],
     name: str,
 ) -> list[str]:
-    """Return Kind/name of each live object of the kind whose refs name the target."""
+    """Return Kind/name, or Kind/namespace/name, of each live object of the kind whose refs name the target."""
     client = await request.client(kind)
-    return [f"{kind.__name__}/{obj.name}" async for obj in await client.list() if name in ref_names(refs_of(obj))]
+    return [
+        "/".join(filter(None, (kind.__name__, obj.namespace, obj.name)))
+        async for obj in await client.list(all_namespaces=True)
+        if name in ref_names(refs_of(obj))
+    ]
 
 
 @dataclass(frozen=True)
