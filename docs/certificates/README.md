@@ -28,6 +28,8 @@ The client generates the key pair, and the server never holds a private key.
 | `GET /api/v3/certificates/chain.pem` | `200`       | PEM chain                             |
 |                                      | `401`       | No valid JWT                          |
 |                                      | `409`       | Not ready                             |
+| `POST /api/v3/certificates/ocsp`     | `200`       | DER OCSP response                     |
+| `GET /api/v3/certificates/ocsp/...`  | `200`       | DER OCSP response                     |
 
 The body is `{"csr": "<PEM>"}`. A valid CSR has an ECDSA P-256 key, a valid signature, the subject
 `CN=<certificateCommonName>`, and one extension: a subjectAltName with the URI `<certificateUri>`.
@@ -54,6 +56,40 @@ The API trusts `X-Forwarded-Tls-Client-Cert` only because Traefik sets it after 
 The Linkerd policy in `manifests/api/server.yaml` lets only Traefik's ServiceAccount call `core-api`.
 Other callers get `403`. The kubelet probes `/healthz` and `/readyz` stay allowed.
 `kubectl port-forward` does not go through the policy. It needs cluster RBAC, so use it only for development.
+
+## OCSP
+
+`https://<domain>/api/v3/certificates/ocsp` is an OCSP responder (RFC 6960, RFC 5019) for `client-issuer`.
+It needs no authentication.
+Send the DER request in a `POST` body, or as URL-encoded base64 after the path in a `GET`.
+
+The responder gives these answers:
+
+| Answer             | When                                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `good`             | The serial is in the accepted credentials of a User that is not revoked, inside its validity window.                          |
+| `good`             | The serial is the serial of the responder certificate.                                                                        |
+| `revoked`          | Any other serial of `client-issuer`.                                                                                          |
+| `unauthorized`     | The request is for a different CA, or its hash algorithm is not SHA-1 or SHA-256.                                             |
+| `malformedRequest` | The request is empty, larger than 10000 bytes, not valid, for more than one certificate, or has a nonce longer than 32 bytes. |
+| `internalError`    | The User list or the responder certificate is not available.                                                                  |
+
+The responder does not answer `unknown`. Revocation removes the accepted credential, so a revoked
+serial and a serial that was never issued look the same. Both get the RFC 6960 form for a
+certificate that was not issued: `revocationTime` 1970-01-01, reason `certificateHold`, and the
+extended revoke extension.
+
+A response is valid for 10 minutes. A response without a nonce has cache headers for that time.
+A response with a nonce has `Cache-Control: no-store`.
+
+The responder signs with a delegated responder certificate, not with the CA key.
+The Certificate `core-api-ocsp` in `opendefence-system` gets it from `client-issuer` with the
+`ocsp signing` usage. cert-manager renews it, and the API reads the new files on the next request.
+
+User certificates do not contain an OCSP URL. Configure the URL in each consumer.
+Configure each consumer to deny the connection when the OCSP check fails or gives no answer,
+for example Keycloak `x509-cert-auth.ocsp-fail-open: "false"`.
+The API does not use OCSP. It checks the accepted credentials directly.
 
 ## Approval
 
