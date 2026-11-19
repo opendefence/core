@@ -97,7 +97,8 @@ reconciles them:
 
 - An approved, unrevoked User gets a one-shot cert-manager `CertificateRequest`
   named `user-<resource-name>` in `opendefence-client-certs`.
-  cert-manager signs the CSR from the user's browser with base's `client-issuer`.
+  cert-manager signs the CSR from the user's browser with `core-client-issuer`,
+  which uses base's client CA and adds core's OCSP URL.
   The server never holds the user's private key.
   `CertificateReady` reports progress. `status.publicKey` contains the SHA-256
   fingerprint of the public key SPKI. See [User certificates](docs/certificates/README.md)

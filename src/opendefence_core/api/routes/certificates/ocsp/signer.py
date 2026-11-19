@@ -1,7 +1,7 @@
 """OCSP response signing material.
 
 Responses are signed by a delegated responder certificate that cert-manager
-issues from client-issuer. Its Secret is mounted with tls.crt, tls.key, and
+issues from core-client-issuer. Its Secret is mounted with tls.crt, tls.key, and
 ca.crt, the client CA the responder answers for.
 """
 

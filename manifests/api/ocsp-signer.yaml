@@ -1,4 +1,4 @@
-# Delegated OCSP responder for client-issuer (RFC 6960 4.2.2.2). The API signs
+# Delegated OCSP responder for the client CA (RFC 6960 4.2.2.2). The API signs
 # OCSP responses with this key, so it never holds the client CA key. The CA
 # issuer puts its certificate in ca.crt, which the responder answers for.
 apiVersion: cert-manager.io/v1
@@ -17,6 +17,6 @@ spec:
     size: 256
     rotationPolicy: Always
   issuerRef:
-    name: client-issuer
+    name: core-client-issuer
     kind: ClusterIssuer
     group: cert-manager.io
