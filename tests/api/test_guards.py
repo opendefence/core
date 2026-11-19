@@ -36,7 +36,11 @@ def _expected(method: str, path: str) -> set[Callable[..., object]]:
 
 def test_every_route_has_its_guard() -> None:
     """Public routes have no guard, JWT routes only the JWT, and the rest the certificate or superadmin."""
-    routes = [(r.path, r) for r in iter_route_contexts(app.routes) if r.path and r.path.startswith("/api/v3")]
+    routes = [
+        (r.path_format, r)
+        for r in iter_route_contexts(app.routes)
+        if r.path_format and r.path_format.startswith("/api/v3")
+    ]
     assert routes
     for path, route in routes:
         guards = _calls(route.dependant) & GUARDS
@@ -47,7 +51,9 @@ def test_every_route_has_its_guard() -> None:
 def test_main_domain_serves_only_public_and_jwt_routes() -> None:
     """The <domain> IngressRoute lists exactly the public and JWT paths, plus the API docs."""
     served = set(re.findall(r"Path(?:Prefix|Regexp)?\(`([^`]+)`\)", MAIN_DOMAIN_ROUTE.read_text()))
-    assert served == {path for _, path in PUBLIC_ROUTES | JWT_ROUTES} | {"/api/docs", "/api/openapi.json"}
+    # A path parameter is served by a PathPrefix that ends where the parameter starts
+    routes = {path.split("{", 1)[0] for _, path in PUBLIC_ROUTES | JWT_ROUTES}
+    assert served == routes | {"/api/docs", "/api/openapi.json"}
 
 
 def test_docs_on_the_main_domain_list_only_its_routes() -> None:

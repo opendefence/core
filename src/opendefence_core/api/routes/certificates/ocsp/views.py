@@ -14,8 +14,9 @@ from cryptography.x509 import ocsp
 from fastapi import APIRouter, Request, Response
 
 from opendefence_core.api.routes.certificates.ocsp.responder import ResponseMeta, build_ocsp_response, unsuccessful
+from opendefence_core.api.routes.certificates.ocsp.schema import OCSP_RESPONSE_MEDIA_TYPE, OCSP_RESPONSES
 
-router = APIRouter()
+router = APIRouter(prefix="/certificates/ocsp", tags=["certificates"])
 
 MAX_REQUEST_BYTES = 10_000  # real requests are ~100B
 
@@ -33,14 +34,14 @@ def _to_http(der: bytes, meta: ResponseMeta) -> Response:
             headers["Expires"] = email.utils.format_datetime(meta.next_update, usegmt=True)
             headers["ETag"] = f'"{hashlib.sha1(der, usedforsecurity=False).hexdigest()}"'
     # OCSP-level errors still ride HTTP 200
-    return Response(content=der, media_type="application/ocsp-response", headers=headers)
+    return Response(content=der, media_type=OCSP_RESPONSE_MEDIA_TYPE, headers=headers)
 
 
 def _malformed() -> tuple[bytes, ResponseMeta]:
     return unsuccessful(ocsp.OCSPResponseStatus.MALFORMED_REQUEST)
 
 
-@router.post("")
+@router.post("", response_class=Response, responses=OCSP_RESPONSES)
 async def ocsp_post(request: Request) -> Response:
     """OCSP over HTTP POST: request DER in the body"""
     der = await request.body()
@@ -49,7 +50,7 @@ async def ocsp_post(request: Request) -> Response:
     return _to_http(*await build_ocsp_response(der))
 
 
-@router.get("/{request_b64:path}")
+@router.get("/{request_b64:path}", response_class=Response, responses=OCSP_RESPONSES)
 async def ocsp_get(request_b64: str) -> Response:
     """OCSP over HTTP GET: base64-encoded request DER in the path"""
     try:

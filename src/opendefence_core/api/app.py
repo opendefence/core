@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from opendefence_core import __version__
 from opendefence_core.api.config import get_api_config
+from opendefence_core.api.routes.certificates.ocsp.views import router as ocsp_router
 from opendefence_core.api.routes.certificates.views import router as certificates_router
 from opendefence_core.api.routes.enrollment.views import router as enrollment_router
 from opendefence_core.api.routes.groups.views import router as groups_router
@@ -40,6 +41,7 @@ app = FastAPI(
 
 v3 = APIRouter(prefix="/api/v3")
 v3.include_router(certificates_router)
+v3.include_router(ocsp_router)
 v3.include_router(enrollment_router)
 v3.include_router(groups_router)
 v3.include_router(health_router)
@@ -53,7 +55,13 @@ app.include_router(v3)
 app.include_router(probes_router)
 
 # The routes Traefik serves on <domain>; everything else is only on app.<domain>
-PUBLIC_ROUTES = {("GET", "/api/v3/health"), ("POST", "/api/v3/enrollment/check"), ("POST", "/api/v3/enrollment")}
+PUBLIC_ROUTES = {
+    ("GET", "/api/v3/health"),
+    ("POST", "/api/v3/enrollment/check"),
+    ("POST", "/api/v3/enrollment"),
+    ("POST", "/api/v3/certificates/ocsp"),
+    ("GET", "/api/v3/certificates/ocsp/{request_b64}"),
+}
 JWT_ROUTES = {
     ("GET", "/api/v3/enrollment"),
     ("POST", "/api/v3/certificates/csr"),

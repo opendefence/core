@@ -16,6 +16,8 @@ spec:
         Path(`/api/v3/enrollment/check`) ||
         Path(`/api/v3/certificates/csr`) ||
         Path(`/api/v3/certificates/chain.pem`) ||
+        Path(`/api/v3/certificates/ocsp`) ||
+        PathPrefix(`/api/v3/certificates/ocsp/`) ||
         Path(`/api/docs`) ||
         Path(`/api/openapi.json`))
       middlewares:
