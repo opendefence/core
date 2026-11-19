@@ -121,6 +121,8 @@ under `/api/v3`:
 | `GET /enrollment`             | The caller's enrollment status, approval code, and certificate identity (JWT) |
 | `POST /certificates/csr`      | Store the caller's CSR for signing (JWT)                                      |
 | `GET /certificates/chain.pem` | The caller's issued certificate chain (JWT)                                   |
+| `POST /certificates/ocsp`     | OCSP status of a user certificate; DER request in the body                    |
+| `GET /certificates/ocsp/...`  | OCSP status of a user certificate; base64 request in the path                 |
 
 `<domain>` serves only the routes above and the API docs. Other paths return `404` there.
 `/api/docs` on `<domain>` lists only those routes. On `app.<domain>` it lists all routes.
@@ -132,7 +134,8 @@ Otherwise the API returns `403`. See
 
 JWTs are ES256, signed with a cert-manager-generated key that the API reloads
 when cert-manager rotates it. The API reads `CORE_API_*` environment variables:
-`CORE_API_JWT_KEY_PATH`, `CORE_API_JWT_LIFETIME`, and `CORE_API_JWT_ISSUER`.
+`CORE_API_JWT_KEY_PATH`, `CORE_API_JWT_LIFETIME`, `CORE_API_JWT_ISSUER`, and
+`CORE_API_OCSP_SIGNER_PATH`.
 
 The API and the operator read the `core-config` ConfigMap as environment variables.
 `CORE_DOMAIN` is the `domain` value. `CORE_DEPLOYMENT` is the first DNS label
