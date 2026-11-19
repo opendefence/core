@@ -27,6 +27,13 @@ components:
         template: true
         files:
           - manifests/config.yaml
+  - name: client-issuer
+    required: true
+    manifests:
+      - name: client-issuer
+        template: true
+        files:
+          - manifests/client-issuer.yaml
   - name: traefik-middlewares
     required: true
     manifests:

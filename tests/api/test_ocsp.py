@@ -3,9 +3,10 @@
 import base64
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import pytest
+import yaml
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -14,15 +15,17 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 from fastapi.testclient import TestClient
 
 from lib_opendefence_core.models.v1alpha1 import User
-from opendefence_core.api.app import app
+from opendefence_core.api.app import PUBLIC_ROUTES, app
 from opendefence_core.api.config import get_api_config
 from opendefence_core.api.routes.certificates.ocsp.responder import EXTENDED_REVOKE, build_ocsp_response
 from opendefence_core.api.routes.certificates.ocsp.status import NOT_ISSUED_TIME
 from opendefence_core.certificates import certificate_identity
+from opendefence_core.naming import CLIENT_ISSUER
 from tests.factories import accept_certificate, make_client_certificate, make_user
 
 client = TestClient(app)
 PATH = "/api/v3/certificates/ocsp"
+MANIFESTS = Path(__file__).resolve().parents[2] / "manifests"
 
 Signer = tuple[x509.Certificate, x509.Certificate]
 """The mounted client CA and the responder certificate it issued."""
@@ -202,3 +205,13 @@ def test_bad_requests_are_malformed(signer: Signer, method: str, body: bytes, su
     assert response.status_code == 200
     assert ocsp.load_der_ocsp_response(response.content).response_status == ocsp.OCSPResponseStatus.MALFORMED_REQUEST
     assert "cache-control" not in response.headers
+
+
+def test_certificates_carry_the_served_responder_url() -> None:
+    """The issuer naming.py names signs user and responder certificates with the public OCSP route in them."""
+    issuer = yaml.safe_load((MANIFESTS / "client-issuer.yaml").read_text())
+    signer = yaml.safe_load((MANIFESTS / "api" / "ocsp-signer.yaml").read_text())
+    assert issuer["metadata"]["name"] == signer["spec"]["issuerRef"]["name"] == CLIENT_ISSUER
+    [url] = issuer["spec"]["ca"]["ocspServers"]
+    assert urlsplit(url).netloc == "{{ .Values.domain }}"
+    assert ("POST", urlsplit(url).path) in PUBLIC_ROUTES

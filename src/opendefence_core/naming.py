@@ -11,8 +11,8 @@ SYSTEM_NAMESPACE = "opendefence-system"
 CLIENT_CERT_NAMESPACE = "opendefence-client-certs"
 """Namespace of the users' certificate signing requests."""
 
-CLIENT_ISSUER = "client-issuer"
-"""Base's ClusterIssuer for the users' mTLS certificates."""
+CLIENT_ISSUER = "core-client-issuer"
+"""ClusterIssuer for the users' mTLS certificates: base's client CA, with core's OCSP URL."""
 
 OPERATOR_NAME = "core-operator"
 """Operator Application name: its Deployment, ServiceAccount, Service, Lease, and RBAC."""

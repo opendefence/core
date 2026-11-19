@@ -12,7 +12,7 @@ The client generates the key pair, and the server never holds a private key.
 3. `GET /api/v3/enrollment` returns `certificateCommonName` and `certificateUri` after approval.
 4. The client sends a CSR for that identity with `POST /api/v3/certificates/csr`.
 5. The operator consumes the approval and creates the CertificateRequest `user-<resource-name>`
-   in `opendefence-client-certs`. cert-manager signs it with `client-issuer`.
+   in `opendefence-client-certs`. cert-manager signs it with `core-client-issuer`.
 6. `GET /api/v3/certificates/chain.pem` returns the leaf certificate and the CA.
 7. `GET https://app.<domain>/api/v3/users/me` with the client certificate returns the caller.
 
@@ -37,9 +37,12 @@ The limit is 8192 characters.
 
 ## Client certificate authentication
 
-`app.<domain>` requires a client certificate signed by `client-issuer`. Traefik verifies it
+`app.<domain>` requires a client certificate signed by base's client CA. Traefik verifies it
 with the TLSOption `core-mtls` against the Secret `client-ca` in `traefik-system`.
-Base creates the issuer and the Secret with every `issuer.type`. Server certificates come from `public-issuer`.
+Base creates the CA and the Secret with every `issuer.type`. Server certificates come from `public-issuer`.
+
+Core's ClusterIssuer `core-client-issuer` signs with that CA, from the Secret `client-root-secret`
+in `cert-manager`. It adds core's OCSP URL to each certificate that it signs.
 
 The IngressRoute `core-api-mtls` applies the middlewares in this order:
 
@@ -59,7 +62,7 @@ Other callers get `403`. The kubelet probes `/healthz` and `/readyz` stay allowe
 
 ## OCSP
 
-`https://<domain>/api/v3/certificates/ocsp` is an OCSP responder (RFC 6960, RFC 5019) for `client-issuer`.
+`https://<domain>/api/v3/certificates/ocsp` is an OCSP responder (RFC 6960, RFC 5019) for base's client CA.
 It needs no authentication.
 Send the DER request in a `POST` body, or as URL-encoded base64 after the path in a `GET`.
 
@@ -69,7 +72,7 @@ The responder gives these answers:
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | `good`             | The serial is in the accepted credentials of a User that is not revoked, inside its validity window.                          |
 | `good`             | The serial is the serial of the responder certificate.                                                                        |
-| `revoked`          | Any other serial of `client-issuer`.                                                                                          |
+| `revoked`          | Any other serial of the client CA.                                                                                            |
 | `unauthorized`     | The request is for a different CA, or its hash algorithm is not SHA-1 or SHA-256.                                             |
 | `malformedRequest` | The request is empty, larger than 10000 bytes, not valid, for more than one certificate, or has a nonce longer than 32 bytes. |
 | `internalError`    | The User list or the responder certificate is not available.                                                                  |
@@ -83,10 +86,11 @@ A response is valid for 10 minutes. A response without a nonce has cache headers
 A response with a nonce has `Cache-Control: no-store`.
 
 The responder signs with a delegated responder certificate, not with the CA key.
-The Certificate `core-api-ocsp` in `opendefence-system` gets it from `client-issuer` with the
+The Certificate `core-api-ocsp` in `opendefence-system` gets it from `core-client-issuer` with the
 `ocsp signing` usage. cert-manager renews it, and the API reads the new files on the next request.
 
-User certificates do not contain an OCSP URL. Configure the URL in each consumer.
+Each certificate from `core-client-issuer` contains this URL in its Authority Information Access
+extension. Consumers find the responder from the certificate.
 Configure each consumer to deny the connection when the OCSP check fails or gives no answer,
 for example Keycloak `x509-cert-auth.ocsp-fail-open: "false"`.
 The API does not use OCSP. It checks the accepted credentials directly.

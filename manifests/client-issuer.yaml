@@ -1,0 +1,12 @@
+# Signs user client certificates and the OCSP responder certificate with base's
+# client CA. Core owns this issuer, not base's client-issuer, because core owns
+# the OCSP URL that every certificate carries.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: core-client-issuer
+spec:
+  ca:
+    secretName: client-root-secret # pragma: allowlist secret
+    ocspServers:
+      - https://{{ .Values.domain }}/api/v3/certificates/ocsp
