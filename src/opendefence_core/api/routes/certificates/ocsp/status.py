@@ -1,20 +1,16 @@
-"""Serial number -> certificate status lookup against the DB."""
+"""Serial number -> certificate status from the Users' accepted credentials."""
 
-import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from cryptography import x509
 from cryptography.x509 import ocsp
-from sqlmodel import select
 
-from rasenmaeher_api.cert.cert_manager.private import validate_reason
-from rasenmaeher_api.db.engine import EngineWrapper
-from rasenmaeher_api.db.issuedcerts import IssuedCert
-from rasenmaeher_api.db.people import Person
-from rasenmaeher_api.rmsettings import RMSettings
+from lib_opendefence_core.models.v1alpha1 import User
+from opendefence_core.certificates import accepted_entry
 
-LOGGER = logging.getLogger(__name__)
+NOT_ISSUED_TIME = datetime(1970, 1, 1, tzinfo=UTC)
+"""revocationTime of a serial with no record, under the RFC 6960 2.2 extended revoked definition."""
 
 
 @dataclass
@@ -26,41 +22,17 @@ class CertStatusResult:
     revocation_reason: x509.ReasonFlags | None = None
 
 
-async def lookup_status(serial: int) -> CertStatusResult:
-    """Resolve a cert serial to good/revoked/unknown using Person and issued_certs records"""
-    with EngineWrapper.get_session() as session:
-        person = session.exec(select(Person).where(Person.cert_serial == str(serial))).first()
-
-    if person:
-        if person.deleted is None:
-            return CertStatusResult(status=ocsp.OCSPCertStatus.GOOD)
-        else:
-            return CertStatusResult(
-                status=ocsp.OCSPCertStatus.REVOKED,
-                revocation_time=person.deleted,
-                revocation_reason=validate_reason(person.revoke_reason or "unspecified"),
-            )
-
-    if issued_cert := await IssuedCert.by_serial(str(serial)):
-        settings = RMSettings.singleton()
-        try:
-            product_cns = settings.valid_product_cns
-        except Exception:
-            LOGGER.debug("valid_product_cns lookup failed", exc_info=True)
-            product_cns = []
-        # Product/service infra certs are trusted by CA membership
-        if issued_cert.cn == settings.mtls_client_cert_cn or issued_cert.cn in product_cns:
-            return CertStatusResult(status=ocsp.OCSPCertStatus.GOOD)
-        # Otherwise it's a per-user cert signed via the product path (e.g. TAK's
-        # per-callsign client cert). Honor the owning Person's revocation.
-        with EngineWrapper.get_session() as session:
-            owner = session.exec(select(Person).where(Person.callsign == issued_cert.cn)).first()
-        if owner and owner.deleted is not None:
-            return CertStatusResult(
-                status=ocsp.OCSPCertStatus.REVOKED,
-                revocation_time=owner.deleted,
-                revocation_reason=validate_reason(owner.revoke_reason or "unspecified"),
-            )
+async def lookup_status(serial: int, responder_serial: int) -> CertStatusResult:
+    """Good for an accepted credential or the responder itself; every other serial of the CA is revoked"""
+    if serial == responder_serial:
         return CertStatusResult(status=ocsp.OCSPCertStatus.GOOD)
-
-    return CertStatusResult(status=ocsp.OCSPCertStatus.UNKNOWN)
+    now = datetime.now(UTC)
+    async for user in await User.async_list():
+        if accepted_entry(user, serial, now):
+            return CertStatusResult(status=ocsp.OCSPCertStatus.GOOD)
+    # Revocation removes the accepted record, so a revoked serial looks like one never issued
+    return CertStatusResult(
+        status=ocsp.OCSPCertStatus.REVOKED,
+        revocation_time=NOT_ISSUED_TIME,
+        revocation_reason=x509.ReasonFlags.certificate_hold,
+    )

@@ -1,21 +1,20 @@
 """Client certificate authentication, with the User list replaced by a fake."""
 
 import base64
-import json
 from urllib.parse import quote
 
 import pytest
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import serialization
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from lib_opendefence_core.models.v1alpha1 import ACCEPTED_CREDENTIALS_ANNOTATION, Group, Role, User
+from lib_opendefence_core.models.v1alpha1 import Group, Role, User
 from opendefence_core.api import dependencies
 from opendefence_core.api.app import app
 from opendefence_core.api.lib.uids import compact
 from opendefence_core.certificates import certificate_identity
-from tests.factories import make_client_certificate, make_group, make_user, uid
+from tests.factories import accept_certificate, make_client_certificate, make_group, make_user, uid
 from tests.fakes import FakeList
 
 
@@ -26,33 +25,8 @@ def _header(*certificates: x509.Certificate) -> str:
     )
 
 
-def _accept(user: User, certificate: x509.Certificate) -> None:
-    """Publish the certificate as the user's accepted credential, as the operator does."""
-    assert user.metadata is not None
-    entry = {
-        "fingerprintSha256": certificate.fingerprint(hashes.SHA256()).hex(),
-        "serial": format(certificate.serial_number, "x"),
-        "notBefore": certificate.not_valid_before_utc.isoformat(),
-        "notAfter": certificate.not_valid_after_utc.isoformat(),
-    }
-    user.metadata.annotations = {ACCEPTED_CREDENTIALS_ANNOTATION: json.dumps({"version": 1, "accepted": [entry]})}
-
-
-def _certificate(user: User, **kwargs: int) -> x509.Certificate:
-    return make_client_certificate(*certificate_identity(user), **kwargs)
-
-
-@pytest.fixture
-def users(monkeypatch: pytest.MonkeyPatch) -> list[User]:
-    """Users the API can list."""
-    state: list[User] = []
-
-    async def async_list(cls: type[User], **kwargs: object) -> FakeList[User]:
-        _ = cls, kwargs
-        return FakeList(state)
-
-    monkeypatch.setattr(User, "async_list", classmethod(async_list))
-    return state
+def _certificate(user: User, serial: int = 0x1234) -> x509.Certificate:
+    return make_client_certificate(*certificate_identity(user), serial=serial)
 
 
 @pytest.fixture
@@ -85,7 +59,7 @@ async def test_mtls_user_returns_the_certificate_user(users: list[User]) -> None
     """The accepted certificate authenticates its user; only the first certificate of a chain counts."""
     user, other = make_user("user-alpha"), make_user("user-bravo")
     certificate = _certificate(user)
-    _accept(user, certificate)
+    accept_certificate(user, certificate)
     users.extend([other, user])
     assert await dependencies.mtls_user(_header(certificate)) is user
     assert await dependencies.mtls_user(_header(certificate, _certificate(other))) is user
@@ -100,7 +74,7 @@ async def _assert_rejected(header: str | None) -> None:
 async def test_mtls_user_rejects(users: list[User]) -> None:
     """Missing or unreadable certificates, unknown users, and certificates not accepted now are 401."""
     user = make_user("user-alpha")
-    _accept(user, _certificate(user))
+    accept_certificate(user, _certificate(user))
     users.append(user)
     common_name, _ = certificate_identity(user)
     await _assert_rejected(None)
@@ -118,7 +92,7 @@ def test_me_with_a_client_certificate(users: list[User], groups: list[Group], ro
     _ = groups, roles
     user = make_user("user-alpha", callsign="alpha1")
     certificate = _certificate(user)
-    _accept(user, certificate)
+    accept_certificate(user, certificate)
     users.append(user)
     client = TestClient(app)
     response = client.get("/api/v3/users/me", headers={"X-Forwarded-Tls-Client-Cert": _header(certificate)})

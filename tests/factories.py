@@ -1,5 +1,6 @@
 """Builders for platform resources in tests."""
 
+import json
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from uuid import NAMESPACE_DNS, uuid5
@@ -11,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from lib_opendefence_core.models.v1alpha1 import (
+    ACCEPTED_CREDENTIALS_ANNOTATION,
     API_VERSION,
     REFERENCES_RESOLVED_CONDITION,
     SYNCED_CONDITION,
@@ -89,15 +91,20 @@ def make_user(
     )
 
 
-def make_client_certificate(common_name: str, uri: str, *, serial: int = 0x1234) -> x509.Certificate:
-    """Self-signed client certificate whose only SAN is the URI, valid from an hour ago for a day."""
+def make_client_certificate(
+    common_name: str, uri: str, *, serial: int = 0x1234, issuer: x509.Name | None = None
+) -> x509.Certificate:
+    """Client certificate whose only SAN is the URI, valid from an hour ago for a day.
+
+    It is signed with its own key; issuer only sets the issuer name.
+    """
     key = ec.generate_private_key(ec.SECP256R1())
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
     start = datetime.now(UTC) - timedelta(hours=1)
     return (
         x509.CertificateBuilder()
         .subject_name(name)
-        .issuer_name(name)
+        .issuer_name(issuer or name)
         .public_key(key.public_key())
         .serial_number(serial)
         .not_valid_before(start)
@@ -105,6 +112,18 @@ def make_client_certificate(common_name: str, uri: str, *, serial: int = 0x1234)
         .add_extension(x509.SubjectAlternativeName([x509.UniformResourceIdentifier(uri)]), critical=False)
         .sign(key, hashes.SHA256())
     )
+
+
+def accept_certificate(user: User, certificate: x509.Certificate) -> None:
+    """Publish the certificate as the user's accepted credential, as the operator does."""
+    assert user.metadata is not None
+    entry = {
+        "fingerprintSha256": certificate.fingerprint(hashes.SHA256()).hex(),
+        "serial": format(certificate.serial_number, "x"),
+        "notBefore": certificate.not_valid_before_utc.isoformat(),
+        "notAfter": certificate.not_valid_after_utc.isoformat(),
+    }
+    user.metadata.annotations = {ACCEPTED_CREDENTIALS_ANNOTATION: json.dumps({"version": 1, "accepted": [entry]})}
 
 
 def make_role(name: str, *, owner: str | None = None) -> Role:
