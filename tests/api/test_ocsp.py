@@ -1,7 +1,9 @@
 """OCSP answers from the Users' accepted credentials, signed by a delegated responder."""
 
+import base64
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 from cryptography import x509
@@ -9,13 +11,18 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509 import ocsp
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+from fastapi.testclient import TestClient
 
 from lib_opendefence_core.models.v1alpha1 import User
+from opendefence_core.api.app import app
 from opendefence_core.api.config import get_api_config
 from opendefence_core.api.routes.certificates.ocsp.responder import EXTENDED_REVOKE, build_ocsp_response
 from opendefence_core.api.routes.certificates.ocsp.status import NOT_ISSUED_TIME
 from opendefence_core.certificates import certificate_identity
 from tests.factories import accept_certificate, make_client_certificate, make_user
+
+client = TestClient(app)
+PATH = "/api/v3/certificates/ocsp"
 
 Signer = tuple[x509.Certificate, x509.Certificate]
 """The mounted client CA and the responder certificate it issued."""
@@ -152,3 +159,46 @@ async def test_failures_are_internal_errors(
         assert (await _answer(request)).response_status == ocsp.OCSPResponseStatus.INTERNAL_ERROR
     monkeypatch.setattr(get_api_config(), "ocsp_signer_path", tmp_path / "missing")
     assert (await _answer(request)).response_status == ocsp.OCSPResponseStatus.INTERNAL_ERROR
+
+
+def test_post_without_nonce_is_cacheable(users: list[User], signer: Signer) -> None:
+    """RFC 5019: a response without a nonce may be cached until nextUpdate; one with a nonce may not."""
+    ca, _ = signer
+    certificate = _accepted_user(users, ca)
+    response = client.post(PATH, content=_request(certificate, ca, hashes.SHA256()))
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/ocsp-response"
+    assert ocsp.load_der_ocsp_response(response.content).certificate_status == ocsp.OCSPCertStatus.GOOD
+    max_age = int(response.headers["cache-control"].split(",")[0].removeprefix("max-age="))
+    assert 0 < max_age <= 600
+    assert {"etag", "expires", "last-modified"} <= response.headers.keys()
+    nonce = client.post(PATH, content=_request(certificate, ca, hashes.SHA256(), b"n" * 16))
+    assert nonce.headers["cache-control"] == "no-store"
+
+
+def test_get_accepts_slashes_raw_or_escaped(users: list[User], signer: Signer) -> None:
+    """The base64 request may contain "/", sent as is or as %2F."""
+    ca, _ = signer
+    certificate = _accepted_user(users, ca)
+    # The nonce only varies the bytes until the base64 form contains a slash
+    encoded = next(
+        b64
+        for i in range(256)
+        if "/" in (b64 := base64.b64encode(_request(certificate, ca, hashes.SHA256(), bytes([i]) * 8)).decode())
+    )
+    for sent in (encoded, quote(encoded, safe="")):
+        response = client.get(f"{PATH}/{sent}")
+        assert response.status_code == 200
+        assert ocsp.load_der_ocsp_response(response.content).certificate_status == ocsp.OCSPCertStatus.GOOD
+
+
+@pytest.mark.parametrize(
+    ("method", "body", "suffix"),
+    [("POST", b"", ""), ("POST", b"0" * 10_001, ""), ("GET", b"", "/not-base64!")],
+)
+def test_bad_requests_are_malformed(signer: Signer, method: str, body: bytes, suffix: str) -> None:
+    """Empty, oversized, and undecodable requests get malformedRequest over HTTP 200, without cache headers."""
+    response = client.request(method, f"{PATH}{suffix}", content=body)
+    assert response.status_code == 200
+    assert ocsp.load_der_ocsp_response(response.content).response_status == ocsp.OCSPResponseStatus.MALFORMED_REQUEST
+    assert "cache-control" not in response.headers
