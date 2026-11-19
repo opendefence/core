@@ -1,0 +1,22 @@
+# Delegated OCSP responder for client-issuer (RFC 6960 4.2.2.2). The API signs
+# OCSP responses with this key, so it never holds the client CA key. The CA
+# issuer puts its certificate in ca.crt, which the responder answers for.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: core-api-ocsp
+  namespace: opendefence-system
+spec:
+  secretName: core-api-ocsp # pragma: allowlist secret
+  commonName: core-api-ocsp
+  usages:
+    - digital signature
+    - ocsp signing
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: client-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

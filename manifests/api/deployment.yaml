@@ -57,6 +57,9 @@ spec:
             - name: jwt-key
               mountPath: /var/run/secrets/opendefence/jwt
               readOnly: true
+            - name: ocsp-signer
+              mountPath: /var/run/secrets/opendefence/ocsp
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -66,5 +69,15 @@ spec:
             items:
               - key: tls.key
                 path: tls.key
+        - name: ocsp-signer
+          secret:
+            secretName: core-api-ocsp # pragma: allowlist secret
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
         - name: tmp
           emptyDir: {}

@@ -59,6 +59,7 @@ components:
         files:
           - manifests/api/rbac.yaml
           - manifests/api/jwt-key.yaml
+          - manifests/api/ocsp-signer.yaml
           - manifests/api/deployment.yaml
           - manifests/api/service.yaml
           - manifests/api/server.yaml
@@ -66,6 +67,10 @@ components:
       - apiVersion: cert-manager.io/v1
         kind: Certificate
         name: core-api-jwt
+        namespace: opendefence-system
+      - apiVersion: cert-manager.io/v1
+        kind: Certificate
+        name: core-api-ocsp
         namespace: opendefence-system
       - apiVersion: apps/v1
         kind: Deployment
