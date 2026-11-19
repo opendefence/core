@@ -1,21 +1,23 @@
 """RFC 6960 OCSP responder core: DER request in, DER response out."""
 
-import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import ocsp
+from cryptography.x509.oid import ObjectIdentifier
 
-from rasenmaeher_api.rmsettings import RMSettings
+from lib_opendefence_core.logging import get_logger
+from opendefence_core.api.routes.certificates.ocsp.signer import get_signer
+from opendefence_core.api.routes.certificates.ocsp.status import lookup_status
 
-from .signer import get_signer
-from .status import lookup_status
-
-LOGGER = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 MAX_NONCE_BYTES = 32  # RFC 8954
+RESPONSE_VALIDITY = timedelta(minutes=10)
+EXTENDED_REVOKE = x509.UnrecognizedExtension(ObjectIdentifier("1.3.6.1.5.5.7.48.1.9"), b"\x05\x00")
+"""RFC 6960 4.4.8: "revoked" also covers serials never issued."""
 
 
 @dataclass
@@ -36,22 +38,22 @@ async def build_ocsp_response(der: bytes) -> tuple[bytes, ResponseMeta]:
     """Handle one OCSP request; never raises, errors become OCSP error responses"""
     try:
         req = ocsp.load_der_ocsp_request(der)
-    except ValueError:
+    except ValueError, NotImplementedError:  # NotImplementedError: more than one request
         return unsuccessful(ocsp.OCSPResponseStatus.MALFORMED_REQUEST)
 
     try:
-        material = await get_signer()
+        material = get_signer()
         algkey = req.hash_algorithm.name
         if algkey not in material.name_hashes:
             return unsuccessful(ocsp.OCSPResponseStatus.UNAUTHORIZED)
         if req.issuer_name_hash != material.name_hashes[algkey] or req.issuer_key_hash != material.key_hashes[algkey]:
             return unsuccessful(ocsp.OCSPResponseStatus.UNAUTHORIZED)
 
-        result = await lookup_status(req.serial_number)
+        result = await lookup_status(req.serial_number, material.cert.serial_number)
 
         now = datetime.now(UTC)
         this_update = now - timedelta(seconds=60)
-        next_update = now + timedelta(seconds=RMSettings.singleton().ocsp_response_validity)
+        next_update = now + RESPONSE_VALIDITY
         builder = (
             ocsp.OCSPResponseBuilder()
             .add_response_by_hash(
@@ -66,6 +68,8 @@ async def build_ocsp_response(der: bytes) -> tuple[bytes, ResponseMeta]:
                 revocation_reason=result.revocation_reason,
             )
             .responder_id(ocsp.OCSPResponderEncoding.HASH, material.cert)
+            .certificates([material.cert])
+            .add_extension(EXTENDED_REVOKE, critical=False)
         )
 
         has_nonce = False
@@ -87,5 +91,5 @@ async def build_ocsp_response(der: bytes) -> tuple[bytes, ResponseMeta]:
         )
 
     except Exception:
-        LOGGER.exception("OCSP response building failed")
+        logger.exception("OCSP response building failed")
         return unsuccessful(ocsp.OCSPResponseStatus.INTERNAL_ERROR)

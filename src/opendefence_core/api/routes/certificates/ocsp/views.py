@@ -7,16 +7,14 @@ import base64
 import binascii
 import email.utils
 import hashlib
-import logging
 import urllib.parse
 from datetime import UTC, datetime
 
 from cryptography.x509 import ocsp
 from fastapi import APIRouter, Request, Response
 
-from .responder import ResponseMeta, build_ocsp_response, unsuccessful
+from opendefence_core.api.routes.certificates.ocsp.responder import ResponseMeta, build_ocsp_response, unsuccessful
 
-LOGGER = logging.getLogger(__name__)
 router = APIRouter()
 
 MAX_REQUEST_BYTES = 10_000  # real requests are ~100B
@@ -56,7 +54,7 @@ async def ocsp_get(request_b64: str) -> Response:
     """OCSP over HTTP GET: base64-encoded request DER in the path"""
     try:
         der = base64.b64decode(urllib.parse.unquote(request_b64), validate=True)
-    except (binascii.Error, ValueError):
+    except binascii.Error, ValueError:
         return _to_http(*_malformed())
     if not der or len(der) > MAX_REQUEST_BYTES:
         return _to_http(*_malformed())

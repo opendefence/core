@@ -16,6 +16,9 @@ class Config(BaseSettings):
     jwt_lifetime: int = 60 * 60 * 4  # 4 hours, in seconds
     jwt_issuer: str = "opendefence-core"
 
+    # OCSP responder: tls.crt, tls.key, and ca.crt of its cert-manager Secret
+    ocsp_signer_path: Path = Path("/var/run/secrets/opendefence/ocsp")
+
 
 @cache
 def get_api_config() -> Config:
