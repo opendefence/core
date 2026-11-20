@@ -56,10 +56,10 @@ tasks:
 
   install-base:
     internal: true
-    # Both base's `task up` (zarf dev deploy) and base:install record the package
-    # here; reinstall explicitly with `task base:install BASE_VERSION=...`
+    # Base's `task up` (zarf dev deploy) records no package, so detect base by its
+    # public-issuer contract; reinstall explicitly with `task base:install BASE_VERSION=...`
     status:
-      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} -n zarf get secret zarf-package-base
+      - kubectl --context {{.KUBE_CONTEXT | shellQuote}} get clusterissuer public-issuer
     cmds:
       # Base's taskfile derives BASE_PACKAGE from BASE_VERSION at file level,
       # before include or call vars apply, so pass them on a new command line.
