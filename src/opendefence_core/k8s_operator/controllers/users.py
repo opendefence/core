@@ -24,7 +24,6 @@ from opendefence_core.k8s_operator.controllers._refs import (
     effective_roles,
     mark_resolved,
     named_by,
-    referrers_of,
     resolve_refs,
 )
 
@@ -126,21 +125,37 @@ def report_bindings_synced(
     ctx.condition(BINDINGS_SYNCED_CONDITION, True, reason=reason)
 
 
+def _groups_by_name() -> dict[str, Group]:
+    return {group.name: group for group in users.cached(Group).list() if group.name}
+
+
 @users.watch(Role)
 def role_changed(role: Role) -> list[ResourceKey]:
-    """Requeue users that name this role."""
+    """Requeue users that hold this role, directly or through a group."""
     # Initial lists queue every user; reverse lookups need synced caches.
     if not users.ready:
         return []
-    return referrers_of(users.cached(User).list(), lambda obj: obj.spec.role_refs, role)
+    groups = _groups_by_name()
+    return [
+        ResourceKey(user.name)
+        for user in users.cached(User).list()
+        if user.name and role.name in effective_roles(user, groups)
+    ]
 
 
 @users.watch(Group)
 def group_changed(group: Group) -> list[ResourceKey]:
-    """Requeue users that name this group."""
+    """Requeue users in this group or in a group below it."""
     if not users.ready:
         return []
-    return referrers_of(users.cached(User).list(), lambda obj: obj.spec.group_refs, group)
+    groups = _groups_by_name()
+    if group.name:
+        groups[group.name] = group
+    return [
+        ResourceKey(user.name)
+        for user in users.cached(User).list()
+        if user.name and group.name in effective_groups(user, groups)
+    ]
 
 
 @users.watch(UserBinding)

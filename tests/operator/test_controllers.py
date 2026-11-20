@@ -184,8 +184,6 @@ def test_referrers_of_matches_name_refs() -> None:
         (groups, parent_group_changed, make_group("dependent", parent="target"), make_group("target")),
         (groups, manager_changed, make_group("dependent", managers=["target"]), make_user("target")),
         (groups, group_role_changed, make_group("dependent", roles=["target"]), make_role("target")),
-        (users, user_group_changed, make_user("dependent", groups=["target"]), make_group("target")),
-        (users, user_role_changed, make_user("dependent", roles=["target"]), make_role("target")),
         (invites, invite_group_changed, make_invite("dependent", groups=["target"]), make_group("target")),
         (invites, invite_role_changed, make_invite("dependent", roles=["target"]), make_role("target")),
     ],
@@ -215,6 +213,35 @@ def test_watch_mappers_wait_for_initial_sync(
     cache.list.side_effect = RuntimeError("Informer watch failed")
     with pytest.raises(RuntimeError, match="Informer watch failed"):
         mapper(target)
+
+
+def test_user_mappers_requeue_effective_holders(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A change to an ancestor group or a group-granted role requeues the users below it, once caches are synced."""
+    company = make_group("company", roles=["comms"])
+    caches: dict[type[Resource], FakeCache[Any]] = {
+        User: FakeCache(
+            [
+                make_user("member", groups=["medics"]),
+                make_user("direct", roles=["comms"]),
+                make_user("early", groups=["late"]),
+                make_user("other", groups=["staff"]),
+            ]
+        ),
+        Group: FakeCache([company, make_group("medics", parent="company"), make_group("staff")]),
+    }
+    ready = PropertyMock(return_value=False)
+    monkeypatch.setattr(Controller, "ready", ready)
+    cached = Mock(side_effect=caches.__getitem__)
+    monkeypatch.setattr(users, "cached", cached)
+
+    assert user_group_changed(company) == []
+    assert user_role_changed(make_role("comms")) == []
+    cached.assert_not_called()
+
+    ready.return_value = True
+    assert user_group_changed(company) == [ResourceKey("member")]
+    assert user_role_changed(make_role("comms")) == [ResourceKey("member"), ResourceKey("direct")]
+    assert user_group_changed(make_group("late")) == [ResourceKey("early")]
 
 
 def test_resolve_refs_skips_objects_without_uid() -> None:
