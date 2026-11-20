@@ -35,7 +35,15 @@ def group_ref(name: str, parent: str | None = None) -> dict[str, str | None]:
 def users(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[User]]:
     """One user in each state, authenticated as the active one. Names differ from callsigns."""
     now = datetime.now(UTC)
-    active = make_user("user-1", callsign="alpha1", roles=["superadmin"], groups=["squad"], approved_at=now)
+    active = make_user(
+        "user-1",
+        callsign="alpha1",
+        roles=["superadmin"],
+        groups=["squad"],
+        effective_roles=["comms", "medic", "superadmin"],
+        effective_groups=["squad", "battalion"],
+        approved_at=now,
+    )
     hierarchy = [make_group("battalion", roles=["comms"]), make_group("squad", parent="battalion", roles=["medic"])]
     store = [
         make_user("user-2", callsign="bravo2", approval_code="ABCD1234"),

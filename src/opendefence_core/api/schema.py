@@ -6,7 +6,7 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from lib_opendefence_core.models.v1alpha1 import Group, ObjectRef, Role, User
+from lib_opendefence_core.models.v1alpha1 import Group, ObjectRef, ResolvedRef, Role, User
 from opendefence_core.api.lib.uids import id_of
 from opendefence_core.api.lib.users import UserState, state_of
 
@@ -54,7 +54,7 @@ class RoleRef(ApiModel):
         return cls(id=id_of(role), name=role.name or "", display_name=role.spec.display_name)
 
     @classmethod
-    def resolve(cls, refs: Sequence[ObjectRef], roles: Mapping[str, Role]) -> list[Self]:
+    def resolve(cls, refs: Sequence[ObjectRef | ResolvedRef], roles: Mapping[str, Role]) -> list[Self]:
         """References the platform can resolve; the operator reports the rest."""
         return [cls.of(roles[ref.name]) for ref in refs if ref.name in roles]
 
@@ -80,6 +80,6 @@ class GroupRef(ApiModel):
         )
 
     @classmethod
-    def resolve(cls, refs: Sequence[ObjectRef], groups: Mapping[str, Group]) -> list[Self]:
+    def resolve(cls, refs: Sequence[ObjectRef | ResolvedRef], groups: Mapping[str, Group]) -> list[Self]:
         """References the platform can resolve; the operator reports the rest."""
         return [cls.of(groups[ref.name], groups) for ref in refs if ref.name in groups]

@@ -14,7 +14,7 @@ from opendefence_core.api import dependencies
 from opendefence_core.api.app import app
 from opendefence_core.api.lib.uids import compact
 from opendefence_core.certificates import certificate_identity
-from tests.factories import accept_certificate, make_client_certificate, make_group, make_user, uid
+from tests.factories import accept_certificate, make_client_certificate, make_user, uid
 from tests.fakes import FakeList
 
 
@@ -106,13 +106,12 @@ def test_me_with_a_client_certificate(users: list[User], groups: list[Group], ro
 
 
 @pytest.mark.parametrize(
-    ("held", "joined", "allowed"),
-    [(["superadmin"], [], True), ([], ["admins"], True), (["operator"], [], False)],
+    ("direct", "effective", "allowed"),
+    [([], ["superadmin"], True), ([], ["operator"], False), (["superadmin"], [], False)],
 )
-async def test_superadmin_user(groups: list[Group], held: list[str], joined: list[str], allowed: bool) -> None:
-    """The superadmin role counts when held directly or through a group; any other caller is 403."""
-    groups.append(make_group("admins", roles=["superadmin"]))
-    user = make_user("user-alpha", roles=held, groups=joined)
+async def test_superadmin_user(direct: list[str], effective: list[str], allowed: bool) -> None:
+    """The superadmin role counts once the operator lists it in the status; any other caller is 403."""
+    user = make_user("user-alpha", roles=direct, effective_roles=effective)
     if allowed:
         assert await dependencies.superadmin_user(user) is user
         return

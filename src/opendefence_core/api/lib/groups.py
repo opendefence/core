@@ -1,7 +1,5 @@
 """Reading and managing platform groups."""
 
-from collections.abc import Mapping
-
 from cloudcoil.apimachinery import ObjectMeta
 
 from lib_opendefence_core.logging import get_logger
@@ -112,15 +110,3 @@ async def remove_manager(group: Group, user: str) -> Group:
     updated = await group.async_update()
     logger.audit("User %s no longer manages group %s", user, group.name)
     return updated
-
-
-def effective_groups(user: User, groups: Mapping[str, Group]) -> list[str]:
-    """Names of the groups the user is in, and of every ancestor of them."""
-    found: list[str] = []
-    for ref in user.spec.group_refs:
-        name: str | None = ref.name
-        while name and name in groups and name not in found:
-            found.append(name)
-            parent = groups[name].spec.parent_ref
-            name = parent.name if parent else None
-    return found

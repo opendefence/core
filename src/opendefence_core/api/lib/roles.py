@@ -1,14 +1,12 @@
 """Reading and managing platform roles."""
 
-from collections.abc import Mapping
 from contextlib import suppress
 
 from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.errors import ResourceConflict
 
 from lib_opendefence_core.logging import get_logger
-from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Role, RoleSpec, User
-from opendefence_core.api.lib.groups import effective_groups
+from lib_opendefence_core.models.v1alpha1 import API_VERSION, Role, RoleSpec, User
 from opendefence_core.api.lib.refs import names, with_ref, without_ref
 
 logger = get_logger(__name__)
@@ -53,14 +51,6 @@ async def delete_role(role: Role) -> None:
 async def holders(name: str) -> list[User]:
     """Users that name the role directly."""
     return [user async for user in await User.async_list() if names(name, user.spec.role_refs)]
-
-
-def effective_roles(user: User, groups: Mapping[str, Group]) -> list[str]:
-    """Roles the user holds directly and roles granted by every group it is effectively in."""
-    found = {ref.name for ref in user.spec.role_refs}
-    for name in effective_groups(user, groups):
-        found.update(ref.name for ref in groups[name].spec.role_refs)
-    return sorted(found)
 
 
 async def assign_role(user: User, role: str) -> User:
