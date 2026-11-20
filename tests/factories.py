@@ -26,6 +26,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     InviteSpec,
     InviteStatus,
     ObjectRef,
+    ResolvedRef,
     Role,
     RoleSpec,
     User,
@@ -33,6 +34,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBindingSpec,
     UserBindingStatus,
     UserSpec,
+    UserStatus,
 )
 from lib_opendefence_core.models.v1alpha1.common import PlatformCondition
 
@@ -66,6 +68,8 @@ def make_user(
     namespace: str | None = None,
     roles: Iterable[str] = (),
     groups: Iterable[str] = (),
+    effective_roles: Iterable[str] = (),
+    effective_groups: Iterable[str] = (),
     approval_code: str | None = None,
     approved_at: datetime | None = None,
     certificate_approved_at: datetime | None = None,
@@ -74,6 +78,7 @@ def make_user(
     """User with a stable UUID and resource version.
 
     The callsign is independent of the name; pass it when it matters.
+    The effective roles and groups go in the status, as the operator writes them.
     """
     return User(
         api_version=API_VERSION,
@@ -87,6 +92,10 @@ def make_user(
             approved_at=approved_at,
             certificate_approved_at=certificate_approved_at,
             revoked_at=revoked_at,
+        ),
+        status=UserStatus(
+            roles=[ResolvedRef(name=role, uid=uid(role)) for role in effective_roles],
+            groups=[ResolvedRef(name=group, uid=uid(group)) for group in effective_groups],
         ),
     )
 

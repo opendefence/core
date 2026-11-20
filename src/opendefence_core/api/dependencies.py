@@ -7,11 +7,9 @@ from cloudcoil.errors import ResourceNotFound
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from lib_opendefence_core.models.v1alpha1 import Group, User
+from lib_opendefence_core.models.v1alpha1 import User
 from opendefence_core.api.lib.jwt import decode
 from opendefence_core.api.lib.mtls import CLIENT_CERT_HEADER, certificate_user, leaf_certificate
-from opendefence_core.api.lib.roles import effective_roles
-from opendefence_core.api.lib.uids import by_name
 from opendefence_core.naming import SUPERADMIN_ROLE
 
 bearer = HTTPBearer(auto_error=False)
@@ -60,7 +58,7 @@ MTLSUser = Annotated[User, Depends(mtls_user)]
 
 async def superadmin_user(user: MTLSUser) -> User:
     """Certificate user who holds the superadmin role, directly or through a group; 403 otherwise."""
-    if SUPERADMIN_ROLE not in effective_roles(user, await by_name(Group)):
+    if user.status is None or all(role.name != SUPERADMIN_ROLE for role in user.status.roles):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
     return user
 
