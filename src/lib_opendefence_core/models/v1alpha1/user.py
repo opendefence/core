@@ -94,7 +94,7 @@ class UserSpec(BaseModel):
 
 
 class UserStatus(PlatformStatus):
-    """Observed identity material, resolved refs, and integration UserBindings."""
+    """Observed identity material, effective roles and groups, and integration UserBindings."""
 
     public_key: str | None = Field(
         default=None,
@@ -103,11 +103,11 @@ class UserStatus(PlatformStatus):
     )
     roles: Annotated[list[ResolvedRef], ListType("map", keys=("name",))] = Field(
         default_factory=list,
-        description="Names and UIDs of the roles assigned directly to the user.",
+        description="Names and UIDs of the roles the user holds, directly or through a group.",
     )
     groups: Annotated[list[ResolvedRef], ListType("map", keys=("name",))] = Field(
         default_factory=list,
-        description="Names and UIDs of the groups the user belongs to.",
+        description="Names and UIDs of the groups the user is in, and of every ancestor of them.",
     )
     bindings: Annotated[list[BindingObservation], ListType("map", keys=("namespace", "name"))] = Field(
         default_factory=list,

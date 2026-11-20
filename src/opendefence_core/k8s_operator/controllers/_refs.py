@@ -1,6 +1,6 @@
 """Resolve name refs from informer snapshots and map reverse dependencies."""
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, NoReturn, Protocol
 
@@ -8,6 +8,7 @@ from cloudcoil.admission import AdmissionRequest
 from cloudcoil.controller import ResourceKey, TerminalError, Wait
 from cloudcoil.resources import Resource
 
+from lib_opendefence_core.models.v1alpha1 import Group, User
 from lib_opendefence_core.models.v1alpha1.common import REFERENCES_RESOLVED_CONDITION, ObjectRef, ResolvedRef
 
 type ResourceRefs = Sequence[ObjectRef] | ObjectRef | None
@@ -147,3 +148,23 @@ def resolve_optional_ref[T: Resource](
 def mark_resolved(ctx: RefContext) -> None:
     """Record that every declared reference was resolved."""
     ctx.condition(REFERENCES_RESOLVED_CONDITION, True, reason="Resolved")
+
+
+def effective_groups(user: User, groups: Mapping[str, Group]) -> list[str]:
+    """Names of the groups the user is in, and of every ancestor of them."""
+    found: list[str] = []
+    for ref in user.spec.group_refs:
+        name: str | None = ref.name
+        while name and name in groups and name not in found:
+            found.append(name)
+            parent = groups[name].spec.parent_ref
+            name = parent.name if parent else None
+    return found
+
+
+def effective_roles(user: User, groups: Mapping[str, Group]) -> list[str]:
+    """Roles the user holds directly and roles granted by every group it is effectively in."""
+    found = {ref.name for ref in user.spec.role_refs}
+    for name in effective_groups(user, groups):
+        found.update(ref.name for ref in groups[name].spec.role_refs)
+    return sorted(found)

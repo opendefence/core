@@ -1179,8 +1179,8 @@ spec:
                 title: Publickey
                 nullable: true
               roles:
-                description: Names and UIDs of the roles assigned directly to the
-                  user.
+                description: Names and UIDs of the roles the user holds, directly
+                  or through a group.
                 items:
                   description: Name plus the Kubernetes UID of a resolved platform
                     object.
@@ -1206,7 +1206,8 @@ spec:
                 - name
                 x-kubernetes-list-type: map
               groups:
-                description: Names and UIDs of the groups the user belongs to.
+                description: Names and UIDs of the groups the user is in, and of every
+                  ancestor of them.
                 items:
                   description: Name plus the Kubernetes UID of a resolved platform
                     object.
