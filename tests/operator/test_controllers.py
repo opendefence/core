@@ -48,11 +48,27 @@ async def test_reconcile_user_resolves_refs() -> None:
     assert (BINDINGS_SYNCED_CONDITION, True, "NoBindings", "") in ctx.conditions
 
 
-async def test_reconcile_user_waits_for_missing_role() -> None:
-    """Missing role refs wait instead of failing."""
+async def test_reconcile_user_publishes_effective_roles_and_groups() -> None:
+    """User status carries ancestor groups and each role once, however many ways the user holds it."""
+    ctx = FakeContext(
+        {
+            Role: FakeCache([make_role("medic"), make_role("comms")]),
+            Group: FakeCache(
+                [make_group("company", roles=["comms"]), make_group("medics", parent="company", roles=["medic"])]
+            ),
+        }
+    )
+    await reconcile_user(make_user("alice", roles=["medic"], groups=["medics"]), cast(Context[User], ctx))
+    assert [ref.name for ref in ctx.status["groups"]] == ["medics", "company"]
+    assert [ref.name for ref in ctx.status["roles"]] == ["comms", "medic"]
+
+
+@pytest.mark.parametrize(("roles", "groups"), [(["missing"], []), ([], ["missing"])])
+async def test_reconcile_user_waits_for_missing_ref(roles: list[str], groups: list[str]) -> None:
+    """Missing direct role and group refs wait instead of failing."""
     ctx = FakeContext()
     with pytest.raises(Wait) as raised:
-        await reconcile_user(make_user("alice", roles=["missing"]), cast(Context[User], ctx))
+        await reconcile_user(make_user("alice", roles=roles, groups=groups), cast(Context[User], ctx))
     assert raised.value.reason == "MissingReference"
     assert (REFERENCES_RESOLVED_CONDITION, False, "MissingReference") in [
         (name, status, reason) for name, status, reason, _message in ctx.conditions

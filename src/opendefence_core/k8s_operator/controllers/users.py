@@ -1,4 +1,4 @@
-"""User controller: resolve role and group name refs, and issue the user's mTLS certificate."""
+"""User controller: publish effective roles and groups, and issue the user's mTLS certificate."""
 
 from collections.abc import Sequence
 
@@ -10,6 +10,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     BINDINGS_SYNCED_CONDITION,
     BindingObservation,
     Group,
+    ObjectRef,
     Role,
     User,
     UserBinding,
@@ -18,7 +19,14 @@ from lib_opendefence_core.models.v1alpha1 import (
 from lib_opendefence_core.models.v1alpha1.user import normalize_callsign
 from opendefence_core.k8s_operator.controllers._certificates import reconcile_certificate
 from opendefence_core.k8s_operator.controllers._events import recorder
-from opendefence_core.k8s_operator.controllers._refs import mark_resolved, named_by, referrers_of, resolve_refs
+from opendefence_core.k8s_operator.controllers._refs import (
+    effective_groups,
+    effective_roles,
+    mark_resolved,
+    named_by,
+    referrers_of,
+    resolve_refs,
+)
 
 users = Controller(User, name="users", owns=(CertificateRequest,), events=recorder("users"))
 
@@ -62,13 +70,15 @@ async def validate_user_delete(request: AdmissionRequest[User]) -> None:
 
 @users.reconcile()
 async def reconcile_user(user: User, ctx: Context[User]) -> None:
-    """Write resolved refs and observed UserBinding sync state."""
+    """Write effective roles and groups and observed UserBinding sync state."""
     observed, pending = observe_bindings(user, ctx.cached(UserBinding).list(all_namespaces=True))
     report_bindings_synced(ctx, observed, pending)
     ctx.set_status(bindings=observed)
     await reconcile_certificate(user, ctx)
-    roles = resolve_refs(ctx, Role, user.spec.role_refs)
-    groups = resolve_refs(ctx, Group, user.spec.group_refs)
+    resolve_refs(ctx, Group, user.spec.group_refs)
+    by_name = {group.name: group for group in ctx.cached(Group).list() if group.name}
+    groups = resolve_refs(ctx, Group, [ObjectRef(name=name) for name in effective_groups(user, by_name)])
+    roles = resolve_refs(ctx, Role, [ObjectRef(name=name) for name in effective_roles(user, by_name)])
     mark_resolved(ctx)
     ctx.set_status(roles=roles, groups=groups)
 

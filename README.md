@@ -160,6 +160,10 @@ binding generation in `observedGeneration`. Core lists the bindings and their sy
 state in the User's `status.bindings` and `BindingsSynced` condition, and
 blocks deleting a User while bindings remain.
 
+A User's `status.roles` and `status.groups` are effective: they include each
+ancestor group and the roles that those groups grant. Integrations read them
+when the `ReferencesResolved` condition is `True`.
+
 Integration workloads must not use User or UserBinding identities.
 The current Integration controller manages extra Roles only.
 It does not issue workload credentials.
