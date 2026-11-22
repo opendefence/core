@@ -1,4 +1,5 @@
 [tools]
+java = "temurin-21.0.13+9.0.LTS"
 jq = "1.8.2"
 kind = "0.31.0"
 kubectl = "1.36.4"

@@ -96,14 +96,28 @@ function ApproveUsersPage() {
     rejectUserMutation.mutate(selectedUser.id);
   };
 
-  const handleQRScanSuccess = (user: Waiting, code: string) => {
-    setSelectedUser(user);
+  const handleQRRead = (data: string) => {
+    let url: URL;
+    try {
+      url = new URL(data);
+    } catch {
+      // Not a link, so a bare approval code
+      setApprovalCode(data);
+      toast.success(t("approveUsers.approvalCodeScanned"));
+      return true;
+    }
+    const id = url.searchParams.get("user");
+    const callsign = url.searchParams.get("callsign");
+    const code = url.searchParams.get("approvalcode");
+    if (!id || !callsign || !code) {
+      toast.error(t("approveUsers.invalidQRFormat"));
+      return false;
+    }
+    setSelectedUser({ id, callsign });
     setApprovalCode(code);
     setApproveDialogOpen(true);
-  };
-
-  const handleApprovalCodeScanned = (code: string) => {
-    setApprovalCode(code);
+    toast.success(t("approveUsers.qrScannedSuccessfully"));
+    return true;
   };
 
   if (!userTypeLoading && !allowed) {
@@ -147,8 +161,10 @@ function ApproveUsersPage() {
 
       <div className="flex gap-3">
         <QRScanner
-          onScanSuccess={handleQRScanSuccess}
-          onApprovalCodeScanned={handleApprovalCodeScanned}
+          onRead={handleQRRead}
+          trigger={t("approveUsers.scanQRCode")}
+          title={t("approveUsers.scanApprovalQR")}
+          description={t("approveUsers.pointCamera")}
         />
       </div>
 
