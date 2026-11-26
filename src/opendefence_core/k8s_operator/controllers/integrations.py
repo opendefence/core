@@ -1,4 +1,4 @@
-"""Integration controller: create extra roles, drop the ones no longer listed, and write routes."""
+"""Integration controller: write extra roles and routes, and delete the ones no longer listed."""
 
 from contextlib import suppress
 
@@ -6,6 +6,7 @@ from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.controller import Context, Controller
 from cloudcoil.errors import ResourceNotFound
+from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import Integration, Role, RoleSpec
 from opendefence_core.config import get_core_config
@@ -56,9 +57,9 @@ async def validate_integration_paths(request: AdmissionRequest[Integration]) -> 
                     )
 
 
-def _owned_by(role: Role, integration: Integration) -> bool:
-    """Whether this Integration is the controlling owner of the Role."""
-    metadata = role.metadata
+def _owned_by(resource: Resource, integration: Integration) -> bool:
+    """Whether this Integration is the controlling owner of the resource."""
+    metadata = resource.metadata
     owner = integration.metadata
     if metadata is None or owner is None or not owner.uid:
         return False
@@ -67,12 +68,12 @@ def _owned_by(role: Role, integration: Integration) -> bool:
     )
 
 
-@integrations.reconcile()
-async def reconcile_integration(integration: Integration, ctx: Context[Integration]) -> None:
-    """Create a Role for each extra role, delete owned Roles the spec no longer lists, and write the routes."""
-    wanted = {role.name for role in integration.spec.extra_roles}
-    client = await ctx.client(Role)
-    for existing in ctx.cached(Role).list():
+async def _delete_unwanted(
+    ctx: Context[Integration], kind: type[Resource], integration: Integration, wanted: set[str | None]
+) -> None:
+    """Delete the resources of this kind that the Integration owns and no longer lists."""
+    client = await ctx.client(kind)
+    for existing in ctx.cached(kind).list(all_namespaces=True):
         if (
             not existing.name
             or existing.name in wanted
@@ -82,7 +83,13 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
         ):
             continue
         with suppress(ResourceNotFound):
-            await client.delete(existing.name, uid=existing.metadata.uid)
+            await client.delete(existing.name, existing.namespace, uid=existing.metadata.uid)
+
+
+@integrations.reconcile()
+async def reconcile_integration(integration: Integration, ctx: Context[Integration]) -> None:
+    """Write the Integration's extra Roles and routes, and delete the owned ones that the spec no longer lists."""
+    await _delete_unwanted(ctx, Role, integration, {role.name for role in integration.spec.extra_roles})
     for role in integration.spec.extra_roles:
         await ctx.ensure(
             Role(
@@ -91,6 +98,10 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
                 spec=RoleSpec(display_name=role.display_name),
             )
         )
-    for resource in route_resources(integration, get_core_config().domain):
+    resources = route_resources(integration, get_core_config().domain)
+    for resource in resources:
         await ctx.ensure(resource)
+    # Routes go before the Middlewares that they name
+    for kind in (IngressRoute, Middleware):
+        await _delete_unwanted(ctx, kind, integration, {item.name for item in resources if isinstance(item, kind)})
     mark_resolved(ctx)

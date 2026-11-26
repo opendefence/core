@@ -113,6 +113,7 @@ rules:
   - ingressroutes
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
@@ -123,6 +124,7 @@ rules:
   - middlewares
   verbs:
   - create
+  - delete
   - get
   - list
   - patch

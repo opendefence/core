@@ -10,6 +10,7 @@ from cloudcoil.errors import ResourceConflict
 from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import (
+    API_VERSION,
     BINDINGS_SYNCED_CONDITION,
     REFERENCES_RESOLVED_CONDITION,
     Group,
@@ -24,6 +25,7 @@ from lib_opendefence_core.models.v1alpha1 import (
 from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
 from opendefence_core.k8s_operator.controllers import groups, invites, users
 from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
+from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware
 from opendefence_core.k8s_operator.controllers.groups import manager_changed, parent_group_changed, reconcile_group
 from opendefence_core.k8s_operator.controllers.groups import role_changed as group_role_changed
 from opendefence_core.k8s_operator.controllers.integrations import reconcile_integration
@@ -215,6 +217,39 @@ async def test_reconcile_integration_strips_route_prefixes() -> None:
     assert strip_api.name != strip_workload.name
     last = [rule["middlewares"][-1] for rule in cast(Any, public)["spec"]["routes"]]
     assert last == [{"name": strip_api.name}, {"name": strip_workload.name}]
+
+
+async def test_reconcile_integration_deletes_dropped_routes() -> None:
+    """Owned routes and strip Middlewares that the spec no longer needs are deleted; other objects stay."""
+
+    def traefik(kind: type[Resource], name: str, owner: str) -> Resource:
+        """Traefik object in the matrix namespace, owned by the named Integration."""
+        owner_reference = {
+            "apiVersion": API_VERSION,
+            "kind": "Integration",
+            "name": owner,
+            "uid": uid(owner),
+            "controller": True,
+        }
+        return kind.model_validate(
+            {"metadata": {"name": name, "namespace": "matrix", "uid": uid(name), "ownerReferences": [owner_reference]}}
+        )
+
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(host="Public", path="/integrations/matrix/workload", service="workload", port=8080),
+    ]
+    routes = [
+        traefik(IngressRoute, "matrix-public", "matrix"),
+        traefik(IngressRoute, "matrix-app", "matrix"),
+        traefik(IngressRoute, "other-app", "other"),
+    ]
+    strips = [traefik(Middleware, "matrix-strip-00000000", "matrix")]
+    clients: dict[type[Resource], FakeClient[Any]] = {IngressRoute: FakeClient(routes), Middleware: FakeClient(strips)}
+    ctx = FakeContext({IngressRoute: FakeCache(routes), Middleware: FakeCache(strips)}, clients)
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    assert clients[IngressRoute].deleted == [("matrix", "matrix-app")]
+    assert clients[Middleware].deleted == [("matrix", "matrix-strip-00000000")]
 
 
 async def test_integration_does_not_delete_replaced_role() -> None:

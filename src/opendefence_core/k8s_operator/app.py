@@ -22,13 +22,13 @@ app = Application(
     webhook=WebhookServer(tls_secret=OPERATOR_TLS_SECRET),
     resources=(UserBinding,),
     rules=(
-        # Owning Roles grants create and patch; delete covers roles an Integration drops
+        # Owning a kind grants create and patch; delete covers what an Integration drops
         RBACRule(Role, verbs=("delete",)),
         RBACRule(
             CertificateRequest, verbs=("delete",), plural="certificaterequests", scope="Namespaced", all_namespaces=True
         ),
-        RBACRule(IngressRoute, verbs=("get",), plural="ingressroutes", scope="Namespaced", all_namespaces=True),
-        RBACRule(Middleware, verbs=("get",), plural="middlewares", scope="Namespaced", all_namespaces=True),
+        RBACRule(IngressRoute, verbs=("delete",), plural="ingressroutes", scope="Namespaced", all_namespaces=True),
+        RBACRule(Middleware, verbs=("delete",), plural="middlewares", scope="Namespaced", all_namespaces=True),
     ),
 )
 for controller in ALL_CONTROLLERS:
