@@ -10,6 +10,7 @@ from cloudcoil.errors import ResourceNotFound
 from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import Integration, Role, RoleSpec
+from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
 from opendefence_core.config import get_core_config
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved
@@ -27,6 +28,17 @@ integrations = Controller(
 )
 
 
+def _check_route(route: IntegrationHttpRoute) -> None:
+    """Reject a path that is not a regular expression, and a blocked path that is not below its route."""
+    try:
+        re.compile(route.path if route.path.startswith("^") else "")
+    except re.error as error:
+        raise AdmissionDenied(f"Path {route.path} is not a regular expression", reason="InvalidPathRegex") from error
+    for blocked in route.blocked_paths:
+        if not covers(owned_path(route.path), blocked):
+            raise AdmissionDenied(f"Blocked path {blocked} is not below {route.path}", reason="PathReserved")
+
+
 @integrations.validate(operations=("CREATE", "UPDATE"))
 async def validate_integration_paths(request: AdmissionRequest[Integration]) -> None:
     """Reject a route path that is reserved, or that overlaps a path of another Integration on the same host.
@@ -41,12 +53,7 @@ async def validate_integration_paths(request: AdmissionRequest[Integration]) -> 
     if old is not None and old.spec.network.ingress.http_routes == routes:
         return  # Other writes leave the routes alone
     for route in routes:
-        try:
-            re.compile(route.path if route.path.startswith("^") else "")
-        except re.error as error:
-            raise AdmissionDenied(
-                f"Path {route.path} is not a regular expression", reason="InvalidPathRegex"
-            ) from error
+        _check_route(route)
     requested = [route for route in routes if not covers(f"/integrations/{obj.name}", owned_path(route.path))]
     for route in requested:
         if covers("/integrations", owned_path(route.path)) or not requestable(owned_path(route.path)):

@@ -392,3 +392,16 @@ async def test_integration_regex_path_is_checked_by_its_plain_part(path: str, re
         with pytest.raises(AdmissionDenied) as raised:
             await _validate_integration_paths(request)
         assert raised.value.reason == reason
+
+
+@pytest.mark.parametrize(("blocked", "granted"), [("/integrations/example/api/admin", True), ("/api", False)])
+async def test_integration_blocks_only_paths_below_its_route(blocked: str, granted: bool) -> None:
+    """A blocked path outside its route is refused, so an integration cannot block the paths of others."""
+    integration = _with_routes("example", ("Public", "/integrations/example/api"))
+    integration.spec.network.ingress.http_routes[0].blocked_paths = [blocked]
+    if granted:
+        await _validate_integration_paths(FakeAdmissionRequest(resource=integration))
+    else:
+        with pytest.raises(AdmissionDenied) as raised:
+            await _validate_integration_paths(FakeAdmissionRequest(resource=integration))
+        assert raised.value.reason == "PathReserved"
