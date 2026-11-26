@@ -1,0 +1,11 @@
+# Answers 403 to every request. No request from outside has the loopback
+# address as its source, so the allow list never matches.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: deny
+  namespace: traefik-system
+spec:
+  ipAllowList:
+    sourceRange:
+      - 127.0.0.1/32
