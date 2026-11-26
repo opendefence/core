@@ -8,6 +8,7 @@ from cloudcoil.resources import Unstructured, get_dynamic_resource
 
 from lib_opendefence_core.models.v1alpha1 import Integration
 from opendefence_core.naming import (
+    DENY_MIDDLEWARE,
     HSTS_MIDDLEWARE,
     MTLS_TLS_OPTION,
     PASS_CLIENT_CERT_MIDDLEWARE,
@@ -28,6 +29,9 @@ _HOSTS: dict[str, tuple[str, tuple[str, ...], dict[str, Any]]] = {
     ),
 }
 
+
+# Above the default priority of a rule, which is its length, so a blocked path wins over every route
+_BLOCK_PRIORITY = 10_000
 
 # Top-level path prefixes that an integration may ask for. The UI serves every other top-level path.
 REQUESTABLE_PREFIXES = ("/.well-known/", "/_")
@@ -72,6 +76,7 @@ def route_resources(integration: Integration, domain: str) -> list[Unstructured]
     """The Traefik objects for the Integration's routes, in its namespace: strip Middlewares, then IngressRoutes.
 
     Each distinct stripPrefix gets one Middleware. Each host that has routes gets one IngressRoute.
+    Each blocked path gets one more rule that denies the request.
     """
     http_routes = integration.spec.network.ingress.http_routes
     resources = [
@@ -96,6 +101,18 @@ def route_resources(integration: Integration, domain: str) -> list[Unstructured]
             }
             for route in http_routes
             if route.host == host
+        ]
+        rules += [
+            {
+                "kind": "Rule",
+                "match": _match(prefix + domain, blocked),
+                "priority": _BLOCK_PRIORITY,
+                "middlewares": [{"name": DENY_MIDDLEWARE, "namespace": TRAEFIK_NAMESPACE}],
+                "services": [{"name": route.service, "port": route.port}],
+            }
+            for route in http_routes
+            if route.host == host
+            for blocked in route.blocked_paths
         ]
         if rules:
             resources.append(

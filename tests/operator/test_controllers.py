@@ -233,6 +233,32 @@ async def test_reconcile_integration_keeps_a_regex_route_below_its_plain_path() 
     )
 
 
+async def test_reconcile_integration_denies_blocked_paths() -> None:
+    """A blocked path gets its own rule with the deny middleware and a priority above every route."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(
+            host="Public",
+            path="/integrations/matrix/workload",
+            blocked_paths=["/integrations/matrix/workload/admin"],
+            service="workload",
+            port=8080,
+        ),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    served, blocked = cast(Any, ctx.ensured[0])["spec"]["routes"]
+    assert "priority" not in served
+    assert blocked == {
+        "kind": "Rule",
+        "match": "Host(`local-dev.opendefence.fi`) && "
+        "(Path(`/integrations/matrix/workload/admin`) || PathPrefix(`/integrations/matrix/workload/admin/`))",
+        "priority": 10000,
+        "middlewares": [{"name": "deny", "namespace": "traefik-system"}],
+        "services": [{"name": "workload", "port": 8080}],
+    }
+
+
 async def test_reconcile_integration_deletes_dropped_routes() -> None:
     """Owned routes and strip Middlewares that the spec no longer needs are deleted; other objects stay."""
 
