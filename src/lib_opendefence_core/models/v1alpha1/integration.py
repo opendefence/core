@@ -13,6 +13,8 @@ from lib_opendefence_core.models.v1alpha1.common import API_VERSION, PlatformSta
 ROLE_NAME_PATTERN = r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
 # Route paths go into Traefik rules, so only unreserved URL path characters are allowed
 ROUTE_PATH_PATTERN = r"^/[A-Za-z0-9._~/-]*$"
+# A route matches a plain path, or a regular expression that starts with ^/ and holds no backtick
+ROUTE_MATCH_PATTERN = r"^(/[A-Za-z0-9._~/-]*|\^/[^`\s]*)$"
 
 
 class IntegrationRole(BaseModel):
@@ -116,8 +118,12 @@ class IntegrationHttpRoute(BaseModel):
         description="App is app.<domain> and needs a client certificate. Public is <domain> and needs none.",
     )
     path: str = Field(
-        pattern=ROUTE_PATH_PATTERN,
-        description="Path prefix to serve. /integrations/<name> is reserved for the integration.",
+        max_length=256,
+        pattern=ROUTE_MATCH_PATTERN,
+        description=(
+            "Path prefix to serve, or a regular expression that starts with ^ in Traefik PathRegexp syntax. "
+            "/integrations/<name> is reserved for the integration."
+        ),
     )
     strip_prefix: str | None = Field(
         default=None,

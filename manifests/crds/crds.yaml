@@ -456,9 +456,11 @@ spec:
                               title: Host
                               type: string
                             path:
-                              description: Path prefix to serve. /integrations/<name>
+                              description: Path prefix to serve, or a regular expression
+                                that starts with ^ in Traefik PathRegexp syntax. /integrations/<name>
                                 is reserved for the integration.
-                              pattern: ^/[A-Za-z0-9._~/-]*$
+                              maxLength: 256
+                              pattern: ^(/[A-Za-z0-9._~/-]*|\^/[^`\s]*)$
                               title: Path
                               type: string
                             stripPrefix:

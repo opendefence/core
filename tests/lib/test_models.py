@@ -190,3 +190,23 @@ def test_route_paths_hold_only_url_path_characters(field: str, value: str, accep
     else:
         with pytest.raises(ValidationError):
             IntegrationHttpRoute.model_validate(route)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "accepted"),
+    [
+        ("path", "^/_example/(v1|v2)/(login|logout)$", True),
+        ("path", "^/a`) || Host(`evil", False),
+        ("path", "^/with space$", False),
+        ("path", "^example", False),
+        ("stripPrefix", "^/_example/(v1|v2)", False),
+    ],
+)
+def test_route_path_can_be_a_regex(field: str, value: str, accepted: bool) -> None:
+    """Only path takes a regex. It starts with ^/ and holds no backtick and no whitespace."""
+    route = {"host": "Public", "path": "/_example", "service": "web", "port": 8080, field: value}
+    if accepted:
+        assert IntegrationHttpRoute.model_validate(route)
+    else:
+        with pytest.raises(ValidationError):
+            IntegrationHttpRoute.model_validate(route)
