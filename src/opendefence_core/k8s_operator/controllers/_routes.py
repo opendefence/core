@@ -1,5 +1,6 @@
 """Traefik routes for the HTTP paths that an Integration lists."""
 
+import re
 from hashlib import sha256
 from typing import Any
 
@@ -43,10 +44,23 @@ def covers(prefix: str, path: str) -> bool:
     return path.rstrip("/") == prefix or path.startswith(f"{prefix}/")
 
 
+def owned_path(path: str) -> str:
+    """The plain path that a route path is at or below. A regex gives its leading plain segments."""
+    if not path.startswith("^"):
+        return path
+    plain = re.match(r"[A-Za-z0-9._~/-]*", path[1:])
+    literal = plain.group() if plain else ""
+    if path[1 + len(literal) :] in ("", "$"):
+        return literal
+    return literal[: literal.rfind("/")] or "/"
+
+
 def _match(host: str, path: str) -> str:
-    """Rule for the path and all below it. /a does not match /ab."""
-    paths = f"PathPrefix(`{path}`)" if path.endswith("/") else f"(Path(`{path}`) || PathPrefix(`{path}/`))"
-    return f"Host(`{host}`) && {paths}"
+    """Rule for the path and all below it. /a does not match /ab. A regex must also lie below its owned path."""
+    owned = owned_path(path)
+    paths = f"PathPrefix(`{owned}`)" if owned.endswith("/") else f"(Path(`{owned}`) || PathPrefix(`{owned}/`))"
+    regex = f" && PathRegexp(`{path}`)" if path.startswith("^") else ""
+    return f"Host(`{host}`) && {paths}{regex}"
 
 
 def _strip_name(integration: Integration, prefix: str) -> str:

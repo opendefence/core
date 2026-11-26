@@ -1,5 +1,6 @@
 """Integration controller: write extra roles and routes, and delete the ones no longer listed."""
 
+import re
 from contextlib import suppress
 
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
@@ -16,6 +17,7 @@ from opendefence_core.k8s_operator.controllers._routes import (
     IngressRoute,
     Middleware,
     covers,
+    owned_path,
     requestable,
     route_resources,
 )
@@ -38,9 +40,16 @@ async def validate_integration_paths(request: AdmissionRequest[Integration]) -> 
     old = request.old_resource
     if old is not None and old.spec.network.ingress.http_routes == routes:
         return  # Other writes leave the routes alone
-    requested = [route for route in routes if not covers(f"/integrations/{obj.name}", route.path)]
+    for route in routes:
+        try:
+            re.compile(route.path if route.path.startswith("^") else "")
+        except re.error as error:
+            raise AdmissionDenied(
+                f"Path {route.path} is not a regular expression", reason="InvalidPathRegex"
+            ) from error
+    requested = [route for route in routes if not covers(f"/integrations/{obj.name}", owned_path(route.path))]
     for route in requested:
-        if covers("/integrations", route.path) or not requestable(route.path):
+        if covers("/integrations", owned_path(route.path)) or not requestable(owned_path(route.path)):
             raise AdmissionDenied(f"Path {route.path} is reserved", reason="PathReserved")
     if not requested:
         return
@@ -50,7 +59,8 @@ async def validate_integration_paths(request: AdmissionRequest[Integration]) -> 
             continue
         for taken in other.spec.network.ingress.http_routes:
             for route in requested:
-                if route.host == taken.host and (covers(taken.path, route.path) or covers(route.path, taken.path)):
+                mine, theirs = owned_path(route.path), owned_path(taken.path)
+                if route.host == taken.host and (covers(theirs, mine) or covers(mine, theirs)):
                     raise AdmissionDenied(
                         f"Path {route.path} on the {route.host} host is taken by integration {other.name}",
                         reason="PathTaken",

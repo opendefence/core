@@ -219,6 +219,20 @@ async def test_reconcile_integration_strips_route_prefixes() -> None:
     assert last == [{"name": strip_api.name}, {"name": strip_workload.name}]
 
 
+async def test_reconcile_integration_keeps_a_regex_route_below_its_plain_path() -> None:
+    """A regex path is matched together with its leading plain segments."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(host="Public", path="^/_workload/(v1|v2)/(start|stop)$", service="workload", port=8080),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    assert cast(Any, ctx.ensured[0])["spec"]["routes"][0]["match"] == (
+        "Host(`local-dev.opendefence.fi`) && (Path(`/_workload`) || PathPrefix(`/_workload/`))"
+        " && PathRegexp(`^/_workload/(v1|v2)/(start|stop)$`)"
+    )
+
+
 async def test_reconcile_integration_deletes_dropped_routes() -> None:
     """Owned routes and strip Middlewares that the spec no longer needs are deleted; other objects stay."""
 

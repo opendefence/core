@@ -367,3 +367,28 @@ async def test_integration_update_that_keeps_its_routes_is_not_checked() -> None
     )
     await _validate_integration_paths(request)
     assert request.client_calls == 0
+
+
+@pytest.mark.parametrize(
+    ("path", "reason"),
+    [
+        ("^/_example/(v1|v2)/(start|stop)$", None),
+        ("^/integrations/example/(v1|v2)$", None),
+        ("^/_example$", None),
+        ("^/(_example|api)/v1", "PathReserved"),
+        ("^/_other/media/(v1|v2)", "PathTaken"),
+        ("^/_example/(v1", "InvalidPathRegex"),
+    ],
+)
+async def test_integration_regex_path_is_checked_by_its_plain_part(path: str, reason: str | None) -> None:
+    """A regex path is granted or refused by its leading plain segments, and it must compile."""
+    request = FakeAdmissionRequest(
+        resource=_with_routes("example", ("Public", path)),
+        objects=[_with_routes("other", ("Public", "/_other/media"))],
+    )
+    if reason is None:
+        await _validate_integration_paths(request)
+    else:
+        with pytest.raises(AdmissionDenied) as raised:
+            await _validate_integration_paths(request)
+        assert raised.value.reason == reason
