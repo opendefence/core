@@ -1,4 +1,4 @@
-"""Integration controller: create extra roles and drop the ones no longer listed."""
+"""Integration controller: create extra roles, drop the ones no longer listed, and write routes."""
 
 from contextlib import suppress
 
@@ -7,10 +7,12 @@ from cloudcoil.controller import Context, Controller
 from cloudcoil.errors import ResourceNotFound
 
 from lib_opendefence_core.models.v1alpha1 import Integration, Role, RoleSpec
+from opendefence_core.config import get_core_config
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved
+from opendefence_core.k8s_operator.controllers._routes import IngressRoute, public_route
 
-integrations = Controller(Integration, name="integrations", owns=(Role,), events=recorder("integrations"))
+integrations = Controller(Integration, name="integrations", owns=(Role, IngressRoute), events=recorder("integrations"))
 
 
 def _owned_by(role: Role, integration: Integration) -> bool:
@@ -26,7 +28,7 @@ def _owned_by(role: Role, integration: Integration) -> bool:
 
 @integrations.reconcile()
 async def reconcile_integration(integration: Integration, ctx: Context[Integration]) -> None:
-    """Create a Role for each extra role and delete owned Roles the spec no longer lists."""
+    """Create a Role for each extra role, delete owned Roles the spec no longer lists, and write the routes."""
     wanted = {role.name for role in integration.spec.extra_roles}
     client = await ctx.client(Role)
     for existing in ctx.cached(Role).list():
@@ -48,4 +50,7 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
                 spec=RoleSpec(display_name=role.display_name),
             )
         )
+    route = public_route(integration, get_core_config().domain)
+    if route:
+        await ctx.ensure(route)
     mark_resolved(ctx)

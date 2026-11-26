@@ -155,6 +155,9 @@ the Integration drops it.
 `spec.network.ingress.httpRoutes` lists HTTP paths on the `App` host (`app.<domain>`) or the `Public` host (`<domain>`).
 `spec.network.ingress.ports` lists TCP and UDP ports.
 
+The operator serves the `Public` routes with one `IngressRoute` named `<name>-public` in the namespace named after the Integration.
+Each Linkerd `Server` that a route reaches needs an `AuthorizationPolicy` for the ServiceAccount `traefik` in `traefik-system`.
+
 An integration creates one `UserBinding` per User in its own namespace, naming
 the User in `spec.userRef`, and sets the binding's `Synced` condition to
 `True` once the User is provisioned. The condition must include the current

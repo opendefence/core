@@ -21,6 +21,7 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
+from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
 from opendefence_core.k8s_operator.controllers import groups, invites, users
 from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
 from opendefence_core.k8s_operator.controllers.groups import manager_changed, parent_group_changed, reconcile_group
@@ -134,6 +135,42 @@ async def test_reconcile_integration_syncs_extra_roles() -> None:
     assert cast(Role, ctx.ensured[0]).spec.display_name == "mission-lead"
     assert client.deleted == [(None, "old-role")]
     assert ctx.conditions[-1][:3] == (REFERENCES_RESOLVED_CONDITION, True, "Resolved")
+
+
+async def test_reconcile_integration_writes_public_routes() -> None:
+    """Public routes become one IngressRoute in the Integration's namespace; App routes are left out."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(host="Public", path="/_matrix", service="matrix-synapse", port=8008),
+        IntegrationHttpRoute(host="Public", path="/integrations/matrix/", service="matrix-web", port=8080),
+        IntegrationHttpRoute(host="App", path="/integrations/matrix/ui", service="matrix-ui", port=8080),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    (route,) = ctx.ensured
+    middlewares = [
+        {"name": "strip-identity-headers", "namespace": "traefik-system"},
+        {"name": "hsts", "namespace": "traefik-system"},
+    ]
+    assert (route.kind, route.name, route.namespace) == ("IngressRoute", "matrix-public", "matrix")
+    assert cast(Any, route)["spec"] == {
+        "entryPoints": ["websecure"],
+        "routes": [
+            {
+                "kind": "Rule",
+                "match": "Host(`local-dev.opendefence.fi`) && (Path(`/_matrix`) || PathPrefix(`/_matrix/`))",
+                "middlewares": middlewares,
+                "services": [{"name": "matrix-synapse", "port": 8008}],
+            },
+            {
+                "kind": "Rule",
+                "match": "Host(`local-dev.opendefence.fi`) && PathPrefix(`/integrations/matrix/`)",
+                "middlewares": middlewares,
+                "services": [{"name": "matrix-web", "port": 8080}],
+            },
+        ],
+        "tls": {},
+    }
 
 
 async def test_integration_does_not_delete_replaced_role() -> None:
