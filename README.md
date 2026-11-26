@@ -155,7 +155,8 @@ the Integration drops it.
 `spec.network.ingress.httpRoutes` lists HTTP paths on the `App` host (`app.<domain>`) or the `Public` host (`<domain>`).
 `spec.network.ingress.ports` lists TCP and UDP ports.
 
-The operator serves the `Public` routes with one `IngressRoute` named `<name>-public` in the namespace named after the Integration.
+The operator serves the routes with one `IngressRoute` for each host, named `<name>-public` and `<name>-app`, in the namespace named after the Integration.
+A backend on the `App` host gets the verified client certificate in the `X-Forwarded-Tls-Client-Cert` header.
 Each Linkerd `Server` that a route reaches needs an `AuthorizationPolicy` for the ServiceAccount `traefik` in `traefik-system`.
 
 An integration creates one `UserBinding` per User in its own namespace, naming

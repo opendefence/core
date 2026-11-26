@@ -137,8 +137,8 @@ async def test_reconcile_integration_syncs_extra_roles() -> None:
     assert ctx.conditions[-1][:3] == (REFERENCES_RESOLVED_CONDITION, True, "Resolved")
 
 
-async def test_reconcile_integration_writes_public_routes() -> None:
-    """Public routes become one IngressRoute in the Integration's namespace; App routes are left out."""
+async def test_reconcile_integration_writes_routes() -> None:
+    """Each host with routes gets one IngressRoute in the Integration's namespace."""
     integration = make_integration("matrix")
     integration.spec.network.ingress.http_routes = [
         IntegrationHttpRoute(host="Public", path="/_matrix", service="matrix-synapse", port=8008),
@@ -147,29 +147,43 @@ async def test_reconcile_integration_writes_public_routes() -> None:
     ]
     ctx = FakeContext()
     await reconcile_integration(integration, cast(Context[Integration], ctx))
-    (route,) = ctx.ensured
-    middlewares = [
+    public, app = ctx.ensured
+    shared = [
         {"name": "strip-identity-headers", "namespace": "traefik-system"},
         {"name": "hsts", "namespace": "traefik-system"},
     ]
-    assert (route.kind, route.name, route.namespace) == ("IngressRoute", "matrix-public", "matrix")
-    assert cast(Any, route)["spec"] == {
+    assert (public.kind, public.name, public.namespace) == ("IngressRoute", "matrix-public", "matrix")
+    assert cast(Any, public)["spec"] == {
         "entryPoints": ["websecure"],
         "routes": [
             {
                 "kind": "Rule",
                 "match": "Host(`local-dev.opendefence.fi`) && (Path(`/_matrix`) || PathPrefix(`/_matrix/`))",
-                "middlewares": middlewares,
+                "middlewares": shared,
                 "services": [{"name": "matrix-synapse", "port": 8008}],
             },
             {
                 "kind": "Rule",
                 "match": "Host(`local-dev.opendefence.fi`) && PathPrefix(`/integrations/matrix/`)",
-                "middlewares": middlewares,
+                "middlewares": shared,
                 "services": [{"name": "matrix-web", "port": 8080}],
             },
         ],
         "tls": {},
+    }
+    assert (app.name, app.namespace) == ("matrix-app", "matrix")
+    assert cast(Any, app)["spec"] == {
+        "entryPoints": ["websecure"],
+        "routes": [
+            {
+                "kind": "Rule",
+                "match": "Host(`app.local-dev.opendefence.fi`) && "
+                "(Path(`/integrations/matrix/ui`) || PathPrefix(`/integrations/matrix/ui/`))",
+                "middlewares": [shared[0], {"name": "pass-client-cert", "namespace": "traefik-system"}, shared[1]],
+                "services": [{"name": "matrix-ui", "port": 8080}],
+            },
+        ],
+        "tls": {"options": {"name": "core-mtls", "namespace": "traefik-system"}},
     }
 
 

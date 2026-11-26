@@ -32,6 +32,12 @@ STRIP_IDENTITY_HEADERS_MIDDLEWARE = "strip-identity-headers"
 HSTS_MIDDLEWARE = "hsts"
 """Middleware that sets the Strict-Transport-Security header."""
 
+PASS_CLIENT_CERT_MIDDLEWARE = "pass-client-cert"  # nosec B105
+"""Middleware that sends the verified client certificate to the backend."""
+
+MTLS_TLS_OPTION = "core-mtls"
+"""TLSOption in TRAEFIK_NAMESPACE that requires a client certificate from the client CA."""
+
 
 def user_certificate_name(user: User) -> str:
     """Name of the user's one-shot cert-manager CertificateRequest in CLIENT_CERT_NAMESPACE."""
