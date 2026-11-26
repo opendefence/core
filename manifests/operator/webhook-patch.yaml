@@ -21,3 +21,6 @@ webhooks:
   - name: validate-3.core-operator.opendefence-system.cloudcoil.io
     clientConfig:
       caBundle: null
+  - name: validate-4.core-operator.opendefence-system.cloudcoil.io
+    clientConfig:
+      caBundle: null

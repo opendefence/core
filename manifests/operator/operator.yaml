@@ -348,3 +348,28 @@ webhooks:
     operations:
     - DELETE
     scope: Cluster
+- name: validate-4.core-operator.opendefence-system.cloudcoil.io
+  admissionReviewVersions:
+  - v1
+  sideEffects: None
+  failurePolicy: Fail
+  matchPolicy: Exact
+  timeoutSeconds: 5
+  clientConfig:
+    service:
+      name: core-operator
+      namespace: opendefence-system
+      path: /validate/validate-integration-paths-2e456feac789
+      port: 443
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tClBMQUNFSE9MREVSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  rules:
+  - apiGroups:
+    - platform.opendefence.fi
+    apiVersions:
+    - v1alpha1
+    resources:
+    - integrations
+    operations:
+    - CREATE
+    - UPDATE
+    scope: Cluster

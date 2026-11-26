@@ -2,6 +2,7 @@
 
 from contextlib import suppress
 
+from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.apimachinery import ObjectMeta
 from cloudcoil.controller import Context, Controller
 from cloudcoil.errors import ResourceNotFound
@@ -10,11 +11,49 @@ from lib_opendefence_core.models.v1alpha1 import Integration, Role, RoleSpec
 from opendefence_core.config import get_core_config
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved
-from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware, route_resources
+from opendefence_core.k8s_operator.controllers._routes import (
+    IngressRoute,
+    Middleware,
+    covers,
+    requestable,
+    route_resources,
+)
 
 integrations = Controller(
     Integration, name="integrations", owns=(Role, IngressRoute, Middleware), events=recorder("integrations")
 )
+
+
+@integrations.validate(operations=("CREATE", "UPDATE"))
+async def validate_integration_paths(request: AdmissionRequest[Integration]) -> None:
+    """Reject a route path that is reserved, or that overlaps a path of another Integration on the same host.
+
+    Paths below /integrations/<name> belong to the Integration. Other paths must be requestable.
+    """
+    obj = request.resource
+    if obj is None:
+        return
+    routes = obj.spec.network.ingress.http_routes
+    old = request.old_resource
+    if old is not None and old.spec.network.ingress.http_routes == routes:
+        return  # Other writes leave the routes alone
+    requested = [route for route in routes if not covers(f"/integrations/{obj.name}", route.path)]
+    for route in requested:
+        if covers("/integrations", route.path) or not requestable(route.path):
+            raise AdmissionDenied(f"Path {route.path} is reserved", reason="PathReserved")
+    if not requested:
+        return
+    client = await request.client(Integration)
+    async for other in await client.list():
+        if other.name == obj.name:
+            continue
+        for taken in other.spec.network.ingress.http_routes:
+            for route in requested:
+                if route.host == taken.host and (covers(taken.path, route.path) or covers(route.path, taken.path)):
+                    raise AdmissionDenied(
+                        f"Path {route.path} on the {route.host} host is taken by integration {other.name}",
+                        reason="PathTaken",
+                    )
 
 
 def _owned_by(role: Role, integration: Integration) -> bool:

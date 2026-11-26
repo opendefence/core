@@ -129,7 +129,7 @@ def test_operator_rbac() -> None:
 
 
 def test_webhooks_have_ca_injected() -> None:
-    """cert-manager injects the webhook CA; Group writes, User callsigns, User and Role deletes are validated."""
+    """cert-manager injects the webhook CA into each webhook: Group, User, Role and Integration checks."""
     webhook = _one(_kustomized(), "ValidatingWebhookConfiguration")
     annotations = webhook["metadata"]["annotations"]
     assert annotations["cert-manager.io/inject-ca-from"] == f"{SYSTEM_NAMESPACE}/{OPERATOR_TLS_SECRET}"
@@ -142,6 +142,7 @@ def test_webhooks_have_ca_injected() -> None:
         ("users", frozenset({"CREATE", "UPDATE"})),
         ("users", frozenset({"DELETE"})),
         ("roles", frozenset({"DELETE"})),
+        ("integrations", frozenset({"CREATE", "UPDATE"})),
     }
 
 

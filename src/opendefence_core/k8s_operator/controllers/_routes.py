@@ -28,6 +28,21 @@ _HOSTS: dict[str, tuple[str, tuple[str, ...], dict[str, Any]]] = {
 }
 
 
+# Top-level path prefixes that an integration may ask for. The UI serves every other top-level path.
+REQUESTABLE_PREFIXES = ("/.well-known/", "/_")
+
+
+def requestable(path: str) -> bool:
+    """Whether an integration may ask for this path outside its own prefix. Replace this to use a deny list."""
+    return path.startswith(REQUESTABLE_PREFIXES)
+
+
+def covers(prefix: str, path: str) -> bool:
+    """Whether the path is the prefix or is below it, by whole segments."""
+    prefix = prefix.rstrip("/")
+    return path.rstrip("/") == prefix or path.startswith(f"{prefix}/")
+
+
 def _match(host: str, path: str) -> str:
     """Rule for the path and all below it. /a does not match /ab."""
     paths = f"PathPrefix(`{path}`)" if path.endswith("/") else f"(Path(`{path}`) || PathPrefix(`{path}/`))"
