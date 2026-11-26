@@ -187,6 +187,36 @@ async def test_reconcile_integration_writes_routes() -> None:
     }
 
 
+async def test_reconcile_integration_strips_route_prefixes() -> None:
+    """Each stripPrefix gets its own Middleware, written before the route whose rule ends with it."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(
+            host="Public",
+            path="/integrations/matrix/api",
+            strip_prefix="/integrations/matrix/api",
+            service="api",
+            port=9000,
+        ),
+        IntegrationHttpRoute(
+            host="Public",
+            path="/integrations/matrix/workload",
+            strip_prefix="/integrations/matrix/workload",
+            service="workload",
+            port=8080,
+        ),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    strip_api, strip_workload, public = ctx.ensured
+    assert (strip_api.kind, strip_api.namespace) == ("Middleware", "matrix")
+    assert cast(Any, strip_api)["spec"] == {"stripPrefix": {"prefixes": ["/integrations/matrix/api"]}}
+    assert cast(Any, strip_workload)["spec"] == {"stripPrefix": {"prefixes": ["/integrations/matrix/workload"]}}
+    assert strip_api.name != strip_workload.name
+    last = [rule["middlewares"][-1] for rule in cast(Any, public)["spec"]["routes"]]
+    assert last == [{"name": strip_api.name}, {"name": strip_workload.name}]
+
+
 async def test_integration_does_not_delete_replaced_role() -> None:
     """A stale cache cannot delete a new Role owned by another Integration."""
     cached = make_role("old-role", owner="tak")

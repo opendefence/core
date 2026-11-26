@@ -10,9 +10,11 @@ from lib_opendefence_core.models.v1alpha1 import Integration, Role, RoleSpec
 from opendefence_core.config import get_core_config
 from opendefence_core.k8s_operator.controllers._events import recorder
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved
-from opendefence_core.k8s_operator.controllers._routes import IngressRoute, ingress_routes
+from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware, route_resources
 
-integrations = Controller(Integration, name="integrations", owns=(Role, IngressRoute), events=recorder("integrations"))
+integrations = Controller(
+    Integration, name="integrations", owns=(Role, IngressRoute, Middleware), events=recorder("integrations")
+)
 
 
 def _owned_by(role: Role, integration: Integration) -> bool:
@@ -50,6 +52,6 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
                 spec=RoleSpec(display_name=role.display_name),
             )
         )
-    for route in ingress_routes(integration, get_core_config().domain):
-        await ctx.ensure(route)
+    for resource in route_resources(integration, get_core_config().domain):
+        await ctx.ensure(resource)
     mark_resolved(ctx)

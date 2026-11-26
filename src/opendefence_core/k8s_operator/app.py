@@ -8,7 +8,7 @@ from cloudcoil.models.cert_manager.v1 import CertificateRequest
 
 from lib_opendefence_core.models.v1alpha1 import Role, UserBinding
 from opendefence_core.k8s_operator.controllers import ALL_CONTROLLERS
-from opendefence_core.k8s_operator.controllers._routes import IngressRoute
+from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware
 from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, SYSTEM_NAMESPACE
 
 HEALTH_PORT = 8080
@@ -28,6 +28,7 @@ app = Application(
             CertificateRequest, verbs=("delete",), plural="certificaterequests", scope="Namespaced", all_namespaces=True
         ),
         RBACRule(IngressRoute, verbs=("get",), plural="ingressroutes", scope="Namespaced", all_namespaces=True),
+        RBACRule(Middleware, verbs=("get",), plural="middlewares", scope="Namespaced", all_namespaces=True),
     ),
 )
 for controller in ALL_CONTROLLERS:
