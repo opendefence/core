@@ -148,10 +148,12 @@ The operator also reads `CORE_OPERATOR_*` environment variables from the `core-o
 ### Integrations
 
 An `Integration` records an installed product: its version, UI product info, extra
-roles, and the ingress and egress it intends. The operator creates each extra
+roles, and the traffic it needs from outside the cluster. The operator creates each extra
 role as a cluster `Role` owned by the Integration, and deletes that Role when
-the Integration drops it. The network policy is stored only; core does not
-enforce it yet.
+the Integration drops it.
+
+`spec.network.ingress.httpRoutes` lists HTTP paths on the `App` host (`app.<domain>`) or the `Public` host (`<domain>`).
+`spec.network.ingress.ports` lists TCP and UDP ports.
 
 An integration creates one `UserBinding` per User in its own namespace, naming
 the User in `spec.userRef`, and sets the binding's `Synced` condition to

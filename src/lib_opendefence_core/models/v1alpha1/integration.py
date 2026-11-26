@@ -29,15 +29,43 @@ class IntegrationRole(BaseModel):
     )
 
 
-class ProductComponent(BaseModel):
-    """How the product is opened in the platform UI."""
+class ProductModuleFederation(BaseModel):
+    """A module federation remote that the platform UI loads."""
 
-    type: Literal["link", "markdown", "component"] = Field(
-        description="Whether ref is a link, a markdown document, or a UI component.",
-    )
-    ref: str = Field(
+    remote_entry: str = Field(
         min_length=1,
-        description="URL, markdown path, or component reference for the product.",
+        alias="remoteEntry",
+        description="URL of the remote entry, such as /integrations/<name>/ui/remoteEntry.js.",
+    )
+
+
+class ProductUrl(BaseModel):
+    """A URL that the platform UI opens or fetches."""
+
+    url: str = Field(
+        min_length=1,
+        description="URL of the link or the markdown document.",
+    )
+
+
+class ProductUi(BaseModel):
+    """How the product is opened in the platform UI. Set the member that type names."""
+
+    type: Literal["ModuleFederation", "Link", "Markdown"] = Field(
+        description="Which member describes the UI: moduleFederation, link, or markdown.",
+    )
+    module_federation: ProductModuleFederation | None = Field(
+        default=None,
+        alias="moduleFederation",
+        description="The remote to load when type is ModuleFederation.",
+    )
+    link: ProductUrl | None = Field(
+        default=None,
+        description="The link to open when type is Link.",
+    )
+    markdown: ProductUrl | None = Field(
+        default=None,
+        description="The markdown document to show when type is Markdown.",
     )
 
 
@@ -69,7 +97,7 @@ class ProductInfo(BaseModel):
         default=None,
         description="URL of the product documentation.",
     )
-    component: ProductComponent | None = Field(
+    ui: ProductUi | None = Field(
         default=None,
         description="How the product is opened in the platform UI.",
     )
@@ -79,21 +107,89 @@ class ProductInfo(BaseModel):
     )
 
 
-class IntegrationNetworkPolicy(BaseModel):
-    """Intended traffic for the integration. Core stores it and does not enforce it."""
+class IntegrationHttpRoute(BaseModel):
+    """One HTTP path from outside the cluster to a Service in the integration namespace."""
 
-    ingress: Literal["Local", "Cluster", "Public"] = Field(
-        default="Local",
-        description="Who may connect in: Local is the integration namespace, Cluster is the cluster, Public is outside.",
+    host: Literal["App", "Public"] = Field(
+        description="App is app.<domain> and needs a client certificate. Public is <domain> and needs none.",
     )
-    egress: Literal["Local", "Cluster", "Internet"] = Field(
-        default="Internet",
-        description="Where the integration may connect: Local is its namespace, Cluster is the cluster, Internet is outside.",
+    path: str = Field(
+        pattern=r"^/",
+        description="Path prefix to serve. /integrations/<name> is reserved for the integration.",
+    )
+    strip_prefix: str | None = Field(
+        default=None,
+        alias="stripPrefix",
+        pattern=r"^/",
+        description="Prefix removed from the path before the request reaches the Service. Unset keeps the path.",
+    )
+    service: str = Field(
+        min_length=1,
+        max_length=63,
+        description="Name of the Service in the integration namespace.",
+    )
+    port: int = Field(
+        ge=1,
+        le=65535,
+        description="Port of the Service.",
+    )
+
+
+class IntegrationPort(BaseModel):
+    """One TCP or UDP port from outside the cluster to a Service in the integration namespace."""
+
+    name: str = Field(
+        min_length=1,
+        max_length=63,
+        description="Name of this port, unique in the integration.",
+    )
+    protocol: Literal["TCP", "UDP"] = Field(
+        description="Transport protocol of the port.",
+    )
+    public_port: int | None = Field(
+        default=None,
+        alias="publicPort",
+        ge=1,
+        le=65535,
+        description="Port that clients connect to. Core assigns one when this is unset.",
+    )
+    service: str = Field(
+        min_length=1,
+        max_length=63,
+        description="Name of the Service in the integration namespace.",
+    )
+    port: int = Field(
+        ge=1,
+        le=65535,
+        description="Port of the Service.",
+    )
+
+
+class IntegrationIngress(BaseModel):
+    """Traffic from outside the cluster."""
+
+    http_routes: Annotated[list[IntegrationHttpRoute], ListType("map", keys=("host", "path"))] = Field(
+        default_factory=list,
+        alias="httpRoutes",
+        description="HTTP paths to serve.",
+    )
+    ports: Annotated[list[IntegrationPort], ListType("map", keys=("name",))] = Field(
+        default_factory=list,
+        description="TCP and UDP ports to open.",
+    )
+
+
+class IntegrationNetwork(BaseModel):
+    """Network access the integration needs from the platform."""
+
+    ingress: IntegrationIngress = Field(
+        default_factory=IntegrationIngress,
+        description="Traffic from outside the cluster.",
     )
 
 
 class IntegrationSpec(BaseModel):
-    """Desired identity, product info, roles, and network policy of an integration."""
+    """Desired identity, product info, roles, and network access of an integration."""
 
     display_name: Annotated[str, PrinterColumn(name="Display name")] = Field(
         min_length=1,
@@ -119,10 +215,9 @@ class IntegrationSpec(BaseModel):
         alias="extraRoles",
         description="Roles this integration adds. The operator creates each as a cluster Role.",
     )
-    network_policy: IntegrationNetworkPolicy = Field(
-        default_factory=IntegrationNetworkPolicy,
-        alias="networkPolicy",
-        description="Intended ingress and egress. Core stores this and does not enforce it yet.",
+    network: IntegrationNetwork = Field(
+        default_factory=IntegrationNetwork,
+        description="Network access the integration needs.",
     )
 
 

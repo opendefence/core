@@ -6,7 +6,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from lib_opendefence_core.models.v1alpha1 import Integration
-from lib_opendefence_core.models.v1alpha1.integration import ProductComponent, ProductDescription, ProductInfo
+from lib_opendefence_core.models.v1alpha1.integration import (
+    ProductDescription,
+    ProductInfo,
+    ProductModuleFederation,
+    ProductUi,
+    ProductUrl,
+)
 from opendefence_core.api.app import app
 from opendefence_core.api.dependencies import mtls_user
 from opendefence_core.api.lib.uids import compact
@@ -27,7 +33,10 @@ def _described() -> Integration:
     integration.spec.product_info = ProductInfo(
         icon="/ui/example/logo.svg",
         docs="https://docs.example.com/",
-        component=ProductComponent(type="component", ref="/ui/example/remoteEntry.js"),
+        ui=ProductUi(
+            type="ModuleFederation",
+            module_federation=ProductModuleFederation(remote_entry="/ui/example/remoteEntry.js"),
+        ),
         descriptions=[
             ProductDescription(language="en", title="Example", description="An example product"),
             ProductDescription(language="fi", title="Esimerkki", description="Esimerkkituote"),
@@ -78,7 +87,7 @@ def test_read_integrations(integrations: list[Integration]) -> None:
 
 
 def test_read_integration(integrations: list[Integration]) -> None:
-    """A card holds what the UI draws, and nothing about roles or network policy."""
+    """A card holds what the UI draws, and nothing about roles or network access."""
     _ = integrations
     body = client.get(f"/api/v3/integrations/{integration_id('example')}").json()
     assert body == {
@@ -93,6 +102,24 @@ def test_read_integration(integrations: list[Integration]) -> None:
         "docs": "https://docs.example.com/",
         "component": {"type": "component", "ref": "/ui/example/remoteEntry.js"},
     }
+
+
+@pytest.mark.parametrize(
+    ("ui", "component"),
+    [
+        (
+            ProductUi(type="Link", link=ProductUrl(url="https://example.com/")),
+            {"type": "link", "ref": "https://example.com/"},
+        ),
+        (ProductUi(type="Markdown", markdown=ProductUrl(url="/docs.md")), {"type": "markdown", "ref": "/docs.md"}),
+        (ProductUi(type="Link", markdown=ProductUrl(url="/docs.md")), None),
+    ],
+)
+def test_ui_type_picks_the_component(integrations: list[Integration], ui: ProductUi, component: object) -> None:
+    """The card carries the member that the type names, and nothing when that member is unset."""
+    integrations[0].spec.product_info = ProductInfo(ui=ui)
+    body = client.get(f"/api/v3/integrations/{integration_id('example')}").json()
+    assert body["component"] == component
 
 
 def test_read_integration_in_another_language(integrations: list[Integration]) -> None:
