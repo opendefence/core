@@ -458,17 +458,26 @@ spec:
                             path:
                               description: Path prefix to serve. /integrations/<name>
                                 is reserved for the integration.
-                              pattern: ^/
+                              pattern: ^/[A-Za-z0-9._~/-]*$
                               title: Path
                               type: string
                             stripPrefix:
-                              pattern: ^/
+                              pattern: ^/[A-Za-z0-9._~/-]*$
                               type: string
                               default: null
                               description: Prefix removed from the path before the
                                 request reaches the Service. Unset keeps the path.
                               title: Stripprefix
                               nullable: true
+                            blockedPaths:
+                              description: Paths below this route that the platform
+                                refuses to serve.
+                              items:
+                                description: Path that the platform refuses to serve.
+                                pattern: ^/[A-Za-z0-9._~/-]*$
+                                type: string
+                              title: Blockedpaths
+                              type: array
                             service:
                               description: Name of the Service in the integration
                                 namespace.

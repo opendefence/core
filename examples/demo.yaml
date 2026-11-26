@@ -85,9 +85,10 @@ spec:
   productInfo:
     icon: /ui/tak/taklogo.svg
     docs: https://docs.pvarki.fi/
-    component:
-      type: component
-      ref: /ui/tak/remoteEntry.js
+    ui:
+      type: ModuleFederation
+      moduleFederation:
+        remoteEntry: /integrations/tak/ui/remoteEntry.js
     descriptions:
       - language: en
         title: "TAK: Team Awareness Kit"
@@ -100,6 +101,13 @@ spec:
       displayName: TAK user
     - name: tak-admin
       displayName: TAK admin
+  network:
+    ingress:
+      httpRoutes:
+        - host: App
+          path: /integrations/tak/ui
+          service: tak-ui
+          port: 8080
 ---
 # Integrations create UserBindings in their own namespaces. Status.conditions
 # with type Synced is written by the integration, not this operator.
