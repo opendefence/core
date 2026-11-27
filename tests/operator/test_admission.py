@@ -7,9 +7,17 @@ from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import Group, Integration, Role, User
-from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
+from lib_opendefence_core.models.v1alpha1.integration import (
+    IntegrationHttpRoute,
+    IntegrationPort,
+    IntegrationPortStatus,
+    IntegrationStatus,
+)
 from opendefence_core.k8s_operator.controllers.groups import validate_group
-from opendefence_core.k8s_operator.controllers.integrations import validate_integration_paths
+from opendefence_core.k8s_operator.controllers.integrations import (
+    validate_integration_paths,
+    validate_integration_ports,
+)
 from opendefence_core.k8s_operator.controllers.roles import validate_role_delete
 from opendefence_core.k8s_operator.controllers.users import validate_user_callsign, validate_user_delete
 from tests.factories import make_binding, make_group, make_integration, make_invite, make_role, make_user
@@ -405,3 +413,49 @@ async def test_integration_blocks_only_paths_below_its_route(blocked: str, grant
         with pytest.raises(AdmissionDenied) as raised:
             await _validate_integration_paths(FakeAdmissionRequest(resource=integration))
         assert raised.value.reason == "PathReserved"
+
+
+def _with_ports(name: str, *ports: tuple[str, int | None]) -> Integration:
+    """Integration with one port to a made-up Service for each protocol and public port."""
+    integration = make_integration(name)
+    integration.spec.network.ingress.ports = [
+        IntegrationPort.model_validate(
+            {"name": f"port-{index}", "protocol": protocol, "publicPort": number, "service": "workload", "port": 4000}
+        )
+        for index, (protocol, number) in enumerate(ports)
+    ]
+    return integration
+
+
+async def _validate_integration_ports(request: FakeAdmissionRequest[Integration]) -> None:
+    await validate_integration_ports(cast(AdmissionRequest[Integration], request))
+
+
+async def test_integration_may_pin_a_free_port() -> None:
+    """A port that no other Integration sets is granted, also in the pool. The same number on the other protocol is free."""
+    wanted = _with_ports("example", ("TCP", 5000), ("UDP", 5000), ("TCP", 30000), ("TCP", None))
+    other = _with_ports("other", ("UDP", 5001), ("TCP", None))
+    await _validate_integration_ports(FakeAdmissionRequest(resource=wanted, objects=[other, wanted]))
+
+
+@pytest.mark.parametrize("own", [[("TCP", 5000), ("TCP", 5000)], [("TCP", 5001)], [("TCP", 30000)]])
+async def test_integration_cannot_pin_a_taken_port(own: list[tuple[str, int]]) -> None:
+    """A protocol and port that is listed twice, or that another Integration sets or holds from the pool, is refused."""
+    other = _with_ports("other", ("TCP", 5001), ("TCP", None))
+    other.status = IntegrationStatus(ports=[IntegrationPortStatus(name="port-1", protocol="TCP", public_port=30000)])
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_integration_ports(FakeAdmissionRequest(resource=_with_ports("example", *own), objects=[other]))
+    assert raised.value.reason == "PortTaken"
+
+
+async def test_integration_update_that_keeps_its_ports_is_not_checked() -> None:
+    """A write that leaves the ports alone passes, even when a port is no longer free."""
+    current = _with_ports("example", ("TCP", 5000))
+    request = FakeAdmissionRequest(
+        operation="UPDATE",
+        resource=current,
+        old_resource=current.model_copy(deep=True),
+        objects=[_with_ports("other", ("TCP", 5000))],
+    )
+    await _validate_integration_ports(request)
+    assert request.client_calls == 0

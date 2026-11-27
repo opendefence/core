@@ -531,8 +531,7 @@ spec:
                               type: integer
                               default: null
                               description: Port that clients connect to. Core assigns
-                                one from its pool when this is unset. A set value
-                                must be outside the pool.
+                                one from its pool when this is unset.
                               title: Publicport
                               nullable: true
                             service:

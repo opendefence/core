@@ -77,6 +77,35 @@ async def validate_integration_paths(request: AdmissionRequest[Integration]) -> 
                     )
 
 
+@integrations.validate(operations=("CREATE", "UPDATE"))
+async def validate_integration_ports(request: AdmissionRequest[Integration]) -> None:
+    """Reject a publicPort that is listed twice, or that another Integration sets or holds from the pool."""
+    obj = request.resource
+    if obj is None:
+        return
+    ports = obj.spec.network.ingress.ports
+    old = request.old_resource
+    if old is not None and old.spec.network.ingress.ports == ports:
+        return  # Other writes leave the ports alone
+    pinned = [(port.protocol, port.public_port) for port in ports if port.public_port is not None]
+    for protocol, number in pinned:
+        if pinned.count((protocol, number)) > 1:
+            raise AdmissionDenied(f"{protocol} port {number} is listed twice", reason="PortTaken")
+    if not pinned:
+        return
+    client = await request.client(Integration)
+    async for other in await client.list():
+        if other.name == obj.name:
+            continue
+        held = other.status.ports if other.status else []
+        for taken in [*other.spec.network.ingress.ports, *held]:
+            if (taken.protocol, taken.public_port) in pinned:
+                raise AdmissionDenied(
+                    f"{taken.protocol} port {taken.public_port} is taken by integration {other.name}",
+                    reason="PortTaken",
+                )
+
+
 def _owned_by(resource: Resource, integration: Integration) -> bool:
     """Whether this Integration is the controlling owner of the resource."""
     metadata = resource.metadata
