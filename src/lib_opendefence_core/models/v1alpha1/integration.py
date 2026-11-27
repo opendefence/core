@@ -168,10 +168,7 @@ class IntegrationPort(BaseModel):
         alias="publicPort",
         ge=1024,
         le=65535,
-        description=(
-            "Port that clients connect to. Core assigns one from its pool when this is unset. "
-            "A set value must be outside the pool."
-        ),
+        description="Port that clients connect to. Core assigns one from its pool when this is unset.",
     )
     service: str = Field(
         min_length=1,

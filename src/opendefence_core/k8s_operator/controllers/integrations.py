@@ -1,18 +1,21 @@
-"""Integration controller: write extra roles and routes, and delete the ones no longer listed."""
+"""Integration controller: write extra roles, routes and port Services, and delete the ones no longer listed."""
 
 import re
 from contextlib import suppress
 
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.apimachinery import ObjectMeta
-from cloudcoil.controller import Context, Controller
+from cloudcoil.controller import Context, Controller, ResourceKey, Wait
 from cloudcoil.errors import ResourceNotFound
+from cloudcoil.models.kubernetes.core.v1 import Service
 from cloudcoil.resources import Resource
 
-from lib_opendefence_core.models.v1alpha1 import Integration, Role, RoleSpec
+from lib_opendefence_core.models.v1alpha1 import PORTS_READY_CONDITION, Integration, Role, RoleSpec
 from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
 from opendefence_core.config import get_core_config
+from opendefence_core.k8s_operator.config import get_operator_config
 from opendefence_core.k8s_operator.controllers._events import recorder
+from opendefence_core.k8s_operator.controllers._ports import port_services, public_ports
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved
 from opendefence_core.k8s_operator.controllers._routes import (
     IngressRoute,
@@ -24,7 +27,7 @@ from opendefence_core.k8s_operator.controllers._routes import (
 )
 
 integrations = Controller(
-    Integration, name="integrations", owns=(Role, IngressRoute, Middleware), events=recorder("integrations")
+    Integration, name="integrations", owns=(Role, IngressRoute, Middleware, Service), events=recorder("integrations")
 )
 
 
@@ -74,6 +77,35 @@ async def validate_integration_paths(request: AdmissionRequest[Integration]) -> 
                     )
 
 
+@integrations.validate(operations=("CREATE", "UPDATE"))
+async def validate_integration_ports(request: AdmissionRequest[Integration]) -> None:
+    """Reject a publicPort that is listed twice, or that another Integration sets or holds from the pool."""
+    obj = request.resource
+    if obj is None:
+        return
+    ports = obj.spec.network.ingress.ports
+    old = request.old_resource
+    if old is not None and old.spec.network.ingress.ports == ports:
+        return  # Other writes leave the ports alone
+    pinned = [(port.protocol, port.public_port) for port in ports if port.public_port is not None]
+    for protocol, number in pinned:
+        if pinned.count((protocol, number)) > 1:
+            raise AdmissionDenied(f"{protocol} port {number} is listed twice", reason="PortTaken")
+    if not pinned:
+        return
+    client = await request.client(Integration)
+    async for other in await client.list():
+        if other.name == obj.name:
+            continue
+        held = other.status.ports if other.status else []
+        for taken in [*other.spec.network.ingress.ports, *held]:
+            if (taken.protocol, taken.public_port) in pinned:
+                raise AdmissionDenied(
+                    f"{taken.protocol} port {taken.public_port} is taken by integration {other.name}",
+                    reason="PortTaken",
+                )
+
+
 def _owned_by(resource: Resource, integration: Integration) -> bool:
     """Whether this Integration is the controlling owner of the resource."""
     metadata = resource.metadata
@@ -103,9 +135,38 @@ async def _delete_unwanted(
             await client.delete(existing.name, existing.namespace, uid=existing.metadata.uid)
 
 
+async def _open_ports(integration: Integration, ctx: Context[Integration]) -> None:
+    """Write the Services for the Integration's public ports, and report the ports and the result in status."""
+    ports = integration.spec.network.ingress.ports
+    taken: set[int] = set()
+    if any(port.public_port is None for port in ports):
+        client = await ctx.client(Integration)
+        async for other in await client.list():
+            if other.name != integration.name and other.status:
+                taken.update(port.public_port for port in other.status.ports)
+    config = get_operator_config()
+    public = public_ports(integration, taken, config.port_pool)
+    ctx.set_status(ports=public)
+    services, missing = port_services(integration, public, ctx.cached(Service), config.port_service_type)
+    # A dropped Service goes first, because it can hold a port that another Service now needs
+    await _delete_unwanted(ctx, Service, integration, {service.name for service in services})
+    for service in services:
+        await ctx.ensure(service)
+    unassigned = sorted({port.name for port in ports} - {port.name for port in public})
+    if unassigned:
+        message = f"The pool has no free port for: {', '.join(unassigned)}"
+        ctx.condition(PORTS_READY_CONDITION, False, reason="PoolExhausted", message=message)
+        raise Wait("PoolExhausted", message, after=60)
+    if missing:
+        message = f"No backend Service port for: {', '.join(missing)}"
+        ctx.condition(PORTS_READY_CONDITION, False, reason="BackendNotFound", message=message)
+        raise Wait("BackendNotFound", message, after=60)
+    ctx.condition(PORTS_READY_CONDITION, True, reason="Opened")
+
+
 @integrations.reconcile()
 async def reconcile_integration(integration: Integration, ctx: Context[Integration]) -> None:
-    """Write the Integration's extra Roles and routes, and delete the owned ones that the spec no longer lists."""
+    """Write the Integration's extra Roles, routes and ports, and delete the owned ones that the spec no longer lists."""
     await _delete_unwanted(ctx, Role, integration, {role.name for role in integration.spec.extra_roles})
     for role in integration.spec.extra_roles:
         await ctx.ensure(
@@ -121,4 +182,17 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
     # Routes go before the Middlewares that they name
     for kind in (IngressRoute, Middleware):
         await _delete_unwanted(ctx, kind, integration, {item.name for item in resources if isinstance(item, kind)})
+    await _open_ports(integration, ctx)
     mark_resolved(ctx)
+
+
+@integrations.watch(Service)
+def backend_changed(service: Service) -> list[ResourceKey]:
+    """Requeue the Integration of the Service's namespace when one of its ports names the Service."""
+    # Initial lists queue every Integration; reverse lookups need synced caches.
+    if not integrations.ready or not service.namespace:
+        return []
+    integration = integrations.cached(Integration).get(service.namespace)
+    if integration and any(port.service == service.name for port in integration.spec.network.ingress.ports):
+        return [ResourceKey(service.namespace)]
+    return []

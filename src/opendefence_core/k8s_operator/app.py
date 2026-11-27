@@ -5,6 +5,7 @@ import os
 from cloudcoil.application import Application, RBACRule, WebhookServer
 from cloudcoil.controller import HealthServer
 from cloudcoil.models.cert_manager.v1 import CertificateRequest
+from cloudcoil.models.kubernetes.core.v1 import Service
 
 from lib_opendefence_core.models.v1alpha1 import Role, UserBinding
 from opendefence_core.k8s_operator.controllers import ALL_CONTROLLERS
@@ -29,6 +30,7 @@ app = Application(
         ),
         RBACRule(IngressRoute, verbs=("delete",), plural="ingressroutes", scope="Namespaced", all_namespaces=True),
         RBACRule(Middleware, verbs=("delete",), plural="middlewares", scope="Namespaced", all_namespaces=True),
+        RBACRule(Service, verbs=("delete",), plural="services", scope="Namespaced", all_namespaces=True),
     ),
 )
 for controller in ALL_CONTROLLERS:
