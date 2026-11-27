@@ -154,7 +154,9 @@ the Integration drops it.
 
 `spec.network.ingress.httpRoutes` lists HTTP paths on the `App` host (`app.<domain>`) or the `Public` host (`<domain>`).
 `spec.network.ingress.ports` lists TCP and UDP ports.
-The operator opens each port that sets `publicPort` with a Service named `<service>-external` in the namespace named after the Integration.
+The operator opens each port with a Service named `<service>-external` in the namespace named after the Integration.
+A port with no `publicPort` gets the lowest free port of `ports.pool`, and keeps it while the port stays in the spec.
+A TCP port and a UDP port do not share a pool port.
 `status.ports` holds the public port of each port, and `PortsReady` reports the result.
 This traffic does not come through the mesh, so the Linkerd `Server` for the port must allow unauthenticated clients.
 
@@ -245,11 +247,12 @@ defaults baked into the package, `values/values.schema.json` validates them,
 and `values/local-dev.yaml` is the development variant used by Tilt and the
 build tasks:
 
-| Value               | Default               | local-dev                  | Effect                                                                       |
-| ------------------- | --------------------- | -------------------------- | ---------------------------------------------------------------------------- |
-| `domain`            | `opendefence.invalid` | `local-dev.opendefence.fi` | Public hostnames `<domain>` and `app.<domain>`, their certificate and routes |
-| `hsts.maxAge`       | `31536000`            | `0`                        | HSTS max-age; `0` clears it in your browser                                  |
-| `ports.serviceType` | `LoadBalancer`        | `NodePort`                 | Service type that opens integration ports; kind has no load balancer         |
+| Value                                | Default               | local-dev                  | Effect                                                                       |
+| ------------------------------------ | --------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| `domain`                             | `opendefence.invalid` | `local-dev.opendefence.fi` | Public hostnames `<domain>` and `app.<domain>`, their certificate and routes |
+| `hsts.maxAge`                        | `31536000`            | `0`                        | HSTS max-age; `0` clears it in your browser                                  |
+| `ports.serviceType`                  | `LoadBalancer`        | `NodePort`                 | Service type that opens integration ports; kind has no load balancer         |
+| `ports.pool.start`, `ports.pool.end` | `30000`, `32767`      | same                       | Ports that core assigns to integration ports with no `publicPort`            |
 
 The default `domain` is a placeholder that every deployment must override:
 its certificate can't be issued, so a deployment that forgets it fails the

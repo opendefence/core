@@ -28,6 +28,7 @@ from lib_opendefence_core.models.v1alpha1.integration import (
     IntegrationHttpRoute,
     IntegrationPort,
     IntegrationPortStatus,
+    IntegrationStatus,
 )
 from opendefence_core.k8s_operator.config import get_operator_config
 from opendefence_core.k8s_operator.controllers import groups, invites, users
@@ -472,7 +473,6 @@ async def test_reconcile_integration_opens_pinned_ports(monkeypatch: pytest.Monk
     integration.spec.network.ingress.ports = [
         IntegrationPort(name="feed", protocol="UDP", public_port=5000, service="relay", port=4000),
         IntegrationPort(name="control", protocol="TCP", public_port=5001, service="relay", port=4001),
-        IntegrationPort(name="unpinned", protocol="TCP", service="relay", port=4001),
     ]
     backend = make_service("relay", "radio", ports=[(4000, "UDP", "feed"), (4001, "TCP", 8001)])
     dropped = make_service("old-external", "radio", owner="radio")
@@ -513,3 +513,50 @@ async def test_reconcile_integration_waits_for_a_port_backend() -> None:
     assert ctx.status["ports"] == [IntegrationPortStatus(name="feed", protocol="UDP", public_port=5000)]
     assert ctx.conditions[-1][:3] == (PORTS_READY_CONDITION, False, "BackendNotFound")
     assert ctx.ensured == []
+
+
+async def test_reconcile_integration_assigns_ports_from_the_pool() -> None:
+    """An unpinned port keeps the number in status, or takes the lowest one that no other Integration holds."""
+    integration = make_integration("radio")
+    integration.spec.network.ingress.ports = [
+        IntegrationPort(name="feed", protocol="UDP", service="relay", port=4000),
+        IntegrationPort(name="control", protocol="TCP", service="relay", port=4001),
+        IntegrationPort(name="admin", protocol="TCP", service="relay", port=4002),
+    ]
+    integration.status = IntegrationStatus(
+        ports=[IntegrationPortStatus(name="admin", protocol="TCP", public_port=30002)]
+    )
+    other = make_integration("beacon")
+    other.status = IntegrationStatus(ports=[IntegrationPortStatus(name="ping", protocol="UDP", public_port=30000)])
+    backend = make_service("relay", "radio", ports=[(4000, "UDP", "feed"), (4001, "TCP", 8001), (4002, "TCP", 8002)])
+    ctx = FakeContext({Service: FakeCache([backend])}, {Integration: FakeClient([integration, other])})
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    assert [(port.name, port.public_port) for port in ctx.status["ports"]] == [
+        ("feed", 30001),
+        ("control", 30003),
+        ("admin", 30002),
+    ]
+    [service] = [item for item in ctx.ensured if isinstance(item, Service)]
+    assert service.spec is not None
+    assert [port.name for port in service.spec.ports or []] == ["udp-30001", "tcp-30003", "tcp-30002"]
+    assert (PORTS_READY_CONDITION, True, "Opened", "") in ctx.conditions
+
+
+async def test_reconcile_integration_reports_an_exhausted_pool(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A number outside the pool is replaced. A port that the pool has no number for is reported."""
+    monkeypatch.setattr(get_operator_config(), "port_pool_end", 30000)
+    integration = make_integration("radio")
+    integration.spec.network.ingress.ports = [
+        IntegrationPort(name="feed", protocol="TCP", service="relay", port=4000),
+        IntegrationPort(name="control", protocol="TCP", service="relay", port=4001),
+    ]
+    integration.status = IntegrationStatus(
+        ports=[IntegrationPortStatus(name="feed", protocol="TCP", public_port=40000)]
+    )
+    backend = make_service("relay", "radio", ports=[(4000, "TCP", 8000), (4001, "TCP", 8001)])
+    ctx = FakeContext({Service: FakeCache([backend])})
+    with pytest.raises(Wait):
+        await reconcile_integration(integration, cast(Context[Integration], ctx))
+    assert ctx.status["ports"] == [IntegrationPortStatus(name="feed", protocol="TCP", public_port=30000)]
+    assert ctx.conditions[-1][:3] == (PORTS_READY_CONDITION, False, "PoolExhausted")
+    assert [item.name for item in ctx.ensured] == ["relay-external"]

@@ -22,10 +22,19 @@
     "ports": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["serviceType"],
+      "required": ["serviceType", "pool"],
       "properties": {
         "serviceType": {
           "enum": ["LoadBalancer", "NodePort"]
+        },
+        "pool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+            "end": { "type": "integer", "minimum": 1024, "maximum": 65535 }
+          }
         }
       }
     }

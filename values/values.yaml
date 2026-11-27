@@ -8,3 +8,7 @@ hsts:
 ports:
   # Service type that opens integration ports: LoadBalancer, or NodePort on kind
   serviceType: LoadBalancer
+  # Ports that core assigns to an integration port with no publicPort
+  pool:
+    start: 30000
+    end: 32767

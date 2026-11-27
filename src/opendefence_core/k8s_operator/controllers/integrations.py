@@ -108,13 +108,26 @@ async def _delete_unwanted(
 
 async def _open_ports(integration: Integration, ctx: Context[Integration]) -> None:
     """Write the Services for the Integration's public ports, and report the ports and the result in status."""
-    public = public_ports(integration)
+    ports = integration.spec.network.ingress.ports
+    taken: set[int] = set()
+    if any(port.public_port is None for port in ports):
+        client = await ctx.client(Integration)
+        async for other in await client.list():
+            if other.name != integration.name and other.status:
+                taken.update(port.public_port for port in other.status.ports)
+    config = get_operator_config()
+    public = public_ports(integration, taken, config.port_pool)
     ctx.set_status(ports=public)
-    services, missing = port_services(integration, public, ctx.cached(Service), get_operator_config().port_service_type)
+    services, missing = port_services(integration, public, ctx.cached(Service), config.port_service_type)
     # A dropped Service goes first, because it can hold a port that another Service now needs
     await _delete_unwanted(ctx, Service, integration, {service.name for service in services})
     for service in services:
         await ctx.ensure(service)
+    unassigned = sorted({port.name for port in ports} - {port.name for port in public})
+    if unassigned:
+        message = f"The pool has no free port for: {', '.join(unassigned)}"
+        ctx.condition(PORTS_READY_CONDITION, False, reason="PoolExhausted", message=message)
+        raise Wait("PoolExhausted", message, after=60)
     if missing:
         message = f"No backend Service port for: {', '.join(missing)}"
         ctx.condition(PORTS_READY_CONDITION, False, reason="BackendNotFound", message=message)

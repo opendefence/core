@@ -10,3 +10,5 @@ data:
   # First DNS label of the domain, e.g. local-dev
   CORE_DEPLOYMENT: {{ .Values.domain | splitList "." | first | quote }}
   CORE_OPERATOR_PORT_SERVICE_TYPE: {{ .Values.ports.serviceType | quote }}
+  CORE_OPERATOR_PORT_POOL_START: {{ .Values.ports.pool.start | int | quote }}
+  CORE_OPERATOR_PORT_POOL_END: {{ .Values.ports.pool.end | int | quote }}

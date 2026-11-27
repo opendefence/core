@@ -8,12 +8,36 @@ from lib_opendefence_core.models.v1alpha1.integration import IntegrationPort, In
 from opendefence_core.k8s_operator.controllers._refs import CachedStore
 
 
-def public_ports(integration: Integration) -> list[IntegrationPortStatus]:
-    """The public port of each listed port that has one."""
+def public_ports(integration: Integration, taken: set[int], pool: range) -> list[IntegrationPortStatus]:
+    """The public port of each listed port. A port that the pool has no number for is left out.
+
+    A port with no publicPort keeps the number that status holds for it, while that number is in the pool and free.
+    Otherwise it takes the lowest free number of the pool. A number is taken on both protocols at once.
+    taken holds the numbers of other Integrations.
+    """
+    ports = integration.spec.network.ingress.ports
+    held = {
+        (port.name, port.protocol): port.public_port
+        for port in (integration.status.ports if integration.status else [])
+    }
+    numbers = {port.name: port.public_port for port in ports if port.public_port is not None}
+    taken = taken | set(numbers.values())
+    unpinned = [port for port in ports if port.public_port is None]
+    # Kept numbers go first, so that a new port cannot take the number of a later port
+    for port in unpinned:
+        number = held.get((port.name, port.protocol))
+        if number is not None and number in pool and number not in taken:
+            numbers[port.name] = number
+            taken.add(number)
+    for port in unpinned:
+        number = next((number for number in pool if number not in taken), None)
+        if port.name not in numbers and number is not None:
+            numbers[port.name] = number
+            taken.add(number)
     return [
-        IntegrationPortStatus(name=port.name, protocol=port.protocol, public_port=port.public_port)
-        for port in integration.spec.network.ingress.ports
-        if port.public_port is not None
+        IntegrationPortStatus(name=port.name, protocol=port.protocol, public_port=numbers[port.name])
+        for port in ports
+        if port.name in numbers
     ]
 
 
