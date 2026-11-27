@@ -15,6 +15,8 @@ ROLE_NAME_PATTERN = r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
 ROUTE_PATH_PATTERN = r"^/[A-Za-z0-9._~/-]*$"
 # A route matches a plain path, or a regular expression that starts with ^/ and holds no backtick
 ROUTE_MATCH_PATTERN = r"^(/[A-Za-z0-9._~/-]*|\^/[^`\s]*)$"
+# Condition an Integration reports once its listed ports are open
+PORTS_READY_CONDITION = "PortsReady"
 
 
 class IntegrationRole(BaseModel):
@@ -164,13 +166,16 @@ class IntegrationPort(BaseModel):
     public_port: int | None = Field(
         default=None,
         alias="publicPort",
-        ge=1,
+        ge=1024,
         le=65535,
-        description="Port that clients connect to. Core assigns one when this is unset.",
+        description=(
+            "Port that clients connect to. Core assigns one from its pool when this is unset. "
+            "A set value must be outside the pool."
+        ),
     )
     service: str = Field(
         min_length=1,
-        max_length=63,
+        max_length=54,
         description="Name of the Service in the integration namespace.",
     )
     port: int = Field(
@@ -236,8 +241,21 @@ class IntegrationSpec(BaseModel):
     )
 
 
+class IntegrationPortStatus(BaseModel):
+    """Public port of one listed port."""
+
+    name: str = Field(description="Name of the port in the spec.")
+    protocol: Literal["TCP", "UDP"] = Field(description="Transport protocol of the port.")
+    public_port: int = Field(alias="publicPort", description="Port that clients connect to.")
+
+
 class IntegrationStatus(PlatformStatus):
-    """Ready conditions for an integration. Integrations have no outgoing references."""
+    """Ready conditions and public ports of an integration. Integrations have no outgoing references."""
+
+    ports: Annotated[list[IntegrationPortStatus], ListType("map", keys=("name",))] = Field(
+        default_factory=list,
+        description="Public port of each listed port, assigned or pinned.",
+    )
 
 
 @custom_resource(

@@ -11,7 +11,7 @@ from cloudcoil.resources import Resource
 from pydantic import ValidationError
 
 from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Integration, Invite, Role, User, UserBinding
-from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
+from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute, IntegrationPort, IntegrationStatus
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 MODELS: dict[str, type[Resource]] = {
@@ -210,3 +210,13 @@ def test_route_path_can_be_a_regex(field: str, value: str, accepted: bool) -> No
     else:
         with pytest.raises(ValidationError):
             IntegrationHttpRoute.model_validate(route)
+
+
+def test_integration_ports_report_a_public_port() -> None:
+    """A pinned port below 1024 is refused. Status holds the public port of each listed port."""
+    port = {"name": "feed", "protocol": "UDP", "service": "media", "port": 5000}
+    with pytest.raises(ValidationError):
+        IntegrationPort.model_validate({**port, "publicPort": 80})
+    assert IntegrationPort.model_validate({**port, "publicPort": 5000}).public_port == 5000
+    ports = [{"name": "feed", "protocol": "UDP", "publicPort": 30000}]
+    assert IntegrationStatus.model_validate({"ports": ports}).model_dump(by_alias=True)["ports"] == ports

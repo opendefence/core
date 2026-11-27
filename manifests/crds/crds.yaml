@@ -527,17 +527,18 @@ spec:
                               type: string
                             publicPort:
                               maximum: 65535
-                              minimum: 1
+                              minimum: 1024
                               type: integer
                               default: null
                               description: Port that clients connect to. Core assigns
-                                one when this is unset.
+                                one from its pool when this is unset. A set value
+                                must be outside the pool.
                               title: Publicport
                               nullable: true
                             service:
                               description: Name of the Service in the integration
                                 namespace.
-                              maxLength: 63
+                              maxLength: 54
                               minLength: 1
                               title: Service
                               type: string
@@ -627,6 +628,37 @@ spec:
                 description: Most recent metadata.generation observed by the controller.
                 title: Observedgeneration
                 nullable: true
+              ports:
+                description: Public port of each listed port, assigned or pinned.
+                items:
+                  description: Public port of one listed port.
+                  properties:
+                    name:
+                      description: Name of the port in the spec.
+                      title: Name
+                      type: string
+                    protocol:
+                      description: Transport protocol of the port.
+                      enum:
+                      - TCP
+                      - UDP
+                      title: Protocol
+                      type: string
+                    publicPort:
+                      description: Port that clients connect to.
+                      title: Publicport
+                      type: integer
+                  required:
+                  - name
+                  - protocol
+                  - publicPort
+                  title: IntegrationPortStatus
+                  type: object
+                title: Ports
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
             title: IntegrationStatus
             type: object
             default: null
