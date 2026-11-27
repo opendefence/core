@@ -31,12 +31,12 @@ from lib_opendefence_core.models.v1alpha1.integration import (
     IntegrationStatus,
 )
 from opendefence_core.k8s_operator.config import get_operator_config
-from opendefence_core.k8s_operator.controllers import groups, invites, users
+from opendefence_core.k8s_operator.controllers import groups, integrations, invites, users
 from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
 from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware
 from opendefence_core.k8s_operator.controllers.groups import manager_changed, parent_group_changed, reconcile_group
 from opendefence_core.k8s_operator.controllers.groups import role_changed as group_role_changed
-from opendefence_core.k8s_operator.controllers.integrations import reconcile_integration
+from opendefence_core.k8s_operator.controllers.integrations import backend_changed, reconcile_integration
 from opendefence_core.k8s_operator.controllers.invites import group_changed as invite_group_changed
 from opendefence_core.k8s_operator.controllers.invites import reconcile_invite
 from opendefence_core.k8s_operator.controllers.invites import role_changed as invite_role_changed
@@ -560,3 +560,18 @@ async def test_reconcile_integration_reports_an_exhausted_pool(monkeypatch: pyte
     assert ctx.status["ports"] == [IntegrationPortStatus(name="feed", protocol="TCP", public_port=30000)]
     assert ctx.conditions[-1][:3] == (PORTS_READY_CONDITION, False, "PoolExhausted")
     assert [item.name for item in ctx.ensured] == ["relay-external"]
+
+
+def test_backend_changed_requeues_the_integration(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Service that a port names requeues the Integration of its namespace, once caches are synced."""
+    ready = PropertyMock(return_value=False)
+    monkeypatch.setattr(Controller, "ready", ready)
+    integration = make_integration("radio")
+    integration.spec.network.ingress.ports = [IntegrationPort(name="feed", protocol="UDP", service="relay", port=4000)]
+    monkeypatch.setattr(integrations, "cached", Mock(return_value=FakeCache([integration])))
+    assert backend_changed(make_service("relay", "radio")) == []
+
+    ready.return_value = True
+    assert backend_changed(make_service("relay", "radio")) == [ResourceKey("radio")]
+    assert backend_changed(make_service("other", "radio")) == []
+    assert backend_changed(make_service("relay", "elsewhere")) == []

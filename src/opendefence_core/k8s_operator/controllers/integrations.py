@@ -5,7 +5,7 @@ from contextlib import suppress
 
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.apimachinery import ObjectMeta
-from cloudcoil.controller import Context, Controller, Wait
+from cloudcoil.controller import Context, Controller, ResourceKey, Wait
 from cloudcoil.errors import ResourceNotFound
 from cloudcoil.models.kubernetes.core.v1 import Service
 from cloudcoil.resources import Resource
@@ -184,3 +184,15 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
         await _delete_unwanted(ctx, kind, integration, {item.name for item in resources if isinstance(item, kind)})
     await _open_ports(integration, ctx)
     mark_resolved(ctx)
+
+
+@integrations.watch(Service)
+def backend_changed(service: Service) -> list[ResourceKey]:
+    """Requeue the Integration of the Service's namespace when one of its ports names the Service."""
+    # Initial lists queue every Integration; reverse lookups need synced caches.
+    if not integrations.ready or not service.namespace:
+        return []
+    integration = integrations.cached(Integration).get(service.namespace)
+    if integration and any(port.service == service.name for port in integration.spec.network.ingress.ports):
+        return [ResourceKey(service.namespace)]
+    return []
