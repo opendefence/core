@@ -4,7 +4,7 @@ from typing import Self
 
 from lib_opendefence_core.models.v1alpha1 import Integration
 from lib_opendefence_core.models.v1alpha1.integration import ProductDescription as SpecDescription
-from lib_opendefence_core.models.v1alpha1.integration import ProductInfo
+from lib_opendefence_core.models.v1alpha1.integration import ProductInfo, ProductUi
 from opendefence_core.api.lib.reconciliation import ReconciliationState, state_of
 from opendefence_core.api.lib.uids import id_of
 from opendefence_core.api.schema import ApiModel
@@ -38,7 +38,6 @@ class IntegrationResponse(ApiModel):
         """Response for the Integration resource in the closest language it offers."""
         info = integration.spec.product_info
         described = _description(info, language)
-        component = info.component if info else None
         return cls(
             id=id_of(integration),
             name=integration.name or "",
@@ -49,8 +48,20 @@ class IntegrationResponse(ApiModel):
             language=described.language if described else language,
             icon=info.icon if info else None,
             docs=info.docs if info else None,
-            component=ProductComponent(type=component.type, ref=component.ref) if component else None,
+            component=_component(info.ui if info else None),
         )
+
+
+def _component(ui: ProductUi | None) -> ProductComponent | None:
+    """The UI's type and ref, or None when the member that the type names is unset."""
+    if ui is None:
+        return None
+    kind, ref = {
+        "ModuleFederation": ("component", ui.module_federation.remote_entry if ui.module_federation else None),
+        "Link": ("link", ui.link.url if ui.link else None),
+        "Markdown": ("markdown", ui.markdown.url if ui.markdown else None),
+    }[ui.type]
+    return ProductComponent(type=kind, ref=ref) if ref else None
 
 
 def _description(info: ProductInfo | None, language: str) -> SpecDescription | None:

@@ -303,28 +303,63 @@ spec:
                     description: URL of the product documentation.
                     title: Docs
                     nullable: true
-                  component:
+                  ui:
                     description: How the product is opened in the platform UI.
                     properties:
                       type:
-                        description: Whether ref is a link, a markdown document, or
-                          a UI component.
+                        description: 'Which member describes the UI: moduleFederation,
+                          link, or markdown.'
                         enum:
-                        - link
-                        - markdown
-                        - component
+                        - ModuleFederation
+                        - Link
+                        - Markdown
                         title: Type
                         type: string
-                      ref:
-                        description: URL, markdown path, or component reference for
-                          the product.
-                        minLength: 1
-                        title: Ref
-                        type: string
+                      moduleFederation:
+                        description: The remote to load when type is ModuleFederation.
+                        properties:
+                          remoteEntry:
+                            description: URL of the remote entry, such as /integrations/<name>/ui/remoteEntry.js.
+                            minLength: 1
+                            title: Remoteentry
+                            type: string
+                        required:
+                        - remoteEntry
+                        title: ProductModuleFederation
+                        type: object
+                        default: null
+                        nullable: true
+                      link:
+                        description: The link to open when type is Link.
+                        properties:
+                          url:
+                            description: URL of the link or the markdown document.
+                            minLength: 1
+                            title: Url
+                            type: string
+                        required:
+                        - url
+                        title: ProductUrl
+                        type: object
+                        default: null
+                        nullable: true
+                      markdown:
+                        description: The markdown document to show when type is Markdown.
+                        properties:
+                          url:
+                            description: URL of the link or the markdown document.
+                            minLength: 1
+                            title: Url
+                            type: string
+                        required:
+                        - url
+                        title: ProductUrl
+                        type: object
+                        default: null
+                        nullable: true
                     required:
                     - type
-                    - ref
-                    title: ProductComponent
+                    title: ProductUi
                     type: object
                     default: null
                     nullable: true
@@ -400,31 +435,134 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
-              networkPolicy:
-                description: Intended ingress and egress. Core stores this and does
-                  not enforce it yet.
+              network:
+                description: Network access the integration needs.
                 properties:
                   ingress:
-                    default: Local
-                    description: 'Who may connect in: Local is the integration namespace,
-                      Cluster is the cluster, Public is outside.'
-                    enum:
-                    - Local
-                    - Cluster
-                    - Public
-                    title: Ingress
-                    type: string
-                  egress:
-                    default: Internet
-                    description: 'Where the integration may connect: Local is its
-                      namespace, Cluster is the cluster, Internet is outside.'
-                    enum:
-                    - Local
-                    - Cluster
-                    - Internet
-                    title: Egress
-                    type: string
-                title: IntegrationNetworkPolicy
+                    description: Traffic from outside the cluster.
+                    properties:
+                      httpRoutes:
+                        description: HTTP paths to serve.
+                        items:
+                          description: One HTTP path from outside the cluster to a
+                            Service in the integration namespace.
+                          properties:
+                            host:
+                              description: App is app.<domain> and needs a client
+                                certificate. Public is <domain> and needs none.
+                              enum:
+                              - App
+                              - Public
+                              title: Host
+                              type: string
+                            path:
+                              description: Path prefix to serve, or a regular expression
+                                that starts with ^ in Traefik PathRegexp syntax. /integrations/<name>
+                                is reserved for the integration.
+                              maxLength: 256
+                              pattern: ^(/[A-Za-z0-9._~/-]*|\^/[^`\s]*)$
+                              title: Path
+                              type: string
+                            stripPrefix:
+                              pattern: ^/[A-Za-z0-9._~/-]*$
+                              type: string
+                              default: null
+                              description: Prefix removed from the path before the
+                                request reaches the Service. Unset keeps the path.
+                              title: Stripprefix
+                              nullable: true
+                            blockedPaths:
+                              description: Paths below this route that the platform
+                                refuses to serve.
+                              items:
+                                description: Path that the platform refuses to serve.
+                                pattern: ^/[A-Za-z0-9._~/-]*$
+                                type: string
+                              title: Blockedpaths
+                              type: array
+                            service:
+                              description: Name of the Service in the integration
+                                namespace.
+                              maxLength: 63
+                              minLength: 1
+                              title: Service
+                              type: string
+                            port:
+                              description: Port of the Service.
+                              maximum: 65535
+                              minimum: 1
+                              title: Port
+                              type: integer
+                          required:
+                          - host
+                          - path
+                          - service
+                          - port
+                          title: IntegrationHttpRoute
+                          type: object
+                        title: Httproutes
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - host
+                        - path
+                        x-kubernetes-list-type: map
+                      ports:
+                        description: TCP and UDP ports to open.
+                        items:
+                          description: One TCP or UDP port from outside the cluster
+                            to a Service in the integration namespace.
+                          properties:
+                            name:
+                              description: Name of this port, unique in the integration.
+                              maxLength: 63
+                              minLength: 1
+                              title: Name
+                              type: string
+                            protocol:
+                              description: Transport protocol of the port.
+                              enum:
+                              - TCP
+                              - UDP
+                              title: Protocol
+                              type: string
+                            publicPort:
+                              maximum: 65535
+                              minimum: 1024
+                              type: integer
+                              default: null
+                              description: Port that clients connect to. Core assigns
+                                one from its pool when this is unset. A set value
+                                must be outside the pool.
+                              title: Publicport
+                              nullable: true
+                            service:
+                              description: Name of the Service in the integration
+                                namespace.
+                              maxLength: 54
+                              minLength: 1
+                              title: Service
+                              type: string
+                            port:
+                              description: Port of the Service.
+                              maximum: 65535
+                              minimum: 1
+                              title: Port
+                              type: integer
+                          required:
+                          - name
+                          - protocol
+                          - service
+                          - port
+                          title: IntegrationPort
+                          type: object
+                        title: Ports
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                    title: IntegrationIngress
+                    type: object
+                title: IntegrationNetwork
                 type: object
             required:
             - displayName
@@ -490,6 +628,37 @@ spec:
                 description: Most recent metadata.generation observed by the controller.
                 title: Observedgeneration
                 nullable: true
+              ports:
+                description: Public port of each listed port, assigned or pinned.
+                items:
+                  description: Public port of one listed port.
+                  properties:
+                    name:
+                      description: Name of the port in the spec.
+                      title: Name
+                      type: string
+                    protocol:
+                      description: Transport protocol of the port.
+                      enum:
+                      - TCP
+                      - UDP
+                      title: Protocol
+                      type: string
+                    publicPort:
+                      description: Port that clients connect to.
+                      title: Publicport
+                      type: integer
+                  required:
+                  - name
+                  - protocol
+                  - publicPort
+                  title: IntegrationPortStatus
+                  type: object
+                title: Ports
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
             title: IntegrationStatus
             type: object
             default: null

@@ -8,8 +8,10 @@ import pytest
 import yaml
 from cloudcoil.crd import CRD
 from cloudcoil.resources import Resource
+from pydantic import ValidationError
 
 from lib_opendefence_core.models.v1alpha1 import API_VERSION, Group, Integration, Invite, Role, User, UserBinding
+from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute, IntegrationPort, IntegrationStatus
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 MODELS: dict[str, type[Resource]] = {
@@ -163,3 +165,58 @@ def test_approve_patch_applies_to_a_user() -> None:
     user = next(document for _, document in _example_documents() if document.get("kind") == "User")
     approved = User.model_validate({**user, "spec": {**user["spec"], **patch["spec"]}})
     assert approved.spec.approved_at is not None
+
+
+@pytest.mark.parametrize("field", ["path", "stripPrefix", "blockedPaths"])
+@pytest.mark.parametrize(
+    ("value", "accepted"),
+    [
+        ("/", True),
+        ("/_matrix", True),
+        ("/.well-known/matrix", True),
+        ("/integrations/matrix/auth", True),
+        ("/a`) || Host(`evil", False),
+        ("/with space", False),
+        ("/percent%2f", False),
+        ("relative", False),
+    ],
+)
+def test_route_paths_hold_only_url_path_characters(field: str, value: str, accepted: bool) -> None:
+    """A route path that could change a Traefik rule is refused."""
+    route: dict[str, Any] = {"host": "Public", "path": "/", "service": "web", "port": 8080}
+    route[field] = [value] if field == "blockedPaths" else value
+    if accepted:
+        assert IntegrationHttpRoute.model_validate(route)
+    else:
+        with pytest.raises(ValidationError):
+            IntegrationHttpRoute.model_validate(route)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "accepted"),
+    [
+        ("path", "^/_example/(v1|v2)/(login|logout)$", True),
+        ("path", "^/a`) || Host(`evil", False),
+        ("path", "^/with space$", False),
+        ("path", "^example", False),
+        ("stripPrefix", "^/_example/(v1|v2)", False),
+    ],
+)
+def test_route_path_can_be_a_regex(field: str, value: str, accepted: bool) -> None:
+    """Only path takes a regex. It starts with ^/ and holds no backtick and no whitespace."""
+    route = {"host": "Public", "path": "/_example", "service": "web", "port": 8080, field: value}
+    if accepted:
+        assert IntegrationHttpRoute.model_validate(route)
+    else:
+        with pytest.raises(ValidationError):
+            IntegrationHttpRoute.model_validate(route)
+
+
+def test_integration_ports_report_a_public_port() -> None:
+    """A pinned port below 1024 is refused. Status holds the public port of each listed port."""
+    port = {"name": "feed", "protocol": "UDP", "service": "media", "port": 5000}
+    with pytest.raises(ValidationError):
+        IntegrationPort.model_validate({**port, "publicPort": 80})
+    assert IntegrationPort.model_validate({**port, "publicPort": 5000}).public_port == 5000
+    ports = [{"name": "feed", "protocol": "UDP", "publicPort": 30000}]
+    assert IntegrationStatus.model_validate({"ports": ports}).model_dump(by_alias=True)["ports"] == ports

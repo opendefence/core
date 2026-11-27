@@ -9,6 +9,7 @@ from lib_opendefence_core.models.v1alpha1.common import (
 )
 from lib_opendefence_core.models.v1alpha1.group import Group, GroupSpec, GroupStatus
 from lib_opendefence_core.models.v1alpha1.integration import (
+    PORTS_READY_CONDITION,
     Integration,
     IntegrationRole,
     IntegrationSpec,
@@ -38,6 +39,7 @@ __all__ = [
     "API_VERSION",
     "BINDINGS_SYNCED_CONDITION",
     "CERTIFICATE_READY_CONDITION",
+    "PORTS_READY_CONDITION",
     "REFERENCES_RESOLVED_CONDITION",
     "SYNCED_CONDITION",
     "BindingObservation",
