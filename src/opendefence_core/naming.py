@@ -23,6 +23,24 @@ OPERATOR_TLS_SECRET = "core-operator-tls"  # nosec B105  # pragma: allowlist sec
 SUPERADMIN_ROLE = "superadmin"
 """Role that grants full administration of the platform."""
 
+TRAEFIK_NAMESPACE = "traefik-system"
+"""Namespace of Traefik and of the middlewares that every route uses."""
+
+STRIP_IDENTITY_HEADERS_MIDDLEWARE = "strip-identity-headers"
+"""Middleware that clears the identity headers a client sends."""
+
+HSTS_MIDDLEWARE = "hsts"
+"""Middleware that sets the Strict-Transport-Security header."""
+
+PASS_CLIENT_CERT_MIDDLEWARE = "pass-client-cert"  # nosec B105
+"""Middleware that sends the verified client certificate to the backend."""
+
+DENY_MIDDLEWARE = "deny"
+"""Middleware that answers 403 to every request."""
+
+MTLS_TLS_OPTION = "core-mtls"
+"""TLSOption in TRAEFIK_NAMESPACE that requires a client certificate from the client CA."""
+
 
 def user_certificate_name(user: User) -> str:
     """Name of the user's one-shot cert-manager CertificateRequest in CLIENT_CERT_NAMESPACE."""

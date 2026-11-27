@@ -155,6 +155,14 @@ the Integration drops it.
 `spec.network.ingress.httpRoutes` lists HTTP paths on the `App` host (`app.<domain>`) or the `Public` host (`<domain>`).
 `spec.network.ingress.ports` lists TCP and UDP ports.
 
+The operator serves the routes with one `IngressRoute` for each host, named `<name>-public` and `<name>-app`, in the namespace named after the Integration.
+A backend on the `App` host gets the verified client certificate in the `X-Forwarded-Tls-Client-Cert` header.
+A `path` that starts with `^` is a regular expression. Its plain part before the first special character must be an allowed path.
+The platform answers 403 on each path in a route's `blockedPaths`. A blocked path must be below its route.
+An Integration owns the paths below `/integrations/<name>`. It can also ask for a path that starts with `/.well-known/` or `/_`.
+The operator refuses an Integration that asks for a different path, or for a path that overlaps a path of another Integration on the same host.
+Each Linkerd `Server` that a route reaches needs an `AuthorizationPolicy` for the ServiceAccount `traefik` in `traefik-system`.
+
 An integration creates one `UserBinding` per User in its own namespace, naming
 the User in `spec.userRef`, and sets the binding's `Synced` condition to
 `True` once the User is provisioned. The condition must include the current

@@ -10,6 +10,7 @@ from cloudcoil.errors import ResourceConflict
 from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import (
+    API_VERSION,
     BINDINGS_SYNCED_CONDITION,
     REFERENCES_RESOLVED_CONDITION,
     Group,
@@ -21,8 +22,10 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
+from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
 from opendefence_core.k8s_operator.controllers import groups, invites, users
 from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
+from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware
 from opendefence_core.k8s_operator.controllers.groups import manager_changed, parent_group_changed, reconcile_group
 from opendefence_core.k8s_operator.controllers.groups import role_changed as group_role_changed
 from opendefence_core.k8s_operator.controllers.integrations import reconcile_integration
@@ -134,6 +137,159 @@ async def test_reconcile_integration_syncs_extra_roles() -> None:
     assert cast(Role, ctx.ensured[0]).spec.display_name == "mission-lead"
     assert client.deleted == [(None, "old-role")]
     assert ctx.conditions[-1][:3] == (REFERENCES_RESOLVED_CONDITION, True, "Resolved")
+
+
+async def test_reconcile_integration_writes_routes() -> None:
+    """Each host with routes gets one IngressRoute in the Integration's namespace."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(host="Public", path="/_matrix", service="matrix-synapse", port=8008),
+        IntegrationHttpRoute(host="Public", path="/integrations/matrix/", service="matrix-web", port=8080),
+        IntegrationHttpRoute(host="App", path="/integrations/matrix/ui", service="matrix-ui", port=8080),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    public, app = ctx.ensured
+    shared = [
+        {"name": "strip-identity-headers", "namespace": "traefik-system"},
+        {"name": "hsts", "namespace": "traefik-system"},
+    ]
+    assert (public.kind, public.name, public.namespace) == ("IngressRoute", "matrix-public", "matrix")
+    assert cast(Any, public)["spec"] == {
+        "entryPoints": ["websecure"],
+        "routes": [
+            {
+                "kind": "Rule",
+                "match": "Host(`local-dev.opendefence.fi`) && (Path(`/_matrix`) || PathPrefix(`/_matrix/`))",
+                "middlewares": shared,
+                "services": [{"name": "matrix-synapse", "port": 8008}],
+            },
+            {
+                "kind": "Rule",
+                "match": "Host(`local-dev.opendefence.fi`) && PathPrefix(`/integrations/matrix/`)",
+                "middlewares": shared,
+                "services": [{"name": "matrix-web", "port": 8080}],
+            },
+        ],
+        "tls": {},
+    }
+    assert (app.name, app.namespace) == ("matrix-app", "matrix")
+    assert cast(Any, app)["spec"] == {
+        "entryPoints": ["websecure"],
+        "routes": [
+            {
+                "kind": "Rule",
+                "match": "Host(`app.local-dev.opendefence.fi`) && "
+                "(Path(`/integrations/matrix/ui`) || PathPrefix(`/integrations/matrix/ui/`))",
+                "middlewares": [shared[0], {"name": "pass-client-cert", "namespace": "traefik-system"}, shared[1]],
+                "services": [{"name": "matrix-ui", "port": 8080}],
+            },
+        ],
+        "tls": {"options": {"name": "core-mtls", "namespace": "traefik-system"}},
+    }
+
+
+async def test_reconcile_integration_strips_route_prefixes() -> None:
+    """Each stripPrefix gets its own Middleware, written before the route whose rule ends with it."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(
+            host="Public",
+            path="/integrations/matrix/api",
+            strip_prefix="/integrations/matrix/api",
+            service="api",
+            port=9000,
+        ),
+        IntegrationHttpRoute(
+            host="Public",
+            path="/integrations/matrix/workload",
+            strip_prefix="/integrations/matrix/workload",
+            service="workload",
+            port=8080,
+        ),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    strip_api, strip_workload, public = ctx.ensured
+    assert (strip_api.kind, strip_api.namespace) == ("Middleware", "matrix")
+    assert cast(Any, strip_api)["spec"] == {"stripPrefix": {"prefixes": ["/integrations/matrix/api"]}}
+    assert cast(Any, strip_workload)["spec"] == {"stripPrefix": {"prefixes": ["/integrations/matrix/workload"]}}
+    assert strip_api.name != strip_workload.name
+    last = [rule["middlewares"][-1] for rule in cast(Any, public)["spec"]["routes"]]
+    assert last == [{"name": strip_api.name}, {"name": strip_workload.name}]
+
+
+async def test_reconcile_integration_keeps_a_regex_route_below_its_plain_path() -> None:
+    """A regex path is matched together with its leading plain segments."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(host="Public", path="^/_workload/(v1|v2)/(start|stop)$", service="workload", port=8080),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    assert cast(Any, ctx.ensured[0])["spec"]["routes"][0]["match"] == (
+        "Host(`local-dev.opendefence.fi`) && (Path(`/_workload`) || PathPrefix(`/_workload/`))"
+        " && PathRegexp(`^/_workload/(v1|v2)/(start|stop)$`)"
+    )
+
+
+async def test_reconcile_integration_denies_blocked_paths() -> None:
+    """A blocked path gets its own rule with the deny middleware and a priority above every route."""
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(
+            host="Public",
+            path="/integrations/matrix/workload",
+            blocked_paths=["/integrations/matrix/workload/admin"],
+            service="workload",
+            port=8080,
+        ),
+    ]
+    ctx = FakeContext()
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    served, blocked = cast(Any, ctx.ensured[0])["spec"]["routes"]
+    assert "priority" not in served
+    assert blocked == {
+        "kind": "Rule",
+        "match": "Host(`local-dev.opendefence.fi`) && "
+        "(Path(`/integrations/matrix/workload/admin`) || PathPrefix(`/integrations/matrix/workload/admin/`))",
+        "priority": 10000,
+        "middlewares": [{"name": "deny", "namespace": "traefik-system"}],
+        "services": [{"name": "workload", "port": 8080}],
+    }
+
+
+async def test_reconcile_integration_deletes_dropped_routes() -> None:
+    """Owned routes and strip Middlewares that the spec no longer needs are deleted; other objects stay."""
+
+    def traefik(kind: type[Resource], name: str, owner: str) -> Resource:
+        """Traefik object in the matrix namespace, owned by the named Integration."""
+        owner_reference = {
+            "apiVersion": API_VERSION,
+            "kind": "Integration",
+            "name": owner,
+            "uid": uid(owner),
+            "controller": True,
+        }
+        return kind.model_validate(
+            {"metadata": {"name": name, "namespace": "matrix", "uid": uid(name), "ownerReferences": [owner_reference]}}
+        )
+
+    integration = make_integration("matrix")
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute(host="Public", path="/integrations/matrix/workload", service="workload", port=8080),
+    ]
+    routes = [
+        traefik(IngressRoute, "matrix-public", "matrix"),
+        traefik(IngressRoute, "matrix-app", "matrix"),
+        traefik(IngressRoute, "other-app", "other"),
+    ]
+    strips = [traefik(Middleware, "matrix-strip-00000000", "matrix")]
+    clients: dict[type[Resource], FakeClient[Any]] = {IngressRoute: FakeClient(routes), Middleware: FakeClient(strips)}
+    ctx = FakeContext({IngressRoute: FakeCache(routes), Middleware: FakeCache(strips)}, clients)
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    assert clients[IngressRoute].deleted == [("matrix", "matrix-app")]
+    assert clients[Middleware].deleted == [("matrix", "matrix-strip-00000000")]
 
 
 async def test_integration_does_not_delete_replaced_role() -> None:

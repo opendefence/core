@@ -43,6 +43,7 @@ components:
           - manifests/traefik-middlewares/hsts.yaml
           - manifests/traefik-middlewares/strip-identity-headers.yaml
           - manifests/traefik-middlewares/pass-client-cert.yaml
+          - manifests/traefik-middlewares/deny.yaml
   - name: operator
     required: true
     manifests:

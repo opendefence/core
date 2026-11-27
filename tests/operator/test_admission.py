@@ -1,4 +1,4 @@
-"""Admission webhooks: Group parent chains and deletes, Role deletes, User callsigns and deletes."""
+"""Admission webhooks: Group parent chains and deletes, Role deletes, User callsigns and deletes, Integration paths."""
 
 from typing import cast
 
@@ -6,11 +6,13 @@ import pytest
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.resources import Resource
 
-from lib_opendefence_core.models.v1alpha1 import Group, Role, User
+from lib_opendefence_core.models.v1alpha1 import Group, Integration, Role, User
+from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
 from opendefence_core.k8s_operator.controllers.groups import validate_group
+from opendefence_core.k8s_operator.controllers.integrations import validate_integration_paths
 from opendefence_core.k8s_operator.controllers.roles import validate_role_delete
 from opendefence_core.k8s_operator.controllers.users import validate_user_callsign, validate_user_delete
-from tests.factories import make_binding, make_group, make_invite, make_role, make_user
+from tests.factories import make_binding, make_group, make_integration, make_invite, make_role, make_user
 from tests.fakes import FakeAdmissionRequest
 
 
@@ -303,3 +305,103 @@ async def test_validate_user_delete_rejects_user_with_bindings() -> None:
         )
     assert raised.value.reason == "StillReferenced"
     assert str(raised.value) == "User is still named by: UserBinding/radio/bob, UserBinding/taky/bob"
+
+
+def _with_routes(name: str, *routes: tuple[str, str]) -> Integration:
+    """Integration with one route to a made-up Service for each host and path."""
+    integration = make_integration(name)
+    integration.spec.network.ingress.http_routes = [
+        IntegrationHttpRoute.model_validate({"host": host, "path": path, "service": "workload", "port": 8080})
+        for host, path in routes
+    ]
+    return integration
+
+
+async def _validate_integration_paths(request: FakeAdmissionRequest[Integration]) -> None:
+    await validate_integration_paths(cast(AdmissionRequest[Integration], request))
+
+
+async def test_integration_may_use_its_own_prefix_and_free_requestable_paths() -> None:
+    """Paths below /integrations/<name>, and free /_ and /.well-known/ paths, are granted."""
+    other = _with_routes("other", ("Public", "/_other"), ("App", "/_shared"))
+    wanted = _with_routes(
+        "example",
+        ("Public", "/integrations/example"),
+        ("App", "/integrations/example/api"),
+        ("Public", "/_example"),
+        ("Public", "/.well-known/example"),
+        ("Public", "/_shared"),
+    )
+    await _validate_integration_paths(FakeAdmissionRequest(resource=wanted, objects=[other, wanted]))
+
+
+@pytest.mark.parametrize("path", ["/integrations/other/api", "/integrations", "/api/v3/users", "/login", "/"])
+async def test_integration_cannot_take_reserved_paths(path: str) -> None:
+    """Another integration's prefix and the paths that core serves are refused without a lookup."""
+    request = FakeAdmissionRequest(resource=_with_routes("example", ("Public", path)))
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_integration_paths(request)
+    assert raised.value.reason == "PathReserved"
+    assert request.client_calls == 0
+
+
+@pytest.mark.parametrize("path", ["/_other/media", "/_other/media/files", "/_other"])
+async def test_integration_cannot_take_a_path_that_overlaps_another(path: str) -> None:
+    """A path that is equal to, below, or above another integration's path on the same host is refused."""
+    other = _with_routes("other", ("Public", "/_other/media"))
+    with pytest.raises(AdmissionDenied) as raised:
+        await _validate_integration_paths(
+            FakeAdmissionRequest(resource=_with_routes("example", ("Public", path)), objects=[other])
+        )
+    assert raised.value.reason == "PathTaken"
+
+
+async def test_integration_update_that_keeps_its_routes_is_not_checked() -> None:
+    """A write that leaves the routes alone passes, even when a path is no longer free."""
+    current = _with_routes("example", ("Public", "/_other"))
+    request = FakeAdmissionRequest(
+        operation="UPDATE",
+        resource=current,
+        old_resource=current.model_copy(deep=True),
+        objects=[_with_routes("other", ("Public", "/_other"))],
+    )
+    await _validate_integration_paths(request)
+    assert request.client_calls == 0
+
+
+@pytest.mark.parametrize(
+    ("path", "reason"),
+    [
+        ("^/_example/(v1|v2)/(start|stop)$", None),
+        ("^/integrations/example/(v1|v2)$", None),
+        ("^/_example$", None),
+        ("^/(_example|api)/v1", "PathReserved"),
+        ("^/_other/media/(v1|v2)", "PathTaken"),
+        ("^/_example/(v1", "InvalidPathRegex"),
+    ],
+)
+async def test_integration_regex_path_is_checked_by_its_plain_part(path: str, reason: str | None) -> None:
+    """A regex path is granted or refused by its leading plain segments, and it must compile."""
+    request = FakeAdmissionRequest(
+        resource=_with_routes("example", ("Public", path)),
+        objects=[_with_routes("other", ("Public", "/_other/media"))],
+    )
+    if reason is None:
+        await _validate_integration_paths(request)
+    else:
+        with pytest.raises(AdmissionDenied) as raised:
+            await _validate_integration_paths(request)
+        assert raised.value.reason == reason
+
+
+@pytest.mark.parametrize(("blocked", "granted"), [("/integrations/example/api/admin", True), ("/api", False)])
+async def test_integration_blocks_only_paths_below_its_route(blocked: str, granted: bool) -> None:
+    """A blocked path outside its route is refused, so an integration cannot block the paths of others."""
+    integration = _with_routes("example", ("Public", "/integrations/example/api"))
+    integration.spec.network.ingress.http_routes[0].blocked_paths = [blocked]
+    if granted:
+        await _validate_integration_paths(FakeAdmissionRequest(resource=integration))
+    else:
+        with pytest.raises(AdmissionDenied) as raised:
+            await _validate_integration_paths(FakeAdmissionRequest(resource=integration))
+        assert raised.value.reason == "PathReserved"

@@ -8,6 +8,7 @@ from cloudcoil.models.cert_manager.v1 import CertificateRequest
 
 from lib_opendefence_core.models.v1alpha1 import Role, UserBinding
 from opendefence_core.k8s_operator.controllers import ALL_CONTROLLERS
+from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware
 from opendefence_core.naming import OPERATOR_NAME, OPERATOR_TLS_SECRET, SYSTEM_NAMESPACE
 
 HEALTH_PORT = 8080
@@ -21,11 +22,13 @@ app = Application(
     webhook=WebhookServer(tls_secret=OPERATOR_TLS_SECRET),
     resources=(UserBinding,),
     rules=(
-        # Owning Roles grants create and patch; delete covers roles an Integration drops
+        # Owning a kind grants create and patch; delete covers what an Integration drops
         RBACRule(Role, verbs=("delete",)),
         RBACRule(
             CertificateRequest, verbs=("delete",), plural="certificaterequests", scope="Namespaced", all_namespaces=True
         ),
+        RBACRule(IngressRoute, verbs=("delete",), plural="ingressroutes", scope="Namespaced", all_namespaces=True),
+        RBACRule(Middleware, verbs=("delete",), plural="middlewares", scope="Namespaced", all_namespaces=True),
     ),
 )
 for controller in ALL_CONTROLLERS:
