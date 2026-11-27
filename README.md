@@ -155,7 +155,7 @@ the Integration drops it.
 `spec.network.ingress.httpRoutes` lists HTTP paths on the `App` host (`app.<domain>`) or the `Public` host (`<domain>`).
 `spec.network.ingress.ports` lists TCP and UDP ports.
 The operator opens each port with a Service named `<service>-external` in the namespace named after the Integration.
-A port with no `publicPort` gets the lowest free port of `ports.pool`, and keeps it while the port stays in the spec.
+A port with no `publicPort` gets a random free port of `ports.pool`, and keeps it while the port stays in the spec.
 A TCP port and a UDP port do not share a pool port.
 `status.ports` holds the public port of each port, and `PortsReady` reports the result.
 This traffic does not come through the mesh, so the Linkerd `Server` for the port must allow unauthenticated clients.

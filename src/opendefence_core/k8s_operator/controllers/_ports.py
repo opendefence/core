@@ -1,5 +1,7 @@
 """Services for the TCP and UDP ports that an Integration lists."""
 
+import secrets
+
 from cloudcoil.apimachinery import IntOrString, ObjectMeta
 from cloudcoil.models.kubernetes.core.v1 import Service, ServicePort, ServiceSpec
 
@@ -12,7 +14,7 @@ def public_ports(integration: Integration, taken: set[int], pool: range) -> list
     """The public port of each listed port. A port that the pool has no number for is left out.
 
     A port with no publicPort keeps the number that status holds for it, while that number is in the pool and free.
-    Otherwise it takes the lowest free number of the pool. A number is taken on both protocols at once.
+    Otherwise it takes a random free number of the pool. A number is taken on both protocols at once.
     taken holds the numbers of other Integrations.
     """
     ports = integration.spec.network.ingress.ports
@@ -29,11 +31,10 @@ def public_ports(integration: Integration, taken: set[int], pool: range) -> list
         if number is not None and number in pool and number not in taken:
             numbers[port.name] = number
             taken.add(number)
+    free = [number for number in pool if number not in taken]
     for port in unpinned:
-        number = next((number for number in pool if number not in taken), None)
-        if port.name not in numbers and number is not None:
-            numbers[port.name] = number
-            taken.add(number)
+        if port.name not in numbers and free:
+            numbers[port.name] = free.pop(secrets.randbelow(len(free)))
     return [
         IntegrationPortStatus(name=port.name, protocol=port.protocol, public_port=numbers[port.name])
         for port in ports

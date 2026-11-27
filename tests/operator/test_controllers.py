@@ -515,8 +515,9 @@ async def test_reconcile_integration_waits_for_a_port_backend() -> None:
     assert ctx.ensured == []
 
 
-async def test_reconcile_integration_assigns_ports_from_the_pool() -> None:
-    """An unpinned port keeps the number in status, or takes the lowest one that no other Integration holds."""
+async def test_reconcile_integration_assigns_ports_from_the_pool(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An unpinned port keeps the number in status, or takes a free one that no other Integration holds."""
+    monkeypatch.setattr(get_operator_config(), "port_pool_end", 30003)
     integration = make_integration("radio")
     integration.spec.network.ingress.ports = [
         IntegrationPort(name="feed", protocol="UDP", service="relay", port=4000),
@@ -531,14 +532,16 @@ async def test_reconcile_integration_assigns_ports_from_the_pool() -> None:
     backend = make_service("relay", "radio", ports=[(4000, "UDP", "feed"), (4001, "TCP", 8001), (4002, "TCP", 8002)])
     ctx = FakeContext({Service: FakeCache([backend])}, {Integration: FakeClient([integration, other])})
     await reconcile_integration(integration, cast(Context[Integration], ctx))
-    assert [(port.name, port.public_port) for port in ctx.status["ports"]] == [
-        ("feed", 30001),
-        ("control", 30003),
-        ("admin", 30002),
-    ]
+    numbers = {port.name: port.public_port for port in ctx.status["ports"]}
+    assert numbers["admin"] == 30002
+    assert {numbers["feed"], numbers["control"]} == {30001, 30003}
     [service] = [item for item in ctx.ensured if isinstance(item, Service)]
     assert service.spec is not None
-    assert [port.name for port in service.spec.ports or []] == ["udp-30001", "tcp-30003", "tcp-30002"]
+    assert [port.name for port in service.spec.ports or []] == [
+        f"udp-{numbers['feed']}",
+        f"tcp-{numbers['control']}",
+        "tcp-30002",
+    ]
     assert (PORTS_READY_CONDITION, True, "Opened", "") in ctx.conditions
 
 
