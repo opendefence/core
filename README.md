@@ -154,6 +154,9 @@ the Integration drops it.
 
 `spec.network.ingress.httpRoutes` lists HTTP paths on the `App` host (`app.<domain>`) or the `Public` host (`<domain>`).
 `spec.network.ingress.ports` lists TCP and UDP ports.
+The operator opens each port that sets `publicPort` with a Service named `<service>-external` in the namespace named after the Integration.
+`status.ports` holds the public port of each port, and `PortsReady` reports the result.
+This traffic does not come through the mesh, so the Linkerd `Server` for the port must allow unauthenticated clients.
 
 The operator serves the routes with one `IngressRoute` for each host, named `<name>-public` and `<name>-app`, in the namespace named after the Integration.
 A backend on the `App` host gets the verified client certificate in the `X-Forwarded-Tls-Client-Cert` header.
@@ -191,8 +194,8 @@ includes:
     vars:
       CORE_VERSION: '{{.CORE_VERSION | default "<published-version>"}}'
       CORE_REF: <commit>
-      # Local development: the kind cluster's hostname, without HSTS
-      CORE_SET_VALUES: domain=local-dev.opendefence.fi,hsts.maxAge=0
+      # Local development: the kind cluster's hostname, without HSTS, with NodePort Services
+      CORE_SET_VALUES: domain=local-dev.opendefence.fi,hsts.maxAge=0,ports.serviceType=NodePort
 ```
 
 | Task           | Effect                                                                                   |
@@ -242,10 +245,11 @@ defaults baked into the package, `values/values.schema.json` validates them,
 and `values/local-dev.yaml` is the development variant used by Tilt and the
 build tasks:
 
-| Value         | Default               | local-dev                  | Effect                                                                       |
-| ------------- | --------------------- | -------------------------- | ---------------------------------------------------------------------------- |
-| `domain`      | `opendefence.invalid` | `local-dev.opendefence.fi` | Public hostnames `<domain>` and `app.<domain>`, their certificate and routes |
-| `hsts.maxAge` | `31536000`            | `0`                        | HSTS max-age; `0` clears it in your browser                                  |
+| Value               | Default               | local-dev                  | Effect                                                                       |
+| ------------------- | --------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| `domain`            | `opendefence.invalid` | `local-dev.opendefence.fi` | Public hostnames `<domain>` and `app.<domain>`, their certificate and routes |
+| `hsts.maxAge`       | `31536000`            | `0`                        | HSTS max-age; `0` clears it in your browser                                  |
+| `ports.serviceType` | `LoadBalancer`        | `NodePort`                 | Service type that opens integration ports; kind has no load balancer         |
 
 The default `domain` is a placeholder that every deployment must override:
 its certificate can't be issued, so a deployment that forgets it fails the

@@ -1,18 +1,21 @@
-"""Integration controller: write extra roles and routes, and delete the ones no longer listed."""
+"""Integration controller: write extra roles, routes and port Services, and delete the ones no longer listed."""
 
 import re
 from contextlib import suppress
 
 from cloudcoil.admission import AdmissionDenied, AdmissionRequest
 from cloudcoil.apimachinery import ObjectMeta
-from cloudcoil.controller import Context, Controller
+from cloudcoil.controller import Context, Controller, Wait
 from cloudcoil.errors import ResourceNotFound
+from cloudcoil.models.kubernetes.core.v1 import Service
 from cloudcoil.resources import Resource
 
-from lib_opendefence_core.models.v1alpha1 import Integration, Role, RoleSpec
+from lib_opendefence_core.models.v1alpha1 import PORTS_READY_CONDITION, Integration, Role, RoleSpec
 from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
 from opendefence_core.config import get_core_config
+from opendefence_core.k8s_operator.config import get_operator_config
 from opendefence_core.k8s_operator.controllers._events import recorder
+from opendefence_core.k8s_operator.controllers._ports import port_services, public_ports
 from opendefence_core.k8s_operator.controllers._refs import mark_resolved
 from opendefence_core.k8s_operator.controllers._routes import (
     IngressRoute,
@@ -24,7 +27,7 @@ from opendefence_core.k8s_operator.controllers._routes import (
 )
 
 integrations = Controller(
-    Integration, name="integrations", owns=(Role, IngressRoute, Middleware), events=recorder("integrations")
+    Integration, name="integrations", owns=(Role, IngressRoute, Middleware, Service), events=recorder("integrations")
 )
 
 
@@ -103,9 +106,25 @@ async def _delete_unwanted(
             await client.delete(existing.name, existing.namespace, uid=existing.metadata.uid)
 
 
+async def _open_ports(integration: Integration, ctx: Context[Integration]) -> None:
+    """Write the Services for the Integration's public ports, and report the ports and the result in status."""
+    public = public_ports(integration)
+    ctx.set_status(ports=public)
+    services, missing = port_services(integration, public, ctx.cached(Service), get_operator_config().port_service_type)
+    # A dropped Service goes first, because it can hold a port that another Service now needs
+    await _delete_unwanted(ctx, Service, integration, {service.name for service in services})
+    for service in services:
+        await ctx.ensure(service)
+    if missing:
+        message = f"No backend Service port for: {', '.join(missing)}"
+        ctx.condition(PORTS_READY_CONDITION, False, reason="BackendNotFound", message=message)
+        raise Wait("BackendNotFound", message, after=60)
+    ctx.condition(PORTS_READY_CONDITION, True, reason="Opened")
+
+
 @integrations.reconcile()
 async def reconcile_integration(integration: Integration, ctx: Context[Integration]) -> None:
-    """Write the Integration's extra Roles and routes, and delete the owned ones that the spec no longer lists."""
+    """Write the Integration's extra Roles, routes and ports, and delete the owned ones that the spec no longer lists."""
     await _delete_unwanted(ctx, Role, integration, {role.name for role in integration.spec.extra_roles})
     for role in integration.spec.extra_roles:
         await ctx.ensure(
@@ -121,4 +140,5 @@ async def reconcile_integration(integration: Integration, ctx: Context[Integrati
     # Routes go before the Middlewares that they name
     for kind in (IngressRoute, Middleware):
         await _delete_unwanted(ctx, kind, integration, {item.name for item in resources if isinstance(item, kind)})
+    await _open_ports(integration, ctx)
     mark_resolved(ctx)

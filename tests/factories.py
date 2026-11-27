@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import NAMESPACE_DNS, uuid5
 
 from cloudcoil.apimachinery import ObjectMeta, OwnerReference
+from cloudcoil.models.kubernetes.core.v1 import Service
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -244,4 +245,26 @@ def make_binding(name: str, *, user: str, namespace: str = "taky", synced: bool 
         metadata=ObjectMeta(name=name, namespace=namespace, uid=uid(f"{namespace}/{name}"), generation=1),
         spec=UserBindingSpec(user_ref=ObjectRef(name=user)),
         status=status,
+    )
+
+
+def make_service(
+    name: str, namespace: str, *, ports: Iterable[tuple[int, str, int | str]] = (), owner: str | None = None
+) -> Service:
+    """Service that selects app=<name>. A port is (port, protocol, targetPort). owner names the controlling Integration."""
+    metadata = ObjectMeta(name=name, namespace=namespace, uid=uid(name))
+    if owner is not None:
+        metadata.owner_references = [
+            OwnerReference(api_version=API_VERSION, kind="Integration", name=owner, uid=uid(owner), controller=True)
+        ]
+    return Service.model_validate(
+        {
+            "metadata": metadata,
+            "spec": {
+                "selector": {"app": name},
+                "ports": [
+                    {"port": port, "protocol": protocol, "targetPort": target} for port, protocol, target in ports
+                ],
+            },
+        }
     )

@@ -4,3 +4,6 @@ domain: local-dev.opendefence.fi
 hsts:
   # Don't pin HSTS for local hostnames in developer browsers
   maxAge: 0
+ports:
+  # kind has no load balancer
+  serviceType: NodePort

@@ -1,5 +1,5 @@
-# Settings shared by the operator and the REST API, read as CORE_* environment
-# variables through envFrom
+# Settings from package values, read as CORE_* environment variables through
+# envFrom. The operator and the REST API share them, except CORE_OPERATOR_*.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,3 +9,4 @@ data:
   CORE_DOMAIN: {{ .Values.domain | quote }}
   # First DNS label of the domain, e.g. local-dev
   CORE_DEPLOYMENT: {{ .Values.domain | splitList "." | first | quote }}
+  CORE_OPERATOR_PORT_SERVICE_TYPE: {{ .Values.ports.serviceType | quote }}

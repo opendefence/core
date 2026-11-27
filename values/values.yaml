@@ -5,3 +5,6 @@ domain: opendefence.invalid
 hsts:
   # Strict-Transport-Security max-age in seconds; 0 sends max-age=0 to clear it
   maxAge: 31536000
+ports:
+  # Service type that opens integration ports: LoadBalancer, or NodePort on kind
+  serviceType: LoadBalancer

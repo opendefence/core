@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["domain", "hsts"],
+  "required": ["domain", "hsts", "ports"],
   "properties": {
     "domain": {
       "type": "string",
@@ -16,6 +16,16 @@
         "maxAge": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "ports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["serviceType"],
+      "properties": {
+        "serviceType": {
+          "enum": ["LoadBalancer", "NodePort"]
         }
       }
     }

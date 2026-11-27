@@ -7,11 +7,13 @@ from unittest.mock import Mock, PropertyMock
 import pytest
 from cloudcoil.controller import Context, Controller, ResourceKey, TerminalError, Wait
 from cloudcoil.errors import ResourceConflict
+from cloudcoil.models.kubernetes.core.v1 import Service
 from cloudcoil.resources import Resource
 
 from lib_opendefence_core.models.v1alpha1 import (
     API_VERSION,
     BINDINGS_SYNCED_CONDITION,
+    PORTS_READY_CONDITION,
     REFERENCES_RESOLVED_CONDITION,
     Group,
     Integration,
@@ -22,7 +24,12 @@ from lib_opendefence_core.models.v1alpha1 import (
     UserBinding,
     is_synced,
 )
-from lib_opendefence_core.models.v1alpha1.integration import IntegrationHttpRoute
+from lib_opendefence_core.models.v1alpha1.integration import (
+    IntegrationHttpRoute,
+    IntegrationPort,
+    IntegrationPortStatus,
+)
+from opendefence_core.k8s_operator.config import get_operator_config
 from opendefence_core.k8s_operator.controllers import groups, invites, users
 from opendefence_core.k8s_operator.controllers._refs import referrers_of, resolve_refs
 from opendefence_core.k8s_operator.controllers._routes import IngressRoute, Middleware
@@ -36,7 +43,16 @@ from opendefence_core.k8s_operator.controllers.roles import reconcile_role
 from opendefence_core.k8s_operator.controllers.users import group_changed as user_group_changed
 from opendefence_core.k8s_operator.controllers.users import reconcile_user, userbinding_changed
 from opendefence_core.k8s_operator.controllers.users import role_changed as user_role_changed
-from tests.factories import make_binding, make_group, make_integration, make_invite, make_role, make_user, uid
+from tests.factories import (
+    make_binding,
+    make_group,
+    make_integration,
+    make_invite,
+    make_role,
+    make_service,
+    make_user,
+    uid,
+)
 from tests.fakes import FakeCache, FakeClient, FakeContext
 
 
@@ -446,3 +462,54 @@ def test_userbinding_changed_requeues_named_user(monkeypatch: pytest.MonkeyPatch
 
     ready.return_value = True
     assert userbinding_changed(binding) == [ResourceKey("alice")]
+
+
+@pytest.mark.parametrize("service_type", ["LoadBalancer", "NodePort"])
+async def test_reconcile_integration_opens_pinned_ports(monkeypatch: pytest.MonkeyPatch, service_type: str) -> None:
+    """One <service>-external Service carries every pinned port of a backend. A dropped one is deleted."""
+    monkeypatch.setattr(get_operator_config(), "port_service_type", service_type)
+    integration = make_integration("radio")
+    integration.spec.network.ingress.ports = [
+        IntegrationPort(name="feed", protocol="UDP", public_port=5000, service="relay", port=4000),
+        IntegrationPort(name="control", protocol="TCP", public_port=5001, service="relay", port=4001),
+        IntegrationPort(name="unpinned", protocol="TCP", service="relay", port=4001),
+    ]
+    backend = make_service("relay", "radio", ports=[(4000, "UDP", "feed"), (4001, "TCP", 8001)])
+    dropped = make_service("old-external", "radio", owner="radio")
+    client = FakeClient([backend, dropped])
+    ctx = FakeContext({Service: FakeCache([backend, dropped])}, {Service: client})
+    await reconcile_integration(integration, cast(Context[Integration], ctx))
+    [service] = [item for item in ctx.ensured if isinstance(item, Service)]
+    assert (service.name, service.namespace) == ("relay-external", "radio")
+    node = service_type == "NodePort"
+    assert service.model_dump(mode="json", by_alias=True, exclude_none=True)["spec"] == {
+        "type": service_type,
+        **({} if node else {"allocateLoadBalancerNodePorts": False}),
+        "selector": {"app": "relay"},
+        "ports": [
+            {"name": "udp-5000", "protocol": "UDP", "port": 5000, "targetPort": "feed"}
+            | ({"nodePort": 5000} if node else {}),
+            {"name": "tcp-5001", "protocol": "TCP", "port": 5001, "targetPort": 8001}
+            | ({"nodePort": 5001} if node else {}),
+        ],
+    }
+    assert ctx.status["ports"] == [
+        IntegrationPortStatus(name="feed", protocol="UDP", public_port=5000),
+        IntegrationPortStatus(name="control", protocol="TCP", public_port=5001),
+    ]
+    assert client.deleted == [("radio", "old-external")]
+    assert (PORTS_READY_CONDITION, True, "Opened", "") in ctx.conditions
+
+
+async def test_reconcile_integration_waits_for_a_port_backend() -> None:
+    """A port with no backend Service is reported. Its public port is still in status."""
+    integration = make_integration("radio")
+    integration.spec.network.ingress.ports = [
+        IntegrationPort(name="feed", protocol="UDP", public_port=5000, service="relay", port=4000)
+    ]
+    ctx = FakeContext()
+    with pytest.raises(Wait):
+        await reconcile_integration(integration, cast(Context[Integration], ctx))
+    assert ctx.status["ports"] == [IntegrationPortStatus(name="feed", protocol="UDP", public_port=5000)]
+    assert ctx.conditions[-1][:3] == (PORTS_READY_CONDITION, False, "BackendNotFound")
+    assert ctx.ensured == []
