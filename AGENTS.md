@@ -16,6 +16,7 @@ This repository holds OpenDefence core: a cloudcoil operator and a FastAPI REST 
 
 ## Conventions
 
+- Every deployment is new. No deployment lives long, so no existing certificates, databases, or resources need compatibility. Do not add migrations or upgrade paths for changes in this repository.
 - Never edit the generated manifests by hand. After changing models, controllers, webhooks, or `RBACRule`s, run `task build:manifests`; `tests/test_render.py` and `task build:manifests:check` fail while the files are stale.
 - Every CRD field needs a description (a test checks this). Refer to other platform objects by name with `ObjectRef` and resolve them with the `_refs.py` helpers. Condition types are constants in the models.
 - The API speaks camelCase JSON through `ApiModel`. Routes live under `/api/v3` and get their configuration from `get_core_config()` or `get_api_config()`, never from a module-level instance.
