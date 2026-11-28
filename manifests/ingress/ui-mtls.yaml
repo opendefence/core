@@ -8,7 +8,7 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: Host(`app.{{ .Values.domain }}`)
+      match: Host(`app.{{ .Values.domain }}`) && !PathPrefix(`/api`)
       middlewares:
         - name: strip-identity-headers
           namespace: traefik-system
